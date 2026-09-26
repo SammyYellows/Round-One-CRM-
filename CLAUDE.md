@@ -6,9 +6,23 @@ both using Claude Code on the same repo. Read `README.md` for how to run it.
 ## Scope
 
 **This CRM books free trials.** It takes someone from first enquiry (ad,
-form, walk-in, referral) to a booked and attended trial, and ends at
-"Joined". Memberships, billing, member classes, renewals and PT are managed
-in other software: don't build them here. The calendar holds trials only.
+form, walk-in, referral) to a booked and attended trial, and ends at the
+sale ("Sold – Programme" or "Sold – Recurring membership"). Memberships,
+billing, member classes, renewals and PT are managed in other software:
+don't build them here. The calendar holds trials only.
+
+## Pipeline stages
+
+Agreed with Sammy on 26/09. Ids live in `src/lib/types.ts`:
+
+New lead → Contacted → Appointment booked → No-show / Appointment attended →
+Nurture → Sold – Programme / Sold – Recurring membership. Plus Lost, which
+always carries a reason (`LOST_REASONS`) and is only for people who have
+clearly said no.
+
+- Everyone qualifies. Forms collect answers but never turn anyone away.
+- "Confirmed" is an appointment status, not a stage.
+- Appointment statuses: booked, confirmed, attended, no-show, cancelled.
 
 ## Where we are
 
@@ -43,8 +57,9 @@ runner (Inngest or Trigger.dev) for automation waits.
   trigger plus steps. Add a new step kind in `types.ts`, then handle it in
   `advanceRun` and `describeStep` in `engine.ts`.
 - **The calendar and the pipeline never disagree.** A free-trial appointment
-  sets `contact.trialAt` and the Trial booked stage; marking it showed,
-  no-show or cancelled moves the stage on. Always go through the calendar
+  sets `contact.trialAt` and the Appointment booked stage; marking it
+  attended moves them to Appointment attended, no-show to No-show, and
+  cancelled (with no other trial) back to Contacted. Always go through the calendar
   functions in `engine.ts` (`createAppointment`, `setAppointmentStatus`,
   `rescheduleAppointment`), never edit appointments directly.
 - **Attribution goes down to the ad.** Every contact from Meta stores
@@ -92,5 +107,5 @@ npm run build
 ```
 
 Must pass clean. Then click through: submit `/f/free-trial`, see the lead on
-Today and Pipeline, drag it to Trial booked, use +1 day and check the
+Today and Pipeline, drag it to Appointment booked, use +1 day and check the
 automation steps run.

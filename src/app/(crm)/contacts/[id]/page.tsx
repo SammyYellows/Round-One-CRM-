@@ -8,7 +8,7 @@ import {
 } from "@/lib/engine";
 import { ago, dayTime, time, toLocalInput } from "@/lib/format";
 import { useStore } from "@/lib/store";
-import { STAGES, Stage, apptStatusLabel, sourceLabel, stageLabel } from "@/lib/types";
+import { LOST_REASONS, STAGES, Stage, apptStatusLabel, sourceLabel, stageLabel } from "@/lib/types";
 
 const QUICK = ["Gloves are provided for your trial", "Complete beginners are very welcome", "Does Wednesday at 18:00 work for you?"];
 const FAKE_REPLIES = ["Sounds good, see you then", "Can I bring a friend?", "What should I wear?", "Great, thanks"];
@@ -17,6 +17,8 @@ export default function ContactPage() {
   const { id } = useParams<{ id: string }>();
   const { s, now, act } = useStore();
   const [draft, setDraft] = useState("");
+  const [losing, setLosing] = useState(false);
+  const [lostReason, setLostReason] = useState<string>(LOST_REASONS[0]);
   const [trialAt, setTrialAt] = useState(() => {
     const d = new Date(now + 86400e3);
     d.setHours(18, 0, 0, 0);
@@ -63,11 +65,17 @@ export default function ContactPage() {
           <h1 className="h h1">{c.name}</h1>
         </div>
         <div className="actions">
-          {c.stage === "trial_booked" && (
+          {c.stage === "booked" && (
             <button className="btn btn-ghost" onClick={() => act((d) => markNoShow(d, c.id))}>Mark as no-show</button>
           )}
-          {c.stage === "trial_done" && (
-            <button className="btn btn-red" onClick={() => act((d) => setStage(d, c.id, "member"))}>Mark as joined</button>
+          {c.stage === "attended" && (
+            <button className="btn btn-ghost" onClick={() => act((d) => setStage(d, c.id, "nurture"))}>Move to nurture</button>
+          )}
+          {(c.stage === "attended" || c.stage === "nurture") && (
+            <>
+              <button className="btn btn-red" onClick={() => act((d) => setStage(d, c.id, "sold_programme"))}>Sold programme</button>
+              <button className="btn btn-red" onClick={() => act((d) => setStage(d, c.id, "sold_membership"))}>Sold membership</button>
+            </>
           )}
         </div>
       </header>
@@ -76,10 +84,40 @@ export default function ContactPage() {
         <section className="card pad" style={{ display: "flex", flexDirection: "column", gap: 14 }}>
           <div>
             <label htmlFor="stage" className="label">Stage</label>
-            <select id="stage" className="select" value={c.stage} onChange={(e) => act((d) => setStage(d, c.id, e.target.value as Stage))}>
+            <select
+              id="stage"
+              className="select"
+              value={losing ? "lost" : c.stage}
+              onChange={(e) => {
+                const next = e.target.value as Stage;
+                // Lost always needs a reason, so ask for one before moving.
+                if (next === "lost") return setLosing(true);
+                setLosing(false);
+                act((d) => setStage(d, c.id, next));
+              }}
+            >
               {STAGES.map((st) => <option key={st.id} value={st.id}>{st.label}</option>)}
             </select>
+            {c.stage === "lost" && c.lostReason && <div className="small muted" style={{ marginTop: 6 }}>Reason: {c.lostReason}</div>}
           </div>
+          {losing && (
+            <div>
+              <label htmlFor="lost-reason" className="label">Why are they lost?</label>
+              <div style={{ display: "flex", gap: 8 }}>
+                <select id="lost-reason" className="select" style={{ minWidth: 0 }} value={lostReason} onChange={(e) => setLostReason(e.target.value)}>
+                  {LOST_REASONS.map((r) => <option key={r} value={r}>{r}</option>)}
+                </select>
+                <button
+                  className="btn btn-red"
+                  style={{ padding: "0 14px" }}
+                  onClick={() => { act((d) => setStage(d, c.id, "lost", { lostReason })); setLosing(false); }}
+                >
+                  Mark lost
+                </button>
+              </div>
+              <button className="btn btn-ghost btn-sm" style={{ marginTop: 8 }} onClick={() => setLosing(false)}>Cancel</button>
+            </div>
+          )}
           <div>
             <label htmlFor="trial" className="label">{c.trialAt ? `Trial: ${dayTime(c.trialAt)}` : "Book a trial"}</label>
             <div style={{ display: "flex", gap: 8 }}>

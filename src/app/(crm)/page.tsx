@@ -4,7 +4,7 @@ import Link from "next/link";
 import { BarList, ColumnChart, Meter, Sparkline } from "@/components/charts";
 import { completeTask, demoAdLink } from "@/lib/engine";
 import { ago, dayTime, gbp, isSameDay, longDate, time } from "@/lib/format";
-import { daily, showRate, sourceCounts, stageCounts, weekLoad } from "@/lib/metrics";
+import { daily, funnelCounts, showRate, sourceCounts, weekLoad } from "@/lib/metrics";
 import { useStore } from "@/lib/store";
 import { sumMetrics } from "@/lib/types";
 
@@ -26,15 +26,14 @@ export default function TodayPage() {
   const meta = sumMetrics(s.campaigns.flatMap((c) => c.ads));
   const avgLeads = sum(days28) / days28.length;
 
-  // How far people have got: everyone reached "lead", fewer reached each later step.
-  const stages = stageCounts(s);
-  const atLeast = (i: number) => stages.slice(i).reduce((n, st) => n + st.value, 0);
+  // How far people have got: everyone enquired, fewer reached each later step.
+  const f = funnelCounts(s);
   const funnel = [
-    { key: "lead", label: "Enquired", value: atLeast(0) },
-    { key: "contacted", label: "Replied to", value: atLeast(1) },
-    { key: "booked", label: "Booked a trial", value: atLeast(2) },
-    { key: "done", label: "Did the trial", value: atLeast(3) },
-    { key: "joined", label: "Joined", value: atLeast(4) },
+    { key: "lead", label: "Enquired", value: f.enquired },
+    { key: "contacted", label: "Replied to", value: f.replied },
+    { key: "booked", label: "Booked a trial", value: f.booked },
+    { key: "done", label: "Did the trial", value: f.attended },
+    { key: "sold", label: "Sold", value: f.sold },
   ].map((f, i, arr) => ({ ...f, note: i === 0 ? undefined : `${arr[i - 1].value ? Math.round((f.value / arr[i - 1].value) * 100) : 0}% of previous` }));
 
   const topAds = s.campaigns
@@ -47,7 +46,7 @@ export default function TodayPage() {
   const week = weekLoad(s, now);
 
   // ---- Lists ----
-  const trials = s.contacts.filter((c) => c.stage === "trial_booked" && c.trialAt).sort((a, b) => Date.parse(a.trialAt!) - Date.parse(b.trialAt!));
+  const trials = s.contacts.filter((c) => c.stage === "booked" && c.trialAt).sort((a, b) => Date.parse(a.trialAt!) - Date.parse(b.trialAt!));
   const trialsToday = trials.filter((c) => isSameDay(Date.parse(c.trialAt!), now)).length;
   const waiting = s.contacts.filter((c) => s.messages.filter((m) => m.contactId === c.id).at(-1)?.dir === "in");
   const openTasks = s.tasks.filter((t) => !t.done);
@@ -56,7 +55,7 @@ export default function TodayPage() {
   const tiles = [
     { label: "Leads, last 7 days", value: String(leads7), note: `${change >= 0 ? "Up" : "Down"} ${Math.abs(change)}% on the week before`, spark: last14.map((d) => d.leads) },
     { label: "Trials, last 7 days", value: String(trials7), note: `${trialsToday} more booked for today`, spark: last14.map((d) => d.trials) },
-    { label: "Trial show-up rate", value: `${Math.round(show.rate * 100)}%`, note: `${show.showed} of ${show.total} turned up`, meter: show.rate },
+    { label: "Trial show-up rate", value: `${Math.round(show.rate * 100)}%`, note: `${show.attended} of ${show.total} turned up`, meter: show.rate },
     { label: "Meta cost per trial", value: meta.trials ? gbp(meta.spend / meta.trials) : "–", note: `${gbp(meta.spend)} spent, last 30 days`, spark: last14.map((d) => d.spend) },
   ];
 

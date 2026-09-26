@@ -3,7 +3,7 @@
 // CRM, so submitting a form or booking a trial moves the charts.
 
 import { dayKey } from "./seed";
-import { SOURCES, STAGES, State } from "./types";
+import { SOLD_STAGES, SOURCES, STAGES, Stage, State } from "./types";
 
 export interface DayPoint {
   key: string;
@@ -61,12 +61,27 @@ export function sourceCounts(s: State) {
     .sort((a, b) => b.value - a.value);
 }
 
+/**
+ * How far people have got, for the funnel. The stages branch after a trial
+ * (no-show, nurture, sold), so each step counts everyone who reached it or
+ * anything beyond it. Lost contacts are left out.
+ */
+export function funnelCounts(s: State) {
+  const live = s.contacts.filter((c) => c.stage !== "lost");
+  const count = (stages: Stage[]) => live.filter((c) => stages.includes(c.stage)).length;
+  const sold = count(SOLD_STAGES);
+  const attended = sold + count(["attended", "nurture"]);
+  const booked = attended + count(["booked", "no_show"]);
+  const replied = booked + count(["contacted"]);
+  return { enquired: live.length, replied, booked, attended, sold };
+}
+
 /** Of trials that have happened, how many turned up. */
 export function showRate(s: State) {
   const trialCals = s.calendars.filter((c) => c.bookTrial).map((c) => c.id);
-  const done = s.appointments.filter((a) => trialCals.includes(a.calendarId) && (a.status === "showed" || a.status === "no_show"));
-  const showed = done.filter((a) => a.status === "showed").length;
-  return { showed, total: done.length, rate: done.length ? showed / done.length : 0 };
+  const done = s.appointments.filter((a) => trialCals.includes(a.calendarId) && (a.status === "attended" || a.status === "no_show"));
+  const attended = done.filter((a) => a.status === "attended").length;
+  return { attended, total: done.length, rate: done.length ? attended / done.length : 0 };
 }
 
 /** Bookings per day, Monday to Sunday of the current week. */
