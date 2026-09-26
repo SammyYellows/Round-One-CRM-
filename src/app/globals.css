@@ -232,7 +232,7 @@ a.crow:hover { background: var(--char); color: var(--white); }
 .cal-consult, .sw-consult { background: var(--black); color: var(--white); box-shadow: inset 0 0 0 1px var(--white); }
 .appt.st-cancelled, .appt.st-no_show { background: var(--card); color: var(--muted); box-shadow: inset 0 0 0 1px var(--line); text-decoration: line-through; }
 .appt.st-no_show { box-shadow: inset 0 0 0 1px var(--red); }
-.appt.st-showed::after { content: "✓"; position: absolute; top: 3px; right: 6px; font-weight: 700; }
+.appt.st-attended::after { content: "✓"; position: absolute; top: 3px; right: 6px; font-weight: 700; }
 .appt:hover { filter: brightness(1.08); }
 .appt.sel { outline: 2px solid var(--white); outline-offset: 1px; z-index: 4; }
 .sw { display: inline-block; width: 12px; height: 12px; vertical-align: -1px; margin-right: 6px; }
@@ -256,7 +256,7 @@ a.crow:hover { background: var(--char); color: var(--white); }
 .cols-contact { grid-template-columns: 300px minmax(0, 1fr) 320px; gap: 20px; align-items: start; }
 .cols-auto { grid-template-columns: 400px minmax(0, 1fr); gap: 20px; align-items: start; }
 .cols-forms { grid-template-columns: 220px minmax(0, 1fr) 380px; gap: 24px; align-items: start; }
-.board { overflow-x: auto; grid-template-columns: repeat(5, minmax(200px, 1fr)); }
+.board { overflow-x: auto; grid-template-columns: repeat(8, minmax(200px, 1fr)); }
 
 @media (max-width: 1360px) {
   .cols-contact { grid-template-columns: 300px minmax(0, 1fr); }

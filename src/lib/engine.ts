@@ -167,20 +167,22 @@ export function receiveMessage(s: State, contactId: string, text: string) {
   if (c.stage === "new") setStage(s, contactId, "contacted");
 }
 
-export function setStage(s: State, contactId: string, stage: Stage) {
+export function setStage(s: State, contactId: string, stage: Stage, opts: { lostReason?: string } = {}) {
   const c = s.contacts.find((x) => x.id === contactId);
   if (!c || c.stage === stage) return;
   const from = c.stage;
   c.stage = stage;
-  // Moving someone to Trial booked (e.g. dragging on the pipeline) puts a
-  // trial in the calendar too, tomorrow at 18:00, so the two never disagree.
-  if (stage === "trial_booked" && !activeTrial(s, contactId)) {
+  c.lostReason = stage === "lost" ? opts.lostReason || "Other" : undefined;
+  // Moving someone to Appointment booked (e.g. dragging on the pipeline) puts
+  // a trial in the calendar too, tomorrow at 18:00, so the two never disagree.
+  if (stage === "booked" && !activeTrial(s, contactId)) {
     const d = new Date(nowMs(s) + 86400e3);
     d.setHours(18, 0, 0, 0);
     const cal = s.calendars.find((x) => x.bookTrial);
     if (cal && s.staff[0]) createAppointment(s, { contactId, calendarId: cal.id, staffId: s.staff[0].id, start: d.toISOString() });
   }
-  log(s, "stage.changed", contactId, `${c.name}: ${stageLabel(from)} to ${stageLabel(stage)}`);
+  const why = c.lostReason ? ` (${c.lostReason})` : "";
+  log(s, "stage.changed", contactId, `${c.name}: ${stageLabel(from)} to ${stageLabel(stage)}${why}`);
   fire(s, { type: "stage.changed", contactId, stage });
 }
 
@@ -239,8 +241,8 @@ export function createAppointment(
   log(s, "appointment.booked", c.id, `${cal.name} for ${c.name}, ${when(appt.start)} with ${coach}`);
   if (cal.bookTrial) {
     c.trialAt = appt.start;
-    if (c.stage === "trial_booked") retimeTrialWaits(s, c.id);
-    else setStage(s, c.id, "trial_booked");
+    if (c.stage === "booked") retimeTrialWaits(s, c.id);
+    else setStage(s, c.id, "booked");
   }
 }
 
@@ -275,22 +277,28 @@ export function setAppointmentStatus(s: State, id: string, status: Appointment["
   log(s, "appointment.updated", a.contactId, `${c?.name}’s ${cal?.name.toLowerCase()} marked ${apptStatusLabel(status).toLowerCase()}`);
   if (!c || !cal?.bookTrial) return;
 
-  if (status === "showed" && c.stage === "trial_booked") setStage(s, c.id, "trial_done");
+  if (status === "attended") {
+    // The trial has happened, so stop anything still waiting to remind them.
+    const other = activeTrial(s, c.id);
+    c.trialAt = other?.start;
+    retimeTrialWaits(s, c.id);
+    if (c.stage === "booked" || c.stage === "no_show") setStage(s, c.id, "attended");
+  }
   if (status === "no_show") {
     c.trialAt = undefined;
     retimeTrialWaits(s, c.id);
-    if (c.stage === "trial_booked") setStage(s, c.id, "trial_done");
+    if (c.stage === "booked") setStage(s, c.id, "no_show");
     addTag(s, c.id, "no-show");
   }
   if (status === "cancelled") {
     const other = activeTrial(s, c.id);
     c.trialAt = other?.start;
     retimeTrialWaits(s, c.id);
-    if (!other && c.stage === "trial_booked") setStage(s, c.id, "contacted");
+    if (!other && c.stage === "booked") setStage(s, c.id, "contacted");
   }
   if (status === "booked" || status === "confirmed") {
     c.trialAt = a.start;
-    if (c.stage !== "trial_booked") setStage(s, c.id, "trial_booked");
+    if (c.stage !== "booked") setStage(s, c.id, "booked");
     else retimeTrialWaits(s, c.id);
   }
 }
@@ -314,7 +322,7 @@ export function addTag(s: State, contactId: string, tag: string) {
 export function markNoShow(s: State, contactId: string) {
   const trial = activeTrial(s, contactId);
   if (trial) return setAppointmentStatus(s, trial.id, "no_show");
-  setStage(s, contactId, "trial_done");
+  setStage(s, contactId, "no_show");
   addTag(s, contactId, "no-show");
 }
 

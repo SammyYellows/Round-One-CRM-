@@ -23,7 +23,7 @@ export default function PipelinePage() {
   const inPlay = s.contacts.filter((c) => c.stage !== "lost");
 
   const next = (c: Contact) => {
-    if (c.stage === "trial_booked" && c.trialAt) return `Trial ${dayTime(c.trialAt)}`;
+    if (c.stage === "booked" && c.trialAt) return `Trial ${dayTime(c.trialAt)}`;
     if (waitingOnUs(s, c)) return "Waiting on a reply";
     const run = s.runs.find((r) => r.contactId === c.id && r.status === "waiting");
     if (run) return `${s.automations.find((a) => a.id === run.automationId)?.name} running`;
