@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { AuthShell, Notice } from "@/components/AuthShell";
 import { Sidebar } from "@/components/Sidebar";
+import { StoreProvider } from "@/lib/store";
 import { currentUser, staffFor } from "@/lib/server/staff";
 import { supabaseConfigured } from "@/lib/supabase/env";
 
@@ -27,9 +28,11 @@ export default async function CrmLayout({ children }: { children: React.ReactNod
     staff = { name: member.name };
   }
   return (
-    <div className="app">
-      <Sidebar staff={staff} />
-      <main className="main">{children}</main>
-    </div>
+    <StoreProvider>
+      <div className="app">
+        <Sidebar staff={staff} />
+        <main className="main">{children}</main>
+      </div>
+    </StoreProvider>
   );
 }

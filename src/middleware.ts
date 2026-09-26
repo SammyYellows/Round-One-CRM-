@@ -5,7 +5,14 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { SUPABASE_PUBLISHABLE_KEY, SUPABASE_URL, supabaseConfigured } from "@/lib/supabase/env";
 
-const PUBLIC = [/^\/login$/, /^\/auth\//, /^\/f\//, /^\/api\/webhooks\//];
+const PUBLIC = [
+  /^\/login$/,
+  /^\/auth\//,
+  /^\/f\//, // public trial forms
+  /^\/api\/forms\/[^/]+\/submit$/, // their submissions
+  /^\/api\/webhooks\//, // WhatsApp and Meta (they check their own signatures)
+  /^\/api\/cron$/, // scheduled runs (checks CRON_SECRET itself)
+];
 
 export async function middleware(req: NextRequest) {
   if (!supabaseConfigured()) {

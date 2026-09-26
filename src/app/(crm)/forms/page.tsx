@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { FormRunner } from "@/components/FormRunner";
-import { demoAdLink, uid, updateForm } from "@/lib/engine";
+import { demoAdLink, uid } from "@/lib/engine";
 import { useStore } from "@/lib/store";
 import { Form, Question, QuestionType } from "@/lib/types";
 
@@ -21,7 +21,7 @@ export default function FormsPage() {
   const automation = s.automations.find((a) => a.trigger.type === "form.submitted" && a.trigger.formId === form.id);
   const liveUrl = demoAdLink(form.slug);
 
-  const save = (next: Form) => act((d) => updateForm(d, next));
+  const save = (next: Form) => act("updateForm", next);
   const setQ = (i: number, patch: Partial<Question>) =>
     save({ ...form, questions: form.questions.map((q, j) => (j === i ? { ...q, ...patch } : q)) });
   const move = (i: number, dir: -1 | 1) => {

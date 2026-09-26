@@ -26,22 +26,28 @@ clearly said no.
 
 ## Where we are
 
-**Moving from prototype to real backend.** Every screen works, but CRM data
-still lives in the browser (`localStorage`) via `src/lib/store.tsx`, with
-made-up sample data from `src/lib/seed.ts`. See `docs/build-plan.md` for
-the order of work.
+**Live data.** With Supabase settings (on Vercel, or a `.env.local`), the
+staff screens and public forms read and write the Supabase database. Without
+them (e.g. a fresh clone), the app runs as the original prototype: made-up
+sample data from `src/lib/seed.ts` in the browser, with the prototype clock.
+See `docs/build-plan.md` for the order of work.
 
 In place so far:
 - **Supabase database** (`round1-dev`): the tables in
-  `supabase/migrations/`, mirroring `types.ts`. Not yet read by the pages;
-  swapping `store.tsx` for API calls is the next step.
+  `supabase/migrations/`, mirroring `types.ts`. The screens load from
+  `/api/state` and save through `/api/actions`; the public form posts to
+  `/api/forms/<slug>/submit`.
 - **Staff login** with Supabase Auth. Everything needs a signed-in staff
-  member except `/login`, `/auth/*`, the public forms (`/f/*`) and
-  `/api/webhooks/*`. A login only gets in if it matches a row in `staff`.
+  member except `/login`, `/auth/*`, the public forms and their submit
+  route, `/api/webhooks/*` and `/api/cron`. A login only gets in if it
+  matches a row in `staff`.
+- **Email** for logins (invites, password resets) goes through Resend,
+  from bookings@round1boxfit.co.uk.
 
-Still to come: route handlers under `src/app/api/`, WhatsApp Cloud API,
-Meta Marketing API sync, Resend for email, and a job runner for automation
-waits.
+Still to come: WhatsApp Cloud API (messages are only recorded, not sent,
+until then), Meta Marketing API sync, Resend for CRM emails, and a
+scheduler for automation waits (for now they move on whenever someone has
+the CRM open, or when `/api/cron` is called).
 
 ## How the code is laid out
 
@@ -49,12 +55,23 @@ waits.
   it. Change it here first, then everything else.
 - `src/lib/engine.ts`: every change to the CRM (set stage, send message,
   submit form…). Each function writes an event and fires matching automations.
-  These become API routes later, so keep them pure: state in, state out.
-- `src/lib/store.tsx`: prototype-only local store. Pages call
-  `act(d => someEngineFn(d, ...))`. This is the one file to swap out for real
-  API calls.
+  They run in the browser (instant feedback) **and** on the server (the real
+  save), so keep them pure: state in, state out. No `Date` local-time
+  maths: use `src/lib/time.ts` for UK times, because the server runs in UTC.
+- `src/lib/actions.ts`: **the list of changes a page can make**, by name.
+  Pages call `act("setStage", id, stage)`. To add a change: write the
+  function in `engine.ts`, then add it to `ACTIONS`. Only listed names can
+  run on the server.
+- `src/lib/store.tsx`: gives pages `{ s, now, act, live }`. Live mode loads
+  `/api/state` and sends each `act` to `/api/actions`; local mode is the old
+  localStorage prototype. Pages shouldn't care which, except to hide
+  prototype-only controls when `live` is true.
+- `src/lib/server/state.ts`: turns database rows into `State` and back.
+  Saves only rows that changed; messages and events are only ever added.
 - `src/app/(crm)/*`: staff screens, behind the sidebar.
-- `src/app/f/[slug]`: the public form people reach from ads. No sidebar.
+- `src/app/f/[slug]`: the public form people reach from ads. No sidebar, no
+  login. Live, it loads the form on the server and posts answers to
+  `/api/forms/<slug>/submit`, which treats them as untrusted input.
 - `src/components/FormRunner.tsx`: shared by the public form and the preview.
 - `src/lib/server/`: **server-only** code. `supabase.ts` holds the client
   with the secret key; `staff.ts` answers "who is signed in, and are they

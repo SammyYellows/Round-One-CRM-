@@ -3,9 +3,7 @@
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import {
-  bookTrial, describeStep, firstName, markNoShow, receiveMessage, sendMessage, sendTemplate, setStage, stopRun,
-} from "@/lib/engine";
+import { describeStep, firstName } from "@/lib/engine";
 import { ago, dayTime, time, toLocalInput } from "@/lib/format";
 import { useStore } from "@/lib/store";
 import { LOST_REASONS, STAGES, Stage, apptStatusLabel, sourceLabel, stageLabel } from "@/lib/types";
@@ -15,7 +13,7 @@ const FAKE_REPLIES = ["Sounds good, see you then", "Can I bring a friend?", "Wha
 
 export default function ContactPage() {
   const { id } = useParams<{ id: string }>();
-  const { s, now, act } = useStore();
+  const { s, now, act, live } = useStore();
   const [draft, setDraft] = useState("");
   const [losing, setLosing] = useState(false);
   const [lostReason, setLostReason] = useState<string>(LOST_REASONS[0]);
@@ -53,7 +51,7 @@ export default function ContactPage() {
 
   const send = () => {
     if (!draft.trim() || !windowOpen) return;
-    act((d) => sendMessage(d, c.id, draft));
+    act("sendMessage", c.id, draft);
     setDraft("");
   };
 
@@ -66,15 +64,15 @@ export default function ContactPage() {
         </div>
         <div className="actions">
           {c.stage === "booked" && (
-            <button className="btn btn-ghost" onClick={() => act((d) => markNoShow(d, c.id))}>Mark as no-show</button>
+            <button className="btn btn-ghost" onClick={() => act("markNoShow", c.id)}>Mark as no-show</button>
           )}
           {c.stage === "attended" && (
-            <button className="btn btn-ghost" onClick={() => act((d) => setStage(d, c.id, "nurture"))}>Move to nurture</button>
+            <button className="btn btn-ghost" onClick={() => act("setStage", c.id, "nurture")}>Move to nurture</button>
           )}
           {(c.stage === "attended" || c.stage === "nurture") && (
             <>
-              <button className="btn btn-red" onClick={() => act((d) => setStage(d, c.id, "sold_programme"))}>Sold programme</button>
-              <button className="btn btn-red" onClick={() => act((d) => setStage(d, c.id, "sold_membership"))}>Sold membership</button>
+              <button className="btn btn-red" onClick={() => act("setStage", c.id, "sold_programme")}>Sold programme</button>
+              <button className="btn btn-red" onClick={() => act("setStage", c.id, "sold_membership")}>Sold membership</button>
             </>
           )}
         </div>
@@ -93,7 +91,7 @@ export default function ContactPage() {
                 // Lost always needs a reason, so ask for one before moving.
                 if (next === "lost") return setLosing(true);
                 setLosing(false);
-                act((d) => setStage(d, c.id, next));
+                act("setStage", c.id, next);
               }}
             >
               {STAGES.map((st) => <option key={st.id} value={st.id}>{st.label}</option>)}
@@ -110,7 +108,7 @@ export default function ContactPage() {
                 <button
                   className="btn btn-red"
                   style={{ padding: "0 14px" }}
-                  onClick={() => { act((d) => setStage(d, c.id, "lost", { lostReason })); setLosing(false); }}
+                  onClick={() => { act("setStage", c.id, "lost", { lostReason }); setLosing(false); }}
                 >
                   Mark lost
                 </button>
@@ -122,7 +120,7 @@ export default function ContactPage() {
             <label htmlFor="trial" className="label">{c.trialAt ? `Trial: ${dayTime(c.trialAt)}` : "Book a trial"}</label>
             <div style={{ display: "flex", gap: 8 }}>
               <input id="trial" type="datetime-local" className="input" style={{ minWidth: 0 }} value={trialAt} onChange={(e) => setTrialAt(e.target.value)} />
-              <button className="btn btn-red" style={{ padding: "0 14px" }} onClick={() => act((d) => bookTrial(d, c.id, trialAt))}>
+              <button className="btn btn-red" style={{ padding: "0 14px" }} onClick={() => act("bookTrial", c.id, new Date(trialAt).toISOString())}>
                 {c.trialAt ? "Move" : "Book"}
               </button>
             </div>
@@ -197,22 +195,21 @@ export default function ContactPage() {
               </div>
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                 {Object.keys(s.templates).map((t) => (
-                  <button key={t} className="qr" title={s.templates[t]} onClick={() => act((d) => {
-                    const dc = d.contacts.find((x) => x.id === c.id);
-                    if (dc) sendTemplate(d, dc, t, "You");
-                  })}>{t}</button>
+                  <button key={t} className="qr" title={s.templates[t]} onClick={() => act("sendTemplateTo", c.id, t)}>{t}</button>
                 ))}
               </div>
             </div>
           )}
-          <div style={{ padding: "12px 22px 22px" }}>
-            <button
-              className="link-btn faint"
-              onClick={() => act((d) => receiveMessage(d, c.id, FAKE_REPLIES[msgs.length % FAKE_REPLIES.length]))}
-            >
-              Simulate a reply from {firstName(c)}
-            </button>
-          </div>
+          {!live && (
+            <div style={{ padding: "12px 22px 22px" }}>
+              <button
+                className="link-btn faint"
+                onClick={() => act("receiveMessage", c.id, FAKE_REPLIES[msgs.length % FAKE_REPLIES.length])}
+              >
+                Simulate a reply from {firstName(c)}
+              </button>
+            </div>
+          )}
         </section>
 
         <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
@@ -246,7 +243,7 @@ export default function ContactPage() {
                   <div className="segs">
                     {a.steps.map((_, i) => <div key={i} className={i < r.stepIndex ? "on" : ""} />)}
                   </div>
-                  <button className="link-btn" style={{ alignSelf: "flex-start" }} onClick={() => act((d) => stopRun(d, r.id))}>
+                  <button className="link-btn" style={{ alignSelf: "flex-start" }} onClick={() => act("stopRun", r.id)}>
                     Stop for {firstName(c)}
                   </button>
                 </div>

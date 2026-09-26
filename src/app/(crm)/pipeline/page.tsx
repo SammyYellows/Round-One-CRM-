@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useState } from "react";
 import { ContactFilters } from "@/components/ContactFilters";
 import { ContactFilter, EMPTY_FILTER, SortKey, applyFilter, sortContacts, waitingOnUs } from "@/lib/contactQuery";
-import { setStage } from "@/lib/engine";
 import { ago, dayTime } from "@/lib/format";
 import { useStore } from "@/lib/store";
 import { Contact, STAGES, Source, Stage, sourceLabel } from "@/lib/types";
@@ -32,7 +31,7 @@ export default function PipelinePage() {
   };
 
   const drop = (stage: Stage) => {
-    if (dragId) act((d) => setStage(d, dragId, stage));
+    if (dragId) act("setStage", dragId, stage);
     setDragId(null);
     setOver(null);
   };

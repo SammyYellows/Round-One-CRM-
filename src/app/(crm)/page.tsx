@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { BarList, ColumnChart, Meter, Sparkline } from "@/components/charts";
-import { completeTask, demoAdLink } from "@/lib/engine";
+import { demoAdLink } from "@/lib/engine";
 import { ago, dayTime, gbp, isSameDay, longDate, time } from "@/lib/format";
 import { daily, funnelCounts, showRate, sourceCounts, weekLoad } from "@/lib/metrics";
 import { useStore } from "@/lib/store";
@@ -11,7 +11,7 @@ import { sumMetrics } from "@/lib/types";
 const shortDay = (ms: number) => new Date(ms).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" });
 
 export default function TodayPage() {
-  const { s, now, act } = useStore();
+  const { s, now, act, live } = useStore();
 
   // ---- Numbers ----
   const days28 = daily(s, now, 28);
@@ -67,7 +67,7 @@ export default function TodayPage() {
           <h1 className="h h1">Today</h1>
         </div>
         <div className="actions">
-          <span className="chip">Prototype · sample data</span>
+          {!live && <span className="chip">Prototype · sample data</span>}
           <a className="btn btn-ghost" href={demoAdLink("free-trial")} target="_blank" rel="noreferrer">Open trial form</a>
           <Link className="btn btn-red" href="/calendar">Book a trial</Link>
         </div>
@@ -180,7 +180,7 @@ export default function TodayPage() {
                 <div className="small muted">{ago(t.at, now)}</div>
               </div>
               {t.contactId && <Link className="btn btn-ghost btn-sm" href={`/contacts/${t.contactId}`}>Open</Link>}
-              <button className="btn btn-ghost btn-sm" onClick={() => act((d) => completeTask(d, t.id))}>Done</button>
+              <button className="btn btn-ghost btn-sm" onClick={() => act("completeTask", t.id)}>Done</button>
             </div>
           ))}
           {openTasks.length + waiting.length === 0 && <div className="empty">Nothing waiting on you.</div>}
