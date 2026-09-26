@@ -2,21 +2,39 @@
 // so the front end can swap the local mock store for real API calls.
 //
 // Scope: this CRM gets people from first enquiry to a booked, attended free
-// trial. "Joined" is where it ends. Memberships, billing and member classes
-// are managed elsewhere.
+// trial and the sale. It ends at "Sold" (programme or recurring membership).
+// Memberships, billing and member classes are managed elsewhere.
 
-export type Stage = "new" | "contacted" | "trial_booked" | "trial_done" | "member" | "lost";
+export type Stage =
+  | "new"
+  | "contacted"
+  | "booked"
+  | "no_show"
+  | "attended"
+  | "nurture"
+  | "sold_programme"
+  | "sold_membership"
+  | "lost";
 
 export const STAGES: { id: Stage; label: string }[] = [
   { id: "new", label: "New lead" },
   { id: "contacted", label: "Contacted" },
-  { id: "trial_booked", label: "Trial booked" },
-  { id: "trial_done", label: "Trial done" },
-  { id: "member", label: "Joined" },
+  { id: "booked", label: "Appointment booked" },
+  { id: "no_show", label: "No-show" },
+  { id: "attended", label: "Appointment attended" },
+  { id: "nurture", label: "Nurture" },
+  { id: "sold_programme", label: "Sold – Programme" },
+  { id: "sold_membership", label: "Sold – Recurring membership" },
   { id: "lost", label: "Lost" },
 ];
 
 export const stageLabel = (s: Stage) => STAGES.find((x) => x.id === s)?.label ?? s;
+
+export const SOLD_STAGES: Stage[] = ["sold_programme", "sold_membership"];
+export const isSold = (s: Stage) => SOLD_STAGES.includes(s);
+
+/** Why someone was marked Lost. Staff pick one; it's kept on the contact. */
+export const LOST_REASONS = ["Not interested", "No response", "Not qualified", "Joined elsewhere", "Price", "Other"] as const;
 
 export type Source = "meta_ad" | "walk_in" | "referral" | "website";
 
@@ -42,6 +60,7 @@ export interface Contact {
   ad?: string; // ad (creative) name
   adId?: string; // Meta ad id, when known
   stage: Stage;
+  lostReason?: string; // set when stage is "lost"
   tags: string[];
   answers: { question: string; answer: string }[];
   trialAt?: string;
@@ -141,14 +160,14 @@ export interface Task {
 }
 
 // Spend, impressions, clicks and leads come from the Meta Marketing API, per
-// ad. Trials and joined are counted from the CRM, matched on the ad.
+// ad. Trials and sales are counted from the CRM, matched on the ad.
 export interface AdMetrics {
   spend: number;
   impressions: number;
   clicks: number;
   leads: number;
   trials: number;
-  joined: number;
+  sold: number;
 }
 
 export interface Ad extends AdMetrics {
@@ -172,19 +191,19 @@ export const sumMetrics = (items: AdMetrics[]): AdMetrics =>
       clicks: t.clicks + a.clicks,
       leads: t.leads + a.leads,
       trials: t.trials + a.trials,
-      joined: t.joined + a.joined,
+      sold: t.sold + a.sold,
     }),
-    { spend: 0, impressions: 0, clicks: 0, leads: 0, trials: 0, joined: 0 },
+    { spend: 0, impressions: 0, clicks: 0, leads: 0, trials: 0, sold: 0 },
   );
 
 // ---- Calendar ----
 
-export type ApptStatus = "booked" | "confirmed" | "showed" | "no_show" | "cancelled";
+export type ApptStatus = "booked" | "confirmed" | "attended" | "no_show" | "cancelled";
 
 export const APPT_STATUSES: { id: ApptStatus; label: string }[] = [
   { id: "booked", label: "Booked" },
   { id: "confirmed", label: "Confirmed" },
-  { id: "showed", label: "Showed" },
+  { id: "attended", label: "Attended" },
   { id: "no_show", label: "No-show" },
   { id: "cancelled", label: "Cancelled" },
 ];
@@ -196,7 +215,7 @@ export interface CalendarDef {
   name: string;
   durationMin: number;
   style: "trial" | "pt" | "consult"; // maps to a CSS class, see .appt in globals.css
-  bookTrial?: boolean; // booking here moves the contact to Trial booked
+  bookTrial?: boolean; // booking here moves the contact to Appointment booked
 }
 
 export interface Staff {
@@ -226,7 +245,7 @@ export interface DayStat {
 }
 
 export interface State {
-  version: 3;
+  version: 4;
   seededAt: string;
   history: DayStat[];
   clockOffset: number; // ms added to real time by the prototype clock

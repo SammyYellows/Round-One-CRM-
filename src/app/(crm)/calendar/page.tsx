@@ -348,7 +348,7 @@ function NewPanel({ start, onClose, onBooked }: { start: number; onClose: () => 
       )}
       {k?.bookTrial && (
         <div className="small muted" style={{ lineHeight: 1.5 }}>
-          Booking a free trial moves them to Trial booked and sends the confirmation on WhatsApp.
+          Booking a free trial moves them to Appointment booked and sends the confirmation on WhatsApp.
         </div>
       )}
       <button className="btn btn-red" type="submit" disabled={!contactId}>Book trial</button>
@@ -392,8 +392,8 @@ function ApptPanel({ id, onClose }: { id: string; onClose: () => void }) {
               className={`sbtn ${a.status === st.id ? "on" : ""}`}
               aria-pressed={a.status === st.id}
               onClick={() => act((d) => setAppointmentStatus(d, a.id, st.id))}
-              disabled={!past && (st.id === "showed" || st.id === "no_show") && Date.parse(a.start) > now}
-              title={!past && Date.parse(a.start) > now && (st.id === "showed" || st.id === "no_show") ? "Available once it has started" : undefined}
+              disabled={!past && (st.id === "attended" || st.id === "no_show") && Date.parse(a.start) > now}
+              title={!past && Date.parse(a.start) > now && (st.id === "attended" || st.id === "no_show") ? "Available once it has started" : undefined}
             >
               {st.label}
             </button>

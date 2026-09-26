@@ -7,10 +7,10 @@ import { useStore } from "@/lib/store";
 import { AdMetrics, sumMetrics } from "@/lib/types";
 
 // Spend, impressions, clicks and leads will come from the Meta Marketing API
-// (nightly sync, per ad). Trials and joined come from the CRM, matched on the
+// (nightly sync, per ad). Trials and sales come from the CRM, matched on the
 // ad each contact came from.
 
-type SortKey = "name" | "spend" | "leads" | "cpl" | "trials" | "cpt" | "joined" | "cpj";
+type SortKey = "name" | "spend" | "leads" | "cpl" | "trials" | "cpt" | "sold" | "cps";
 
 const COLS: { key: SortKey; label: string }[] = [
   { key: "spend", label: "Spend" },
@@ -18,14 +18,14 @@ const COLS: { key: SortKey; label: string }[] = [
   { key: "cpl", label: "Per lead" },
   { key: "trials", label: "Trials" },
   { key: "cpt", label: "Per trial" },
-  { key: "joined", label: "Joined" },
-  { key: "cpj", label: "Per join" },
+  { key: "sold", label: "Sold" },
+  { key: "cps", label: "Per sale" },
 ];
 
 const per = (a: number, b: number) => (b ? a / b : Infinity);
 const money = (n: number) => (Number.isFinite(n) ? gbp(n, 2) : "–");
 const value = (m: AdMetrics, k: SortKey) =>
-  k === "cpl" ? per(m.spend, m.leads) : k === "cpt" ? per(m.spend, m.trials) : k === "cpj" ? per(m.spend, m.joined) : k === "name" ? 0 : m[k];
+  k === "cpl" ? per(m.spend, m.leads) : k === "cpt" ? per(m.spend, m.trials) : k === "cps" ? per(m.spend, m.sold) : k === "name" ? 0 : m[k];
 
 export default function AdsPage() {
   const { s } = useStore();
@@ -42,14 +42,14 @@ export default function AdsPage() {
     { label: "Leads", value: String(t.leads), rule: "var(--line)" },
     { label: "Cost per lead", value: money(per(t.spend, t.leads)), rule: "var(--line)" },
     { label: "Cost per trial", value: money(per(t.spend, t.trials)), rule: "var(--line)" },
-    { label: "Cost per join", value: t.joined ? gbp(t.spend / t.joined) : "–", rule: "var(--white)" },
+    { label: "Cost per sale", value: t.sold ? gbp(t.spend / t.sold) : "–", rule: "var(--white)" },
   ];
   const funnel = [
     { label: "Impressions", value: t.impressions.toLocaleString("en-GB"), rate: "People who saw an ad" },
     { label: "Clicks", value: t.clicks.toLocaleString("en-GB"), rate: `${pct(t.clicks, t.impressions)} of impressions` },
     { label: "Leads", value: String(t.leads), rate: `${pct(t.leads, t.clicks)} of clicks` },
     { label: "Trials", value: String(t.trials), rate: `${pct(t.trials, t.leads)} of leads` },
-    { label: "Joined", value: String(t.joined), rate: `${pct(t.joined, t.trials)} of trials` },
+    { label: "Sold", value: String(t.sold), rate: `${pct(t.sold, t.trials)} of trials` },
   ];
 
   const cmp = (a: AdMetrics & { name: string }, b: AdMetrics & { name: string }) => {
@@ -77,8 +77,8 @@ export default function AdsPage() {
       <div className="r">{money(per(m.spend, m.leads))}</div>
       <div className="r">{m.trials}</div>
       <div className="r">{money(per(m.spend, m.trials))}</div>
-      <div className="r">{m.joined}</div>
-      <div className="r">{money(per(m.spend, m.joined))}</div>
+      <div className="r">{m.sold}</div>
+      <div className="r">{money(per(m.spend, m.sold))}</div>
     </>
   );
 
@@ -102,8 +102,8 @@ export default function AdsPage() {
 
       <section className="card pad" style={{ display: "flex", flexDirection: "column", gap: 16 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 16, flexWrap: "wrap" }}>
-          <h2 className="h" style={{ fontSize: 24 }}>From ad to joined</h2>
-          <span className="small muted">Trials and joins come from the CRM, matched to the exact ad each person came from</span>
+          <h2 className="h" style={{ fontSize: 24 }}>From ad to sale</h2>
+          <span className="small muted">Trials and sales come from the CRM, matched to the exact ad each person came from</span>
         </div>
         <div className="grid" style={{ gridTemplateColumns: "repeat(5, minmax(0, 1fr))", gap: 4 }}>
           {funnel.map((f) => (

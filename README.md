@@ -22,12 +22,16 @@ preview, which uses `.claude/launch.json`).
 
 1. **Today** shows what needs doing. Jordan is waiting on a WhatsApp reply.
 2. **Calendar**: week, day and list views, filtered by coach or type. Click
-   an empty slot to book; click an appointment to confirm it, mark it showed
-   or no-show, move it or cancel it. Booking a free trial moves the person to
-   *Trial booked* and sends the confirmation WhatsApp.
+   an empty slot to book; click an appointment to confirm it, mark it
+   attended or no-show, move it or cancel it. Booking a free trial moves the
+   person to *Appointment booked* and sends the confirmation WhatsApp. A
+   no-show moves them to the *No-show* column; attended moves them to
+   *Appointment attended*.
 3. Open **Jordan Reid**, reply on WhatsApp, or tap "Simulate a reply".
-4. **Pipeline**: drag a card between columns. Dragging to *Trial booked*
-   sends the confirmation WhatsApp automatically.
+4. **Pipeline**: drag a card between columns. Dragging to *Appointment
+   booked* sends the confirmation WhatsApp automatically. After a trial,
+   open the contact to mark them *Sold – Programme*, *Sold – Recurring
+   membership* or *Nurture*. Choosing *Lost* asks for a reason.
 5. **Forms → Open live form** opens the public trial form in a new tab.
    Fill it in, then switch back: the lead appears on Today and Pipeline,
    and the *New trial lead* automation sends a welcome WhatsApp.

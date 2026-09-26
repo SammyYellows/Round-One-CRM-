@@ -13,7 +13,7 @@ import { State } from "./types";
 // Bump VERSION (and State.version in types.ts) whenever the data shape
 // changes. Saved or in-memory data from an older shape is thrown away and
 // replaced with fresh sample data, rather than crashing a page.
-const VERSION = 3;
+const VERSION = 4;
 const KEY = `round-one-crm:v${VERSION}`;
 
 interface Store {
