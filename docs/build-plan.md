@@ -60,11 +60,9 @@ New lead → Contacted → Trial booked → Trial done → Joined:
 
 Please answer these in the PR comments:
 
-1. **Is "Contacted" dropped?** It isn't in Sammy's list. If it goes, an
-   inbound WhatsApp no longer moves a lead on by itself.
-2. **Is No-show a pipeline column as well as an appointment status?** Sammy
-   asked for a column earlier. GymGrow's "Missed" column held 164 people, so a
-   rebooking view is useful. It could be a column, or a filter on Appointment booked.
+1. ~~Is "Contacted" dropped?~~ **Answered: keep it** (Sammy, 26/09).
+2. ~~Is No-show a pipeline column?~~ **Answered: yes, its own column**
+   (Sammy, 26/09). Built in PR #3.
 3. **Self-booking:** after the form, does the lead pick their own trial slot
    (and get a `/book/<link>` in messages), or do staff book every trial?
 4. **Domain.**
@@ -79,7 +77,7 @@ Please answer these in the PR comments:
    - **(b)** Inngest or Trigger.dev, as `CLAUDE.md` says.
 
    The proposal is (a) until it hurts.
-6. **New dependencies.** `CLAUDE.md` says to agree these first. This plan needs:
+6. **New dependencies.** **Answered: agreed by Sammy (26/09).** `CLAUDE.md` says to agree these first. This plan needs:
    - `@supabase/supabase-js` and `@supabase/ssr`, for the database client and staff login cookies.
    - Nothing else. Resend, WhatsApp and Meta all use plain `fetch`.
 7. **Andrew's OK** on the new stages, because they change the scope wording
