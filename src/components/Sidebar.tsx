@@ -14,7 +14,7 @@ const NAV = [
   { href: "/ads", label: "Meta ads", icon: <path d="M5 20V11M11 20V5M17 20v-6M3 21h18" /> },
 ];
 
-export function Sidebar() {
+export function Sidebar({ staff }: { staff?: { name: string } }) {
   const path = usePathname();
   const { now, act, reset } = useStore();
   const isOn = (href: string) => (href === "/" ? path === "/" : path.startsWith(href));
@@ -33,6 +33,13 @@ export function Sidebar() {
         </Link>
       ))}
       <div style={{ flex: 1 }} />
+      {staff && (
+        <form method="post" action="/auth/logout" className="clock" style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          <div className="eyebrow">Signed in</div>
+          <div className="small">{staff.name}</div>
+          <div className="clock-btns"><button>Log out</button></div>
+        </form>
+      )}
       <div className="clock">
         <div className="eyebrow">Prototype clock</div>
         <div className="small num">
