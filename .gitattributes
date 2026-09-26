@@ -1,0 +1,4 @@
+# Keep line endings consistent whether you're on Windows or Mac.
+* text=auto eol=lf
+*.avif binary
+*.png binary
