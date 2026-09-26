@@ -15,6 +15,16 @@ npm install
 npm run dev
 ```
 
+**Staff login.** With a `.env.local` (copy `.env.example` and fill in the
+Supabase values), every page except the public forms asks you to log in.
+Without it, the prototype runs locally with no login. Staff accounts are
+added by Sammy: a row in the `staff` table with their email, plus an
+invite.
+
+**Database changes.** Add a new SQL file to `supabase/migrations/`, then run
+`npm run db:migrate` with `SUPABASE_ACCESS_TOKEN` and `SUPABASE_PROJECT_REF`
+set.
+
 Open http://localhost:3000 (or 3001 if you start it from Claude Code's
 preview, which uses `.claude/launch.json`).
 

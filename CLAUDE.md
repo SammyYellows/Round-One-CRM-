@@ -26,13 +26,22 @@ clearly said no.
 
 ## Where we are
 
-**Front-end prototype.** Every screen works, but all data lives in the
-browser (`localStorage`) via `src/lib/store.tsx`. There is no backend yet.
-The sample data in `src/lib/seed.ts` is made up.
+**Moving from prototype to real backend.** Every screen works, but CRM data
+still lives in the browser (`localStorage`) via `src/lib/store.tsx`, with
+made-up sample data from `src/lib/seed.ts`. See `docs/build-plan.md` for
+the order of work.
 
-Next phase: Supabase (Postgres + auth), route handlers under `src/app/api/`,
-WhatsApp Cloud API, Meta Marketing API sync, Resend for email, and a job
-runner (Inngest or Trigger.dev) for automation waits.
+In place so far:
+- **Supabase database** (`round1-dev`): the tables in
+  `supabase/migrations/`, mirroring `types.ts`. Not yet read by the pages;
+  swapping `store.tsx` for API calls is the next step.
+- **Staff login** with Supabase Auth. Everything needs a signed-in staff
+  member except `/login`, `/auth/*`, the public forms (`/f/*`) and
+  `/api/webhooks/*`. A login only gets in if it matches a row in `staff`.
+
+Still to come: route handlers under `src/app/api/`, WhatsApp Cloud API,
+Meta Marketing API sync, Resend for email, and a job runner for automation
+waits.
 
 ## How the code is laid out
 
@@ -47,6 +56,13 @@ runner (Inngest or Trigger.dev) for automation waits.
 - `src/app/(crm)/*`: staff screens, behind the sidebar.
 - `src/app/f/[slug]`: the public form people reach from ads. No sidebar.
 - `src/components/FormRunner.tsx`: shared by the public form and the preview.
+- `src/lib/server/`: **server-only** code. `supabase.ts` holds the client
+  with the secret key; `staff.ts` answers "who is signed in, and are they
+  staff?". Never import anything from here into a `"use client"` file.
+- `src/lib/supabase/`: the login-session client (publishable key) and env
+  settings. `src/middleware.ts` protects the staff screens.
+- `supabase/migrations/`: the database schema, one SQL file per change.
+  Apply new files with `npm run db:migrate` (see `.env.example`).
 
 ## Rules
 
@@ -74,8 +90,14 @@ runner (Inngest or Trigger.dev) for automation waits.
   honest about this. Automations always send templates.
 - **No new dependencies without agreeing it.** No CSS framework, component
   library, ORM or state manager. The app is small.
-- Once Supabase is in: the service-role key stays server-side, never in a
-  `"use client"` file.
+- **Supabase keys.** The secret key (`SUPABASE_SECRET_KEY`) stays
+  server-side, only in `src/lib/server/`, and never in a `"use client"`
+  file. Keys live in `.env.local` and Vercel settings, never in git.
+- **Row-level security is on for every table, with no policies.** The
+  browser can't read or write the database directly; everything goes
+  through our server code. New tables must enable RLS in their migration.
+- **Schema changes are new migration files.** Never edit one that has been
+  applied; add the next file instead, and change `types.ts` to match.
 
 ## Design system
 
