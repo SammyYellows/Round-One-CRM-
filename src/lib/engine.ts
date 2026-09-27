@@ -61,7 +61,8 @@ type Fired =
   | { type: "form.submitted"; contactId: string; formId: string }
   | { type: "stage.changed"; contactId: string; stage: Stage }
   | { type: "tag.added"; contactId: string; tag: string }
-  | { type: "appointment.status"; contactId: string; status: Appointment["status"] };
+  | { type: "appointment.status"; contactId: string; status: Appointment["status"] }
+  | { type: "appointment.moved"; contactId: string };
 
 function matches(a: Automation, ev: Fired) {
   const t = a.trigger;
@@ -70,6 +71,7 @@ function matches(a: Automation, ev: Fired) {
   if (t.type === "stage.changed" && ev.type === "stage.changed") return t.to === ev.stage;
   if (t.type === "tag.added" && ev.type === "tag.added") return t.tag === ev.tag;
   if (t.type === "appointment.status" && ev.type === "appointment.status") return t.status === ev.status;
+  if (t.type === "appointment.moved" && ev.type === "appointment.moved") return true;
   return false;
 }
 
@@ -185,6 +187,7 @@ export function describeTrigger(a: Automation, forms: Form[]) {
   if (t.type === "form.submitted") return `Form submitted: ${forms.find((f) => f.id === t.formId)?.name ?? t.formId}`;
   if (t.type === "stage.changed") return `Stage changes to ${stageLabel(t.to)}`;
   if (t.type === "appointment.status") return `Free trial marked ${apptStatusLabel(t.status).toLowerCase()}`;
+  if (t.type === "appointment.moved") return "Free trial moved to a new time";
   return `Tagged “${t.tag}”`;
 }
 
@@ -338,6 +341,7 @@ export function rescheduleAppointment(s: State, id: string, patch: { start?: str
     if (cal?.bookTrial && c && (a.status === "booked" || a.status === "confirmed")) {
       c.trialAt = a.start;
       retimeTrialWaits(s, c.id);
+      fire(s, { type: "appointment.moved", contactId: c.id });
     }
   }
   if (patch.staffId && patch.staffId !== a.staffId) {
