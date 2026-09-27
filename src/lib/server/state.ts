@@ -9,6 +9,7 @@ import { ActionArgs, ActionName, runAction } from "@/lib/actions";
 import {
   Ad, Appointment, Automation, CalendarDef, Campaign, Contact, CrmEvent, Form, Message, Run, Staff, State, Task, isSold,
 } from "@/lib/types";
+import { deliver } from "./deliver";
 import { db } from "./supabase";
 
 type Row = Record<string, unknown>;
@@ -54,10 +55,14 @@ const messageTo = (m: Message): Row => ({
   status: m.dir === "in" ? "received" : "sent",
 });
 
-const eventFrom = (r: Row): CrmEvent => ({
-  id: r.id as string, type: r.type as CrmEvent["type"], contactId: opt(r.contact_id), detail: r.detail as string, at: r.at as string,
-});
-const eventTo = (e: CrmEvent): Row => ({ id: e.id, type: e.type, contact_id: e.contactId ?? null, detail: e.detail, at: e.at });
+const eventFrom = (r: Row): CrmEvent => {
+  const data = r.data as Record<string, string> | null;
+  return {
+    id: r.id as string, type: r.type as CrmEvent["type"], contactId: opt(r.contact_id), detail: r.detail as string, at: r.at as string,
+    ...(data && Object.keys(data).length ? { data } : {}),
+  };
+};
+const eventTo = (e: CrmEvent): Row => ({ id: e.id, type: e.type, contact_id: e.contactId ?? null, detail: e.detail, data: e.data ?? {}, at: e.at });
 
 const automationFrom = (r: Row): Automation => ({
   id: r.id as string, name: r.name as string, summary: r.summary as string, enabled: r.enabled as boolean,
@@ -220,6 +225,7 @@ export async function applyAction<N extends ActionName>(name: N, args: ActionArg
   runAction(after, name, args);
   tick(after);
   await saveChanges(before, after);
+  await deliver(before, after);
   return after;
 }
 
@@ -229,5 +235,6 @@ export async function loadAndTick(): Promise<State> {
   const after = structuredClone(before);
   tick(after);
   await saveChanges(before, after);
+  await deliver(before, after);
   return after;
 }

@@ -85,6 +85,7 @@ export type EventType =
   | "whatsapp.sent"
   | "whatsapp.received"
   | "email.sent"
+  | "email.failed"
   | "task.created"
   | "automation.stopped"
   | "appointment.booked"
@@ -95,6 +96,8 @@ export interface CrmEvent {
   type: EventType;
   contactId?: string;
   detail: string;
+  // Extra facts for the server, e.g. what an email.sent event should send.
+  data?: Record<string, string>;
   at: string;
 }
 
@@ -105,7 +108,9 @@ export type Trigger =
 
 export type Step =
   | { kind: "whatsapp"; template: string }
-  | { kind: "email"; to: "staff" | "contact"; subject: string }
+  // Staff emails get a summary of the contact. Emails to the contact are only
+  // sent when there's a body to send.
+  | { kind: "email"; to: "staff" | "contact"; subject: string; body?: string }
   | { kind: "wait"; hours: number }
   | { kind: "wait_until_trial"; hoursBefore: number }
   | { kind: "if_stage_in"; stages: Stage[] }
