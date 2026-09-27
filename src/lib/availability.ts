@@ -16,7 +16,8 @@ export function bookableDays(cal: CalendarDef, appts: Appointment[], now: number
   const earliest = now + av.minNoticeHours * 3600e3;
   const taken = appts.filter((a) => a.calendarId === cal.id && (a.status === "booked" || a.status === "confirmed"));
   const days: Day[] = [];
-  for (let i = 0; i < av.daysAhead; i++) {
+  // Today plus daysAhead days: 7 means up to the same day next week.
+  for (let i = 0; i <= av.daysAhead; i++) {
     const noon = ukTime(now, i, 12);
     const weekday = noon.getUTCDay(); // noon in the UK is the same day in UTC
     const slots: Slot[] = [];

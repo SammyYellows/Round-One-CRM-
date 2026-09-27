@@ -214,20 +214,24 @@ export const TRIAL_FORM: Form = {
 };
 
 /**
- * When people can book the free trial themselves. Matches the GymGrow
- * booking calendar as it was on 27/09/2026: 30-minute slots, Monday to
- * Thursday 08:00–19:30, Friday 08:00–17:00, one person per slot.
+ * When people can book the free trial themselves: the GymGrow booking
+ * calendar's weekday hours (Monday to Thursday 08:00–19:30, Friday
+ * 08:00–17:00) plus weekends 09:00–16:00, all inside the gym's opening
+ * hours (roundonefitness.co.uk: Mon–Fri 6am–10pm, Sat–Sun 9am–4pm).
+ * 30-minute slots, one person per slot, up to 7 days ahead (Sammy, 27/09).
  */
 export const TRIAL_AVAILABILITY: Availability = {
   slotMin: 30,
   capacity: 1,
   minNoticeHours: 2,
-  daysAhead: 14,
+  daysAhead: 7,
   hours: {
+    0: [["09:00", "16:00"]],
     1: [["08:00", "19:30"]],
     2: [["08:00", "19:30"]],
     3: [["08:00", "19:30"]],
     4: [["08:00", "19:30"]],
     5: [["08:00", "17:00"]],
+    6: [["09:00", "16:00"]],
   },
 };
