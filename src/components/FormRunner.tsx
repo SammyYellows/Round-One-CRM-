@@ -75,7 +75,12 @@ export function FormRunner({
             {form.bookButton && !note && (
               bookHref
                 ? <a className="btn btn-red" style={{ alignSelf: "flex-start" }} href={bookHref}>{form.bookButton}</a>
-                : <button className="btn btn-red" style={{ alignSelf: "flex-start" }} disabled>{form.bookButton}</button>
+                : (
+                  <>
+                    <button className="btn btn-red" style={{ alignSelf: "flex-start" }} disabled>{form.bookButton}</button>
+                    {controlledStep === undefined && <div className="help" role="status">Saving your answers, one moment.</div>}
+                  </>
+                )
             )}
             {controlledStep !== undefined && (
               <button className="btn btn-ghost" style={{ alignSelf: "flex-start" }} onClick={restart}>Start again</button>
