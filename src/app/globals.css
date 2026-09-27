@@ -155,6 +155,13 @@ button, input, select, textarea { font-family: var(--ui); }
 .runner .help { font-size: 14px; line-height: 1.5; color: #3A3B3A; }
 .runner .pin { width: 100%; height: 48px; border: 0; border-bottom: 2px solid var(--black); background: transparent; font-size: 18px; color: var(--black); padding: 0; }
 .runner .pin:focus { outline: none; border-bottom-color: var(--red); }
+.runner .pin.long { height: auto; min-height: 96px; resize: vertical; font-family: inherit; line-height: 1.4; }
+.runner .scale { display: grid; grid-template-columns: repeat(10, 1fr); gap: 6px; }
+.runner .scale .opt { justify-content: center; padding: 0; }
+@media (max-width: 420px) { .runner .scale { grid-template-columns: repeat(5, 1fr); } }
+.runner .slots { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.runner .slots .opt { justify-content: center; }
+.opt:disabled { opacity: 0.35; cursor: not-allowed; }
 .opt { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 48px; padding: 0 12px; background: var(--white); border: 1px solid var(--black); color: var(--black); font-size: 15px; text-align: left; cursor: pointer; }
 .opt:hover { background: var(--cream); }
 .opt.on { background: var(--black); color: var(--white); }

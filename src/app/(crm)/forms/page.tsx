@@ -8,9 +8,11 @@ import { Form, Question, QuestionType } from "@/lib/types";
 
 const TYPES: { id: QuestionType; label: string }[] = [
   { id: "text", label: "Short text" },
+  { id: "long", label: "Long text" },
   { id: "phone", label: "Phone" },
   { id: "email", label: "Email" },
   { id: "choice", label: "Choice" },
+  { id: "scale", label: "Scale 1–10" },
 ];
 
 export default function FormsPage() {
@@ -80,6 +82,12 @@ export default function FormsPage() {
                     onChange={(e) => setQ(i, { options: e.target.value.split(",").map((o) => o.trim()).filter(Boolean) })}
                   />
                 )}
+                {q.type === "scale" && (
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <input className="input" aria-label={`Words for 1, question ${i + 1}`} placeholder="Words for 1" value={q.low ?? ""} onChange={(e) => setQ(i, { low: e.target.value })} />
+                    <input className="input" aria-label={`Words for 10, question ${i + 1}`} placeholder="Words for 10" value={q.high ?? ""} onChange={(e) => setQ(i, { high: e.target.value })} />
+                  </div>
+                )}
                 {q.field && <span className="small faint">Saved to the contact’s {q.field}</span>}
               </div>
               <select className="select" aria-label={`Type of question ${i + 1}`} value={q.type} onChange={(e) => setQ(i, { type: e.target.value as QuestionType })}>
@@ -104,8 +112,17 @@ export default function FormsPage() {
             <div className="tl"><span className="chip">Track</span><span className="muted">Save the campaign, ad set and ad the person came from (utm_campaign, utm_term, utm_content, ad_id)</span></div>
           </div>
           <div>
+            <label className="label" htmlFor="thanks-title">End screen headline</label>
+            <input id="thanks-title" className="input" placeholder="Thanks. See you at Round One." value={form.thanksTitle ?? ""} onChange={(e) => save({ ...form, thanksTitle: e.target.value || undefined })} />
+          </div>
+          <div>
             <label className="label" htmlFor="thanks">Thank-you message</label>
             <input id="thanks" className="input" value={form.thanks} onChange={(e) => save({ ...form, thanks: e.target.value })} />
+          </div>
+          <div>
+            <label className="label" htmlFor="book-button">Booking button</label>
+            <input id="book-button" className="input" placeholder="Leave empty for no button" value={form.bookButton ?? ""} onChange={(e) => save({ ...form, bookButton: e.target.value || undefined })} />
+            <div className="small faint" style={{ marginTop: 6 }}>Opens their own booking page, to pick a free-trial slot.</div>
           </div>
         </section>
 

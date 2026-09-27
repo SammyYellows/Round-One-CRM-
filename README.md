@@ -3,8 +3,10 @@
 Leads, trials, members, WhatsApp, forms and Meta ads for Round One.
 
 Live at https://round-one-crm.vercel.app (staff login needed). There it
-reads and writes the real Supabase database. WhatsApp messages are recorded
-in the CRM but not sent yet, until the WhatsApp API is connected.
+reads and writes the real Supabase database, sends emails through Resend and
+WhatsApp messages through Meta's test number (which only reaches phones
+added as test recipients in Meta), until the real number moves over from
+GymGrow.
 
 Run locally without Supabase settings and it's the original **prototype**:
 sample data stored in your own browser, with a pretend clock. Nothing is
@@ -49,8 +51,9 @@ preview, which uses `.claude/launch.json`).
    open the contact to mark them *Sold – Programme*, *Sold – Recurring
    membership* or *Nurture*. Choosing *Lost* asks for a reason.
 5. **Forms → Open live form** opens the public trial form in a new tab.
-   Fill it in, then switch back: the lead appears on Today and Pipeline,
-   and the *New trial lead* automation sends a welcome WhatsApp.
+   Fill it in and press **Book a meeting** at the end to pick a slot.
+   Switch back: the lead appears on Today and Pipeline, and the *New lead*
+   and *Trial booked* automations have sent their WhatsApps and emails.
 6. The **prototype clock** in the sidebar moves time forward. Press
    **+1 day** and waiting automation steps run (nudges, reminders).
 7. **Automations**: pause a flow with its switch and see what's waiting.

@@ -12,12 +12,16 @@ export function FormRunner({
   step: controlledStep,
   onStep,
   style,
+  bookHref,
+  note,
 }: {
   form: Form;
   onSubmit?: (answers: Record<string, string>) => void;
   step?: number;
   onStep?: (n: number) => void;
   style?: React.CSSProperties;
+  bookHref?: string; // where the end screen's booking button goes, once the answers are saved
+  note?: string; // shown on the end screen, e.g. if the answers couldn't be saved
 }) {
   const [localStep, setLocalStep] = useState(0);
   const [answers, setAnswers] = useState<Record<string, string>>({});
@@ -65,9 +69,17 @@ export function FormRunner({
       <div className="runner-body">
         {done ? (
           <>
-            <div className="h" style={{ fontSize: 40 }}>Thanks. See you at Round One.</div>
+            <div className="h" style={{ fontSize: 40 }}>{form.thanksTitle || "Thanks. See you at Round One."}</div>
             <div className="help">{form.thanks}</div>
-            <button className="btn btn-ghost" style={{ alignSelf: "flex-start" }} onClick={restart}>Start again</button>
+            {note && <div className="err" role="alert">{note}</div>}
+            {form.bookButton && !note && (
+              bookHref
+                ? <a className="btn btn-red" style={{ alignSelf: "flex-start" }} href={bookHref}>{form.bookButton}</a>
+                : <button className="btn btn-red" style={{ alignSelf: "flex-start" }} disabled>{form.bookButton}</button>
+            )}
+            {controlledStep !== undefined && (
+              <button className="btn btn-ghost" style={{ alignSelf: "flex-start" }} onClick={restart}>Start again</button>
+            )}
           </>
         ) : q ? (
           <form
@@ -79,7 +91,32 @@ export function FormRunner({
             </div>
             <label htmlFor={`q-${q.id}`} className="q">{q.text}</label>
             {q.help && <div className="help">{q.help}</div>}
-            {q.type === "choice" ? (
+            {q.type === "scale" ? (
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                <div className="scale" role="group" aria-label={q.text}>
+                  {Array.from({ length: 10 }, (_, j) => String(j + 1)).map((n) => (
+                    <button type="button" key={n} className={`opt ${answers[q.id] === n ? "on" : ""}`} onClick={() => next(n)}>{n}</button>
+                  ))}
+                </div>
+                {(q.low || q.high) && (
+                  <div className="help" style={{ display: "flex", justifyContent: "space-between", gap: 16, fontSize: 13 }}>
+                    <span>1 · {q.low}</span>
+                    <span style={{ textAlign: "right" }}>10 · {q.high}</span>
+                  </div>
+                )}
+              </div>
+            ) : q.type === "long" ? (
+              <textarea
+                key={q.id}
+                id={`q-${q.id}`}
+                autoFocus={controlledStep === undefined && step > 0}
+                className="pin long"
+                rows={3}
+                placeholder="Type your answer"
+                value={answers[q.id] ?? ""}
+                onChange={(e) => setAnswers({ ...answers, [q.id]: e.target.value })}
+              />
+            ) : q.type === "choice" ? (
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }} role="group" aria-label={q.text}>
                 {(q.options ?? []).map((o, j) => (
                   <button
@@ -110,7 +147,7 @@ export function FormRunner({
             <div style={{ flex: 1 }} />
             <div style={{ display: "flex", gap: 8 }}>
               <button type="button" className="btn btn-ghost" onClick={() => setStep(Math.max(0, step - 1))} disabled={step === 0}>Back</button>
-              {q.type !== "choice" && (
+              {q.type !== "choice" && q.type !== "scale" && (
                 <button type="submit" className="btn btn-red" style={{ flex: 1 }}>{step === Q.length - 1 ? "Send" : "OK"}</button>
               )}
             </div>

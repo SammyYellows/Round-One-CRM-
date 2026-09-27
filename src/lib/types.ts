@@ -36,13 +36,14 @@ export const isSold = (s: Stage) => SOLD_STAGES.includes(s);
 /** Why someone was marked Lost. Staff pick one; it's kept on the contact. */
 export const LOST_REASONS = ["Not interested", "No response", "Not qualified", "Joined elsewhere", "Price", "Other"] as const;
 
-export type Source = "meta_ad" | "walk_in" | "referral" | "website";
+export type Source = "meta_ad" | "walk_in" | "referral" | "website" | "whatsapp";
 
 export const SOURCES: { id: Source; label: string }[] = [
   { id: "meta_ad", label: "Meta ad" },
   { id: "walk_in", label: "Walk-in" },
   { id: "referral", label: "Referral" },
   { id: "website", label: "Website" },
+  { id: "whatsapp", label: "WhatsApp" },
 ];
 
 export const sourceLabel = (s: Source) => SOURCES.find((x) => x.id === s)?.label ?? s;
@@ -75,7 +76,13 @@ export interface Message {
   template?: string; // set when sent as an approved WhatsApp template
   by?: string; // automation name, or "You"
   at: string;
+  // WhatsApp delivery, updated from Meta's webhook. Missing on messages from
+  // the prototype, where nothing is really sent.
+  status?: MessageStatus;
+  error?: string; // why it failed, when status is "failed"
 }
+
+export type MessageStatus = "queued" | "sent" | "delivered" | "read" | "failed" | "received";
 
 export type EventType =
   | "contact.created"
@@ -84,6 +91,7 @@ export type EventType =
   | "tag.added"
   | "whatsapp.sent"
   | "whatsapp.received"
+  | "whatsapp.failed"
   | "email.sent"
   | "email.failed"
   | "task.created"
@@ -104,7 +112,9 @@ export interface CrmEvent {
 export type Trigger =
   | { type: "form.submitted"; formId: string }
   | { type: "stage.changed"; to: Stage }
-  | { type: "tag.added"; tag: string };
+  | { type: "tag.added"; tag: string }
+  // A free-trial appointment marked with this status (e.g. cancelled).
+  | { type: "appointment.status"; status: ApptStatus };
 
 export type Step =
   | { kind: "whatsapp"; template: string }
@@ -112,7 +122,9 @@ export type Step =
   // sent when there's a body to send.
   | { kind: "email"; to: "staff" | "contact"; subject: string; body?: string }
   | { kind: "wait"; hours: number }
-  | { kind: "wait_until_trial"; hoursBefore: number }
+  // Waits until this long before the trial. If that time has already gone
+  // (e.g. they booked for later today), skipIfLate skips the next step.
+  | { kind: "wait_until_trial"; hoursBefore: number; skipIfLate?: boolean }
   | { kind: "if_stage_in"; stages: Stage[] }
   | { kind: "task"; text: string };
 
@@ -124,6 +136,7 @@ export interface Automation {
   trigger: Trigger;
   steps: Step[];
   runs: number;
+  stopOnReply?: boolean; // a WhatsApp reply from the contact ends their run
 }
 
 export interface Run {
@@ -136,7 +149,7 @@ export interface Run {
   startedAt: string;
 }
 
-export type QuestionType = "text" | "phone" | "email" | "choice";
+export type QuestionType = "text" | "long" | "phone" | "email" | "choice" | "scale";
 
 export interface Question {
   id: string;
@@ -144,6 +157,9 @@ export interface Question {
   text: string;
   help?: string;
   options?: string[];
+  // For "scale": 1 to 10, with words for each end.
+  low?: string;
+  high?: string;
   field?: "name" | "phone" | "email"; // maps the answer onto the contact
 }
 
@@ -152,7 +168,10 @@ export interface Form {
   slug: string;
   name: string;
   questions: Question[];
+  thanksTitle?: string; // headline on the end screen
   thanks: string;
+  // Show a "Book a meeting" button on the end screen, to the booking page.
+  bookButton?: string;
   responses: number;
 }
 
@@ -221,6 +240,16 @@ export interface CalendarDef {
   durationMin: number;
   style: "trial" | "pt" | "consult"; // maps to a CSS class, see .appt in globals.css
   bookTrial?: boolean; // booking here moves the contact to Appointment booked
+  availability?: Availability; // when people can book themselves, on /book
+}
+
+/** Self-booking hours for a calendar, in UK time. */
+export interface Availability {
+  slotMin: number; // length of each bookable slot
+  capacity: number; // people per slot
+  minNoticeHours: number; // earliest booking, from now
+  daysAhead: number; // how far ahead the booking page shows
+  hours: Record<number, [from: string, to: string][]>; // 0 = Sunday; "08:00", "19:30"
 }
 
 export interface Staff {
@@ -250,7 +279,7 @@ export interface DayStat {
 }
 
 export interface State {
-  version: 4;
+  version: 5;
   seededAt: string;
   history: DayStat[];
   clockOffset: number; // ms added to real time by the prototype clock

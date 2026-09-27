@@ -48,11 +48,13 @@ const contactTo = (c: Contact): Row => ({
 
 const messageFrom = (r: Row): Message => ({
   id: r.id as string, contactId: r.contact_id as string, dir: r.dir as Message["dir"], text: r.text as string,
-  template: opt(r.template), by: opt(r.by), at: r.at as string,
+  template: opt(r.template), by: opt(r.by), at: r.at as string, status: opt(r.status), error: opt(r.error),
 });
+// New outgoing messages are saved as queued; deliver.ts sends them and Meta's
+// webhook moves them on to sent, delivered, read or failed.
 const messageTo = (m: Message): Row => ({
   id: m.id, contact_id: m.contactId, dir: m.dir, text: m.text, template: m.template ?? null, by: m.by ?? null, at: m.at,
-  status: m.dir === "in" ? "received" : "sent",
+  status: m.dir === "in" ? "received" : "queued",
 });
 
 const eventFrom = (r: Row): CrmEvent => {
@@ -67,9 +69,11 @@ const eventTo = (e: CrmEvent): Row => ({ id: e.id, type: e.type, contact_id: e.c
 const automationFrom = (r: Row): Automation => ({
   id: r.id as string, name: r.name as string, summary: r.summary as string, enabled: r.enabled as boolean,
   trigger: r.trigger as Automation["trigger"], steps: r.steps as Automation["steps"], runs: r.runs as number,
+  ...(r.stop_on_reply ? { stopOnReply: true } : {}),
 });
 const automationTo = (a: Automation): Row => ({
   id: a.id, name: a.name, summary: a.summary, enabled: a.enabled, trigger: a.trigger, steps: a.steps, runs: a.runs,
+  stop_on_reply: !!a.stopOnReply,
 });
 
 const runFrom = (r: Row): Run => ({
@@ -84,8 +88,12 @@ const runTo = (r: Run): Row => ({
 const formFrom = (r: Row): Form => ({
   id: r.id as string, slug: r.slug as string, name: r.name as string, questions: r.questions as Form["questions"],
   thanks: r.thanks as string, responses: r.responses as number,
+  thanksTitle: opt(r.thanks_title), bookButton: opt(r.book_button),
 });
-const formTo = (f: Form): Row => ({ id: f.id, slug: f.slug, name: f.name, questions: f.questions, thanks: f.thanks, responses: f.responses });
+const formTo = (f: Form): Row => ({
+  id: f.id, slug: f.slug, name: f.name, questions: f.questions, thanks: f.thanks, responses: f.responses,
+  thanks_title: f.thanksTitle ?? null, book_button: f.bookButton ?? null,
+});
 
 const taskFrom = (r: Row): Task => ({
   id: r.id as string, contactId: opt(r.contact_id), text: r.text as string, done: r.done as boolean, at: r.at as string,
@@ -104,7 +112,10 @@ const apptTo = (a: Appointment): Row => ({
 
 const calendarFrom = (r: Row): CalendarDef => ({
   id: r.id as string, name: r.name as string, durationMin: r.duration_min as number, style: r.style as CalendarDef["style"],
-  bookTrial: r.book_trial as boolean,
+  bookTrial: r.book_trial as boolean, availability: opt(r.availability),
+});
+const calendarTo = (c: CalendarDef): Row => ({
+  id: c.id, name: c.name, duration_min: c.durationMin, style: c.style, book_trial: !!c.bookTrial, availability: c.availability ?? null,
 });
 const staffFrom = (r: Row): Staff => ({ id: r.id as string, name: r.name as string, role: r.role as string });
 
@@ -166,7 +177,7 @@ export async function loadState(): Promise<State> {
   const cs = contacts.map(contactFrom);
   const as = appts.map(apptFrom);
   return {
-    version: 4,
+    version: 5,
     seededAt: new Date(0).toISOString(), // no made-up history: every day is counted from real data
     history: [],
     clockOffset: 0,
@@ -197,6 +208,7 @@ const TABLES = [
   table({ table: "contacts", pick: (s) => s.contacts, to: contactTo }),
   table({ table: "forms", pick: (s) => s.forms, to: formTo }),
   table({ table: "automations", pick: (s) => s.automations, to: automationTo }),
+  table({ table: "calendars", pick: (s) => s.calendars, to: calendarTo }),
   table({ table: "appointments", pick: (s) => s.appointments, to: apptTo }),
   table({ table: "runs", pick: (s) => s.runs, to: runTo }),
   table({ table: "tasks", pick: (s) => s.tasks, to: taskTo }),
@@ -219,9 +231,10 @@ export async function saveChanges(before: State, after: State) {
 }
 
 /** Load, run one named change (plus any automation steps now due), save. */
-export async function applyAction<N extends ActionName>(name: N, args: ActionArgs<N>): Promise<State> {
+export async function applyAction<N extends ActionName>(name: N, args: ActionArgs<N>, check?: (s: State) => void): Promise<State> {
   const before = await loadState();
   const after = structuredClone(before);
+  check?.(before); // throws to refuse the change, e.g. a slot that's just been taken
   runAction(after, name, args);
   tick(after);
   await saveChanges(before, after);

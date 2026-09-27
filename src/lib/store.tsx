@@ -21,7 +21,7 @@ export const LIVE = Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.
 // Bump VERSION (and State.version in types.ts) whenever the data shape
 // changes. Saved or in-memory data from an older shape is thrown away and
 // replaced with fresh sample data, rather than crashing a page.
-const VERSION = 4;
+const VERSION = 5;
 const KEY = `round-one-crm:v${VERSION}`;
 
 type Act = <N extends ActionName>(name: N, ...args: ActionArgs<N>) => void;

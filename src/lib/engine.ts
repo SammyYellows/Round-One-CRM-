@@ -4,11 +4,18 @@
 // routes and the automation part moves to a job runner (Inngest / Trigger.dev).
 
 import {
-  Appointment, Automation, Contact, CrmEvent, EventType, Form, Run, Source, Stage, State, Step, apptStatusLabel, stageLabel,
+  Appointment, Automation, Availability, Contact, CrmEvent, EventType, Form, Run, Source, Stage, State, Step, apptStatusLabel, stageLabel,
 } from "./types";
+import { GYM } from "./gym";
+import { samePhone } from "./phone";
 import { ukTime } from "./time";
 
-export const uid = () => Math.random().toString(36).slice(2, 10);
+// Random ids. Contact ids also make the private link to someone's booking
+// page (/book/<id>), so they come from a proper random source.
+export const uid = () => {
+  const b = crypto.getRandomValues(new Uint8Array(12));
+  return Array.from(b, (x) => "abcdefghijklmnopqrstuvwxyz0123456789"[x % 36]).join("");
+};
 export const nowMs = (s: State) => Date.now() + s.clockOffset;
 export const nowIso = (s: State) => new Date(nowMs(s)).toISOString();
 export const firstName = (c: Contact) => c.name.split(" ")[0];
@@ -18,21 +25,43 @@ function log(s: State, type: EventType, contactId: string | undefined, detail: s
   s.events.unshift(ev);
 }
 
-function fill(text: string, c: Contact) {
+/**
+ * What each {placeholder} in a message stands for, for this contact. Times
+ * are UK times whatever machine this runs on. Never empty, because WhatsApp
+ * refuses a template with an empty value.
+ */
+export function placeholders(c: Contact): Record<string, string> {
   const trial = c.trialAt ? new Date(c.trialAt) : null;
-  return text
-    .replaceAll("{first}", firstName(c))
-    .replaceAll("{name}", c.name)
-    .replaceAll("{trial}", trial ? trial.toLocaleString("en-GB", { weekday: "long", hour: "2-digit", minute: "2-digit" }) : "your booked session")
-    .replaceAll("{trialTime}", trial ? trial.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }) : "the booked time");
+  const uk = (o: Intl.DateTimeFormatOptions) => (trial ? trial.toLocaleString("en-GB", { timeZone: "Europe/London", ...o }) : "");
+  return {
+    first: firstName(c) || "there",
+    name: c.name || "there",
+    trial: trial ? uk({ weekday: "long", day: "numeric", month: "long", hour: "numeric", minute: "2-digit", hour12: true }) : "your booked session",
+    trialTime: trial ? uk({ hour: "numeric", minute: "2-digit", hour12: true }) : "the booked time",
+    date: trial ? uk({ weekday: "long", day: "numeric", month: "long" }) : "your booked day",
+    time: trial ? uk({ hour: "numeric", minute: "2-digit", hour12: true }) : "the booked time",
+    address: GYM.address,
+    gym: GYM.name,
+    team: GYM.signOff,
+  };
 }
+
+/** Fills in {first}, {date} etc. Unknown ones (like {bookLink}) are left for the server. */
+export function fill(text: string, c: Contact) {
+  const v = placeholders(c);
+  return text.replace(/\{(\w+)\}/g, (m, k: string) => v[k] ?? m);
+}
+
+/** The placeholders in a template, in order: WhatsApp's {{1}}, {{2}}… */
+export const templateParams = (body: string) => [...body.matchAll(/\{(\w+)\}/g)].map((m) => m[1]);
 
 // ---- Automations ----------------------------------------------------------
 
 type Fired =
   | { type: "form.submitted"; contactId: string; formId: string }
   | { type: "stage.changed"; contactId: string; stage: Stage }
-  | { type: "tag.added"; contactId: string; tag: string };
+  | { type: "tag.added"; contactId: string; tag: string }
+  | { type: "appointment.status"; contactId: string; status: Appointment["status"] };
 
 function matches(a: Automation, ev: Fired) {
   const t = a.trigger;
@@ -40,6 +69,7 @@ function matches(a: Automation, ev: Fired) {
   if (t.type === "form.submitted" && ev.type === "form.submitted") return t.formId === ev.formId;
   if (t.type === "stage.changed" && ev.type === "stage.changed") return t.to === ev.stage;
   if (t.type === "tag.added" && ev.type === "tag.added") return t.tag === ev.tag;
+  if (t.type === "appointment.status" && ev.type === "appointment.status") return t.status === ev.status;
   return false;
 }
 
@@ -76,7 +106,6 @@ function advanceRun(s: State, run: Run) {
         log(s, "email.sent", c.id, step.to === "staff" ? `${subject} to the front desk` : `${subject} to ${c.name}`, data);
         break;
       }
-        break;
       case "wait":
         run.status = "waiting";
         run.resumeAt = new Date(nowMs(s) + step.hours * 3600e3).toISOString();
@@ -88,6 +117,8 @@ function advanceRun(s: State, run: Run) {
           run.resumeAt = new Date(at).toISOString();
           return;
         }
+        // Too late for this one (booked at short notice): skip what it was waiting to send.
+        if (step.skipIfLate && c.trialAt) run.stepIndex += 1;
         break;
       }
       case "if_stage_in":
@@ -139,7 +170,11 @@ export function describeStep(step: Step, templates: Record<string, string>) {
     case "whatsapp": return { kind: "Do", title: "Send WhatsApp template", detail: step.template, preview: templates[step.template] };
     case "email": return { kind: "Do", title: step.to === "staff" ? "Email the front desk" : "Email the contact", detail: step.subject };
     case "wait": return { kind: "Wait", title: step.hours % 24 === 0 ? `Wait ${step.hours / 24} day${step.hours === 24 ? "" : "s"}` : `Wait ${step.hours} hours`, detail: "" };
-    case "wait_until_trial": return { kind: "Wait", title: `Wait until ${step.hoursBefore} hours before the trial`, detail: "" };
+    case "wait_until_trial": return {
+      kind: "Wait",
+      title: `Wait until ${step.hoursBefore % 24 === 0 ? `${step.hoursBefore / 24} day${step.hoursBefore === 24 ? "" : "s"}` : `${step.hoursBefore} hours`} before the trial`,
+      detail: step.skipIfLate ? "If they booked later than that, skip the next step" : "",
+    };
     case "if_stage_in": return { kind: "If", title: `Still in ${step.stages.map(stageLabel).join(" or ")}`, detail: "Otherwise stop here" };
     case "task": return { kind: "Do", title: "Create a task for staff", detail: step.text };
   }
@@ -149,6 +184,7 @@ export function describeTrigger(a: Automation, forms: Form[]) {
   const t = a.trigger;
   if (t.type === "form.submitted") return `Form submitted: ${forms.find((f) => f.id === t.formId)?.name ?? t.formId}`;
   if (t.type === "stage.changed") return `Stage changes to ${stageLabel(t.to)}`;
+  if (t.type === "appointment.status") return `Free trial marked ${apptStatusLabel(t.status).toLowerCase()}`;
   return `Tagged “${t.tag}”`;
 }
 
@@ -178,12 +214,37 @@ export function sendMessage(s: State, contactId: string, text: string) {
   log(s, "whatsapp.sent", contactId, `Reply to ${c.name}`);
 }
 
-export function receiveMessage(s: State, contactId: string, text: string) {
+export function receiveMessage(s: State, contactId: string, text: string, id = uid()) {
   const c = s.contacts.find((x) => x.id === contactId);
   if (!c) return;
-  s.messages.push({ id: uid(), contactId, dir: "in", text, at: nowIso(s) });
+  s.messages.push({ id, contactId, dir: "in", text, at: nowIso(s) });
   log(s, "whatsapp.received", contactId, `From ${c.name}`);
+  // A reply ends any flow that is waiting for one (e.g. the booking push).
+  for (const r of s.runs) {
+    if (r.contactId !== contactId || (r.status !== "waiting" && r.status !== "running")) continue;
+    const a = s.automations.find((x) => x.id === r.automationId);
+    if (!a?.stopOnReply) continue;
+    r.status = "stopped";
+    r.resumeAt = undefined;
+    log(s, "automation.stopped", contactId, `${a.name} stopped: ${firstName(c)} replied`);
+  }
   if (c.stage === "new") setStage(s, contactId, "contacted");
+}
+
+/**
+ * A WhatsApp message arriving from Meta's webhook. Finds the contact by
+ * mobile number, or adds them if it's someone new. `id` is based on Meta's
+ * message id, so the same message is never added twice.
+ */
+export function receiveWhatsApp(s: State, input: { id: string; phone: string; name?: string; text: string }) {
+  if (s.messages.some((m) => m.id === input.id)) return;
+  let c = s.contacts.find((x) => samePhone(x.phone, input.phone));
+  if (!c) {
+    c = { id: uid(), name: input.name?.trim() || input.phone, phone: input.phone, email: "", source: "whatsapp", stage: "new", tags: [], answers: [], createdAt: nowIso(s) };
+    s.contacts.unshift(c);
+    log(s, "contact.created", c.id, `${c.name} messaged on WhatsApp`);
+  }
+  receiveMessage(s, c.id, input.text, input.id);
 }
 
 export function setStage(s: State, contactId: string, stage: Stage, opts: { lostReason?: string } = {}) {
@@ -197,7 +258,7 @@ export function setStage(s: State, contactId: string, stage: Stage, opts: { lost
   if (stage === "booked" && !activeTrial(s, contactId)) {
     const d = ukTime(nowMs(s), 1, 18);
     const cal = s.calendars.find((x) => x.bookTrial);
-    if (cal && s.staff[0]) createAppointment(s, { contactId, calendarId: cal.id, staffId: s.staff[0].id, start: d.toISOString() });
+    if (cal) createAppointment(s, { contactId, calendarId: cal.id, staffId: s.staff[0]?.id ?? "", start: d.toISOString() });
   }
   const why = c.lostReason ? ` (${c.lostReason})` : "";
   log(s, "stage.changed", contactId, `${c.name}: ${stageLabel(from)} to ${stageLabel(stage)}${why}`);
@@ -207,7 +268,7 @@ export function setStage(s: State, contactId: string, stage: Stage, opts: { lost
 // ---- Calendar ------------------------------------------------------------
 
 const when = (iso: string) =>
-  new Date(iso).toLocaleString("en-GB", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+  new Date(iso).toLocaleString("en-GB", { timeZone: "Europe/London", weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
 
 /** The contact's upcoming, not-cancelled trial appointment, if any. */
 export function activeTrial(s: State, contactId: string) {
@@ -255,8 +316,8 @@ export function createAppointment(
     createdAt: nowIso(s),
   };
   s.appointments.push(appt);
-  const coach = s.staff.find((x) => x.id === input.staffId)?.name ?? "";
-  log(s, "appointment.booked", c.id, `${cal.name} for ${c.name}, ${when(appt.start)} with ${coach}`);
+  const coach = s.staff.find((x) => x.id === input.staffId)?.name;
+  log(s, "appointment.booked", c.id, `${cal.name} for ${c.name}, ${when(appt.start)}${coach ? ` with ${coach}` : ""}`);
   if (cal.bookTrial) {
     c.trialAt = appt.start;
     if (c.stage === "booked") retimeTrialWaits(s, c.id);
@@ -294,6 +355,7 @@ export function setAppointmentStatus(s: State, id: string, status: Appointment["
   a.status = status;
   log(s, "appointment.updated", a.contactId, `${c?.name}’s ${cal?.name.toLowerCase()} marked ${apptStatusLabel(status).toLowerCase()}`);
   if (!c || !cal?.bookTrial) return;
+  fire(s, { type: "appointment.status", contactId: c.id, status });
 
   if (status === "attended") {
     // The trial has happened, so stop anything still waiting to remind them.
@@ -326,7 +388,7 @@ export function bookTrial(s: State, contactId: string, at: string) {
   const existing = activeTrial(s, contactId);
   if (existing) return rescheduleAppointment(s, existing.id, { start: new Date(at).toISOString() });
   const cal = s.calendars.find((x) => x.bookTrial);
-  if (cal && s.staff[0]) createAppointment(s, { contactId, calendarId: cal.id, staffId: s.staff[0].id, start: new Date(at).toISOString() });
+  if (cal) createAppointment(s, { contactId, calendarId: cal.id, staffId: s.staff[0]?.id ?? "", start: new Date(at).toISOString() });
 }
 
 export function addTag(s: State, contactId: string, tag: string) {
@@ -382,7 +444,7 @@ export function readAttribution(search: string): Attribution {
   return { source: get("utm_source"), campaign: get("utm_campaign"), adset: get("utm_term"), ad: get("utm_content"), adId: get("ad_id"), fbclid: get("fbclid") };
 }
 
-export function submitForm(s: State, formId: string, answers: Record<string, string>, utm: Attribution) {
+export function submitForm(s: State, formId: string, answers: Record<string, string>, utm: Attribution, newId = uid()) {
   const form = s.forms.find((f) => f.id === formId);
   if (!form) return;
   const byField = (field: string) => {
@@ -397,7 +459,7 @@ export function submitForm(s: State, formId: string, answers: Record<string, str
   const qa = form.questions.filter((q) => !q.field).map((q) => ({ question: q.text, answer: answers[q.id] ?? "" }));
 
   // Match an existing contact on phone number before creating a new one.
-  let c = phone ? s.contacts.find((x) => x.phone.replace(/\s/g, "") === phone.replace(/\s/g, "")) : undefined;
+  let c = phone ? s.contacts.find((x) => samePhone(x.phone, phone)) : undefined;
   if (c) {
     c.answers = qa;
   } else {
@@ -406,7 +468,7 @@ export function submitForm(s: State, formId: string, answers: Record<string, str
       .flatMap((k) => k.ads.map((a) => ({ ...a, utm: k.utm })))
       .find((a) => (utm.adId && a.id === utm.adId) || (a.name === utm.ad && (!utm.campaign || a.utm === utm.campaign)));
     c = {
-      id: uid(), name, phone, email, source,
+      id: newId, name, phone, email, source,
       campaign: ad?.utm ?? utm.campaign,
       adset: ad?.adset ?? utm.adset,
       ad: ad?.name ?? utm.ad,
@@ -419,11 +481,18 @@ export function submitForm(s: State, formId: string, answers: Record<string, str
   form.responses += 1;
   log(s, "form.submitted", c.id, `${c.name} · ${form.name}`);
   fire(s, { type: "form.submitted", contactId: c.id, formId });
+  return c.id;
 }
 
 export function completeTask(s: State, taskId: string) {
   const t = s.tasks.find((x) => x.id === taskId);
   if (t) t.done = true;
+}
+
+/** Staff changing when people can book a calendar themselves. */
+export function setAvailability(s: State, calendarId: string, availability: Availability) {
+  const cal = s.calendars.find((x) => x.id === calendarId);
+  if (cal) cal.availability = availability;
 }
 
 export function updateForm(s: State, form: Form) {

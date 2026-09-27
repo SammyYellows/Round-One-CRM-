@@ -14,6 +14,10 @@ let client: SupabaseClient | null = null;
 export function db(): SupabaseClient {
   const key = process.env.SUPABASE_SECRET_KEY;
   if (!SUPABASE_URL || !key) throw new Error("Supabase isn't configured: set NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SECRET_KEY.");
-  client ??= createClient(SUPABASE_URL, key, { auth: { persistSession: false, autoRefreshToken: false } });
+  client ??= createClient(SUPABASE_URL, key, {
+    auth: { persistSession: false, autoRefreshToken: false },
+    // Next.js caches fetch() in server pages by default; the CRM must always read the latest.
+    global: { fetch: (input, init) => fetch(input, { ...init, cache: "no-store" }) },
+  });
   return client;
 }

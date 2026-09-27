@@ -1,7 +1,8 @@
 // Sample data so the prototype feels real. None of these people or ads exist.
 // Times are relative to when the data was created, so it always looks fresh.
 
-import { Appointment, Automation, Campaign, Contact, Form, Message, Source, Stage, State, Task } from "./types";
+import { AUTOMATIONS, TEMPLATES, TRIAL_AVAILABILITY, TRIAL_FORM } from "./playbook";
+import { Appointment, Campaign, Contact, Form, Message, Source, Stage, State, Task } from "./types";
 
 // Meta ads, down to the individual ad. Campaign totals are the sum of these.
 const CAMPAIGNS: Campaign[] = [
@@ -60,63 +61,8 @@ const ROWS: Row[] = [
   ["ruth", "Ruth Brooks", "lost", "meta_ad", 350, "ad_102"],
 ];
 
-export const TEMPLATES: Record<string, string> = {
-  trial_welcome: "Hi {first}, thanks for asking about a free trial at Round One. Which evening suits you: Tuesday, Wednesday or Thursday?",
-  trial_nudge: "Hi {first}, just checking in. Would you like to book your free trial this week? Reply with a day and we’ll sort it.",
-  trial_confirmed: "You’re booked in, {first}. Your free trial is on {trial}. Bring trainers and water, and we’ll lend you gloves.",
-  trial_reminder: "See you soon, {first}. Your trial starts at {trialTime}.",
-  missed_you: "Sorry we missed you, {first}. Want to rebook your free trial? Reply with a day that works.",
-};
-
-const AUTOMATIONS: Automation[] = [
-  {
-    id: "new_trial", name: "New trial lead", enabled: true, runs: 41,
-    summary: "Welcomes a new trial lead on WhatsApp, tells the front desk, then nudges if they haven’t booked.",
-    trigger: { type: "form.submitted", formId: "free-trial" },
-    steps: [
-      { kind: "whatsapp", template: "trial_welcome" },
-      { kind: "email", to: "staff", subject: "New trial lead: {name}" },
-      { kind: "wait", hours: 24 },
-      { kind: "if_stage_in", stages: ["new", "contacted"] },
-      { kind: "whatsapp", template: "trial_nudge" },
-    ],
-  },
-  {
-    id: "trial_reminder", name: "Trial reminder", enabled: true, runs: 29,
-    summary: "Confirms the booking, then reminds them on the day.",
-    trigger: { type: "stage.changed", to: "booked" },
-    steps: [
-      { kind: "whatsapp", template: "trial_confirmed" },
-      { kind: "wait_until_trial", hoursBefore: 2 },
-      { kind: "whatsapp", template: "trial_reminder" },
-    ],
-  },
-  {
-    id: "no_show", name: "Trial no-show", enabled: true, runs: 6,
-    summary: "Gets back in touch with anyone who missed their trial.",
-    trigger: { type: "tag.added", tag: "no-show" },
-    steps: [
-      { kind: "whatsapp", template: "missed_you" },
-      { kind: "wait", hours: 48 },
-      { kind: "if_stage_in", stages: ["no_show"] },
-      { kind: "task", text: "Call {name} about rebooking their trial" },
-    ],
-  },
-];
-
 const FORMS: Form[] = [
-  {
-    id: "free-trial", slug: "free-trial", name: "Free trial", responses: 94,
-    thanks: "We’ll message you on WhatsApp shortly to book your free trial.",
-    questions: [
-      { id: "q1", type: "text", field: "name", text: "What’s your name?" },
-      { id: "q2", type: "phone", field: "phone", text: "What’s your mobile number?", help: "We’ll message you on WhatsApp to book your trial." },
-      { id: "q3", type: "email", field: "email", text: "And your email?" },
-      { id: "q4", type: "choice", text: "What’s your main goal?", options: ["Get fitter", "Learn to box", "Build confidence", "Compete"] },
-      { id: "q5", type: "choice", text: "Have you boxed before?", options: ["Never", "A little", "Yes, regularly"] },
-      { id: "q6", type: "choice", text: "When could you train?", options: ["Weekday mornings", "Weekday evenings", "Weekends"] },
-    ],
-  },
+  { ...TRIAL_FORM, responses: 94 },
   {
     id: "kids", slug: "kids-trial", name: "Kids’ free trial", responses: 12,
     thanks: "Thanks. We’ll be in touch shortly to book your child’s free trial.",
@@ -180,9 +126,10 @@ export function seed(now: number): State {
   const jordan = byId("jordan");
   jordan.tags = ["beginner", "evenings"];
   jordan.answers = [
-    { question: "What’s your main goal?", answer: "Learn to box" },
-    { question: "Have you boxed before?", answer: "Never" },
-    { question: "When could you train?", answer: "Weekday evenings" },
+    { question: "Do you prefer training alone or in a group?", answer: "Group" },
+    { question: "What is your #1 fitness goal right now?", answer: "Get fitter and learn to box" },
+    { question: "How soon would you be ready to start?", answer: "This week" },
+    { question: "How committed are you?", answer: "8" },
   ];
   byId("priya").tags = ["no-show"];
   byId("ruth").lostReason = "Price";
@@ -216,7 +163,7 @@ export function seed(now: number): State {
   const appointments: Appointment[] = A.map(([contactId, staffId, start, status, notes], i) => ({
     id: `a${i + 1}`, contactId, calendarId: "trial", staffId, status, notes,
     start: new Date(start).toISOString(),
-    end: new Date(start + 60 * 60e3).toISOString(),
+    end: new Date(start + 30 * 60e3).toISOString(),
     createdAt: ago(48),
   }));
   for (const a of appointments) {
@@ -224,14 +171,14 @@ export function seed(now: number): State {
   }
 
   const messages: Message[] = [
-    { id: "m1", contactId: "jordan", dir: "out", template: "trial_welcome", by: "New trial lead", at: ago(1.9),
-      text: "Hi Jordan, thanks for asking about a free trial at Round One. Which evening suits you: Tuesday, Wednesday or Thursday?" },
+    { id: "m1", contactId: "jordan", dir: "out", template: "leads_1", by: "New lead – booking push", at: ago(1.9),
+      text: "Hi Jordan, it’s the Round One team. Thanks for your interest in joining us! ✅ The next step is to book your intro session…" },
     { id: "m2", contactId: "jordan", dir: "in", at: ago(1.6), text: "Hi, Wednesday would be good. Do I need my own gloves?" },
     { id: "m3", contactId: "jordan", dir: "in", at: ago(1.58), text: "Also is it ok if I’ve never boxed before" },
-    { id: "m4", contactId: "aisha", dir: "out", template: "trial_confirmed", by: "Trial reminder", at: ago(20),
-      text: "You’re booked in, Aisha. Your free trial is coming up. Bring trainers and water, and we’ll lend you gloves." },
-    { id: "m5", contactId: "priya", dir: "out", template: "missed_you", by: "Trial no-show", at: ago(30),
-      text: "Sorry we missed you, Priya. Want to rebook your free trial? Reply with a day that works." },
+    { id: "m4", contactId: "aisha", dir: "out", template: "discovery_1", by: "Trial booked – show-up reminders", at: ago(20),
+      text: "Hi Aisha, Thanks for booking your meeting with us…" },
+    { id: "m5", contactId: "priya", dir: "out", template: "no_showed_1", by: "No-show – rebooking push", at: ago(30),
+      text: "Hey Priya - we had you booked in for a session recently but looks like we missed you…" },
   ];
 
   const tasks: Task[] = [
@@ -241,11 +188,11 @@ export function seed(now: number): State {
   ];
 
   return {
-    version: 4,
+    version: 5,
     seededAt: new Date(now).toISOString(),
     history: sampleHistory(now, 60),
     clockOffset: 0,
-    calendars: [{ id: "trial", name: "Free trial", durationMin: 60, style: "trial", bookTrial: true }],
+    calendars: [{ id: "trial", name: "Free trial", durationMin: 30, style: "trial", bookTrial: true, availability: structuredClone(TRIAL_AVAILABILITY) }],
     staff: [
       { id: "alex", name: "Alex Morgan", role: "Head coach" },
       { id: "jess", name: "Jess Hart", role: "Coach" },
@@ -254,18 +201,18 @@ export function seed(now: number): State {
     contacts,
     messages,
     tasks,
-    templates: { ...TEMPLATES },
+    templates: Object.fromEntries(TEMPLATES.map((x) => [x.name, x.body])),
     automations: structuredClone(AUTOMATIONS),
     forms: structuredClone(FORMS),
     runs: [
-      { id: "r1", automationId: "new_trial", contactId: "jordan", stepIndex: 3, status: "waiting", resumeAt: at(22), startedAt: ago(2) },
-      { id: "r2", automationId: "trial_reminder", contactId: "aisha", stepIndex: 2, status: "waiting", resumeAt: new Date(soon - 2 * 3600e3).toISOString(), startedAt: ago(20) },
-      { id: "r3", automationId: "no_show", contactId: "priya", stepIndex: 2, status: "waiting", resumeAt: at(18), startedAt: ago(30) },
+      { id: "r1", automationId: "new_lead", contactId: "jordan", stepIndex: 4, status: "waiting", resumeAt: at(46), startedAt: ago(2) },
+      { id: "r2", automationId: "trial_booked", contactId: "aisha", stepIndex: 6, status: "waiting", resumeAt: new Date(soon - 2 * 3600e3).toISOString(), startedAt: ago(20) },
+      { id: "r3", automationId: "no_show", contactId: "priya", stepIndex: 3, status: "waiting", resumeAt: at(18), startedAt: ago(30) },
     ],
     events: [
       { id: "e1", type: "whatsapp.received", contactId: "jordan", detail: "From Jordan Reid", at: ago(1.58) },
       { id: "e2", type: "email.sent", contactId: "jordan", detail: "New trial lead: Jordan Reid to the front desk", at: ago(1.9) },
-      { id: "e3", type: "whatsapp.sent", contactId: "jordan", detail: "trial_welcome to Jordan Reid", at: ago(1.9) },
+      { id: "e3", type: "whatsapp.sent", contactId: "jordan", detail: "leads_1 to Jordan Reid", at: ago(1.9) },
       { id: "e4", type: "form.submitted", contactId: "jordan", detail: "Jordan Reid · Free trial", at: ago(2) },
       { id: "e5", type: "contact.created", contactId: "jordan", detail: "Jordan Reid from ad “Pads with a coach”", at: ago(2) },
       { id: "e6", type: "stage.changed", contactId: "tom", detail: "Tom Price: Appointment attended to Sold – Recurring membership", at: ago(22) },

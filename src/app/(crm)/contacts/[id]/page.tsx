@@ -8,6 +8,8 @@ import { ago, dayTime, time, toLocalInput } from "@/lib/format";
 import { useStore } from "@/lib/store";
 import { LOST_REASONS, STAGES, Stage, apptStatusLabel, sourceLabel, stageLabel } from "@/lib/types";
 
+const STATUS: Record<string, string> = { queued: "Sending", sent: "Sent", delivered: "Delivered", read: "Read", failed: "Not delivered" };
+
 const QUICK = ["Gloves are provided for your trial", "Complete beginners are very welcome", "Does Wednesday at 18:00 work for you?"];
 const FAKE_REPLIES = ["Sounds good, see you then", "Can I bring a friend?", "What should I wear?", "Great, thanks"];
 
@@ -68,6 +70,11 @@ export default function ContactPage() {
           )}
           {c.stage === "attended" && (
             <button className="btn btn-ghost" onClick={() => act("setStage", c.id, "nurture")}>Move to nurture</button>
+          )}
+          {c.stage === "sold_programme" && !c.tags.includes("did-not-convert") && (
+            <button className="btn btn-ghost" onClick={() => act("addTag", c.id, "did-not-convert")} title="Sends the catch-up WhatsApp">
+              Did not convert
+            </button>
           )}
           {(c.stage === "attended" || c.stage === "nurture") && (
             <>
@@ -166,7 +173,9 @@ export default function ContactPage() {
                 <div>{m.text}</div>
                 <div className="mmeta">
                   {m.dir === "out" ? (m.template ? `${m.by} · ${m.template}` : m.by ?? "You") : firstName(c)} · {time(m.at)}
+                  {m.dir === "out" && m.status && STATUS[m.status] ? ` · ${STATUS[m.status]}` : ""}
                 </div>
+                {m.status === "failed" && m.error && <div className="mmeta" style={{ color: "var(--red-btn)" }}>{m.error}</div>}
               </div>
             ))}
           </div>
