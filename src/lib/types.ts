@@ -114,7 +114,9 @@ export type Trigger =
   | { type: "stage.changed"; to: Stage }
   | { type: "tag.added"; tag: string }
   // A free-trial appointment marked with this status (e.g. cancelled).
-  | { type: "appointment.status"; status: ApptStatus };
+  | { type: "appointment.status"; status: ApptStatus }
+  // A booked free trial moved to a new time.
+  | { type: "appointment.moved" };
 
 export type Step =
   | { kind: "whatsapp"; template: string }

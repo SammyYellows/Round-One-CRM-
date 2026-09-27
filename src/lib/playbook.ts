@@ -92,6 +92,9 @@ export const AUTOMATIONS: Automation[] = [
     trigger: { type: "form.submitted", formId: "free-trial" },
     steps: [
       { kind: "email", to: "staff", subject: "New trial lead: {name}" },
+      // Someone already booked (or further on) who fills the form in again
+      // doesn't need pushing to book.
+      { kind: "if_stage_in", stages: ["new", "contacted", "no_show", "nurture", "lost"] },
       {
         kind: "email", to: "contact", subject: "{gym} next steps",
         body: "Hi {first},\n\nThanks for your enquiry! We’re excited to help you get started.\n\nThe next step is to book your onsite intro session. This gives us a chance to learn more about your goals, show you around, and explain how everything works.\n\nYou can choose a time that suits you here:\n{bookLink}\n\nIf you have any questions before booking, just reply to this email and we’ll help you out.\n\nSpeak soon,\nThe Round One team",
@@ -120,6 +123,15 @@ export const AUTOMATIONS: Automation[] = [
       { kind: "whatsapp", template: "discovery_2" },
       { kind: "wait_until_trial", hoursBefore: 2, skipIfLate: true },
       { kind: "whatsapp", template: "discovery_3" },
+    ],
+  },
+  {
+    id: "trial_moved", name: "Trial moved – new time", enabled: true, runs: 0,
+    summary: "When a booked free trial moves to a new time (by them on their booking page, or by staff), confirms the new time. The reminders move with it.",
+    trigger: { type: "appointment.moved" },
+    steps: [
+      { kind: "email", to: "staff", subject: "Trial moved: {name}, now {date} at {time}" },
+      { kind: "whatsapp", template: "discovery_1" },
     ],
   },
   {
