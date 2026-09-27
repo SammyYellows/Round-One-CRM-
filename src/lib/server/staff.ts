@@ -35,3 +35,12 @@ export async function staffFor(user: User): Promise<StaffMember | null> {
     .maybeSingle();
   return byEmail.data ?? null;
 }
+
+/** For API routes: the signed-in staff member, or a ready-made error response. */
+export async function requireStaff(): Promise<{ staff: StaffMember } | { error: Response }> {
+  const user = await currentUser();
+  if (!user) return { error: Response.json({ error: "Not signed in" }, { status: 401 }) };
+  const staff = await staffFor(user);
+  if (!staff) return { error: Response.json({ error: "Not set up as staff" }, { status: 403 }) };
+  return { staff };
+}

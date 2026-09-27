@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { createAppointment, rescheduleAppointment, setAppointmentStatus, uid } from "@/lib/engine";
+import { uid } from "@/lib/engine";
 import { isSameDay, time, toLocalInput } from "@/lib/format";
 import { useStore } from "@/lib/store";
 import { APPT_STATUSES, Appointment, ApptStatus, apptStatusLabel } from "@/lib/types";
@@ -212,7 +212,7 @@ export default function CalendarPage() {
                     </button>
                     <div><span className={`sw sw-${cal(a.calendarId)?.style}`} /> {cal(a.calendarId)?.name}</div>
                     <div className="muted">{staff(a.staffId)?.name}</div>
-                    <select className="select" style={{ height: 36 }} aria-label="Status" value={a.status} onChange={(e) => act((d) => setAppointmentStatus(d, a.id, e.target.value as ApptStatus))}>
+                    <select className="select" style={{ height: 36 }} aria-label="Status" value={a.status} onChange={(e) => act("setAppointmentStatus", a.id, e.target.value as ApptStatus)}>
                       {APPT_STATUSES.map((st) => <option key={st.id} value={st.id}>{st.label}</option>)}
                     </select>
                   </div>
@@ -304,7 +304,7 @@ function NewPanel({ start, onClose, onBooked }: { start: number; onClose: () => 
   const book = (e: React.FormEvent) => {
     e.preventDefault();
     const id = uid();
-    act((d) => createAppointment(d, { contactId, calendarId, staffId, start: new Date(at).toISOString(), notes: notes || undefined }, id));
+    act("createAppointment", { contactId, calendarId, staffId, start: new Date(at).toISOString(), notes: notes || undefined }, id);
     onBooked(id);
   };
 
@@ -391,7 +391,7 @@ function ApptPanel({ id, onClose }: { id: string; onClose: () => void }) {
               key={st.id}
               className={`sbtn ${a.status === st.id ? "on" : ""}`}
               aria-pressed={a.status === st.id}
-              onClick={() => act((d) => setAppointmentStatus(d, a.id, st.id))}
+              onClick={() => act("setAppointmentStatus", a.id, st.id)}
               disabled={!past && (st.id === "attended" || st.id === "no_show") && Date.parse(a.start) > now}
               title={!past && Date.parse(a.start) > now && (st.id === "attended" || st.id === "no_show") ? "Available once it has started" : undefined}
             >
@@ -403,7 +403,7 @@ function ApptPanel({ id, onClose }: { id: string; onClose: () => void }) {
 
       <div>
         <label className="label" htmlFor="ap-coach">Coach</label>
-        <select id="ap-coach" className="select" value={a.staffId} onChange={(e) => act((d) => rescheduleAppointment(d, a.id, { staffId: e.target.value }))}>
+        <select id="ap-coach" className="select" value={a.staffId} onChange={(e) => act("rescheduleAppointment", a.id, { staffId: e.target.value })}>
           {s.staff.map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}
         </select>
       </div>
@@ -411,12 +411,12 @@ function ApptPanel({ id, onClose }: { id: string; onClose: () => void }) {
         <label className="label" htmlFor="ap-when">Move to</label>
         <div style={{ display: "flex", gap: 8 }}>
           <input id="ap-when" type="datetime-local" className="input" style={{ minWidth: 0 }} step={1800} value={at} onChange={(e) => setAt(e.target.value)} />
-          <button className="btn btn-red" style={{ padding: "0 14px" }} onClick={() => act((d) => rescheduleAppointment(d, a.id, { start: new Date(at).toISOString() }))}>Move</button>
+          <button className="btn btn-red" style={{ padding: "0 14px" }} onClick={() => act("rescheduleAppointment", a.id, { start: new Date(at).toISOString() })}>Move</button>
         </div>
       </div>
       <div>
         <label className="label" htmlFor="ap-notes">Notes</label>
-        <input id="ap-notes" className="input" value={a.notes ?? ""} onChange={(e) => act((d) => rescheduleAppointment(d, a.id, { notes: e.target.value }))} placeholder="Add a note" />
+        <input id="ap-notes" className="input" value={a.notes ?? ""} onChange={(e) => act("rescheduleAppointment", a.id, { notes: e.target.value })} placeholder="Add a note" />
       </div>
     </aside>
   );

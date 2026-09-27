@@ -28,7 +28,7 @@ const value = (m: AdMetrics, k: SortKey) =>
   k === "cpl" ? per(m.spend, m.leads) : k === "cpt" ? per(m.spend, m.trials) : k === "cps" ? per(m.spend, m.sold) : k === "name" ? 0 : m[k];
 
 export default function AdsPage() {
-  const { s } = useStore();
+  const { s, live } = useStore();
   const [group, setGroup] = useState<"ad" | "campaign">("ad");
   const [sort, setSort] = useState<{ key: SortKey; dir: 1 | -1 }>({ key: "cpt", dir: 1 });
   const [open, setOpen] = useState<string[]>([]);
@@ -86,7 +86,7 @@ export default function AdsPage() {
     <>
       <header className="page-head">
         <div>
-          <div className="eyebrow">Last 30 days · sample figures until Meta is connected</div>
+          <div className="eyebrow">Last 30 days · {live ? "spend appears once Meta is connected" : "sample figures until Meta is connected"}</div>
           <h1 className="h h1">Meta ads</h1>
         </div>
       </header>

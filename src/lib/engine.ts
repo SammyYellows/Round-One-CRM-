@@ -6,6 +6,7 @@
 import {
   Appointment, Automation, Contact, CrmEvent, EventType, Form, Run, Source, Stage, State, Step, apptStatusLabel, stageLabel,
 } from "./types";
+import { ukTime } from "./time";
 
 export const uid = () => Math.random().toString(36).slice(2, 10);
 export const nowMs = (s: State) => Date.now() + s.clockOffset;
@@ -152,6 +153,17 @@ export function sendTemplate(s: State, c: Contact, template: string, by: string)
   log(s, "whatsapp.sent", c.id, `${template} to ${c.name}`);
 }
 
+/** Staff sending an approved template by hand (outside the 24-hour window). */
+export function sendTemplateTo(s: State, contactId: string, template: string) {
+  const c = s.contacts.find((x) => x.id === contactId);
+  if (c && s.templates[template]) sendTemplate(s, c, template, "You");
+}
+
+/** Prototype only: move the pretend clock forward. Never runs on the server. */
+export function shiftClock(s: State, hours: number) {
+  s.clockOffset += hours * 3600e3;
+}
+
 export function sendMessage(s: State, contactId: string, text: string) {
   const c = s.contacts.find((x) => x.id === contactId);
   if (!c || !text.trim()) return;
@@ -176,8 +188,7 @@ export function setStage(s: State, contactId: string, stage: Stage, opts: { lost
   // Moving someone to Appointment booked (e.g. dragging on the pipeline) puts
   // a trial in the calendar too, tomorrow at 18:00, so the two never disagree.
   if (stage === "booked" && !activeTrial(s, contactId)) {
-    const d = new Date(nowMs(s) + 86400e3);
-    d.setHours(18, 0, 0, 0);
+    const d = ukTime(nowMs(s), 1, 18);
     const cal = s.calendars.find((x) => x.bookTrial);
     if (cal && s.staff[0]) createAppointment(s, { contactId, calendarId: cal.id, staffId: s.staff[0].id, start: d.toISOString() });
   }

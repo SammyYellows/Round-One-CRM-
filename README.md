@@ -2,9 +2,13 @@
 
 Leads, trials, members, WhatsApp, forms and Meta ads for Round One.
 
-This is currently a **working front-end prototype**. Everything is clickable
-and behaves like the real thing, but the data is sample data stored in your
-own browser. Nothing is sent anywhere.
+Live at https://round-one-crm.vercel.app (staff login needed). There it
+reads and writes the real Supabase database. WhatsApp messages are recorded
+in the CRM but not sent yet, until the WhatsApp API is connected.
+
+Run locally without Supabase settings and it's the original **prototype**:
+sample data stored in your own browser, with a pretend clock. Nothing is
+sent anywhere.
 
 ## Run it
 
@@ -15,9 +19,11 @@ npm install
 npm run dev
 ```
 
-**Staff login.** With a `.env.local` (copy `.env.example` and fill in the
-Supabase values), every page except the public forms asks you to log in.
-Without it, the prototype runs locally with no login. Staff accounts are
+**Live or prototype.** With a `.env.local` (copy `.env.example` and fill
+in the Supabase values), every page except the public forms asks you to log
+in, and you're working on the **real `round1-dev` database**: anything you
+add is saved and seen by everyone. Without it, the prototype runs locally
+with sample data and no login, and the "Things to try" list below applies. Staff accounts are
 added by Sammy: a row in the `staff` table with their email, plus an
 invite.
 
@@ -28,7 +34,7 @@ set.
 Open http://localhost:3000 (or 3001 if you start it from Claude Code's
 preview, which uses `.claude/launch.json`).
 
-## Things to try
+## Things to try (prototype mode)
 
 1. **Today** shows what needs doing. Jordan is waiting on a WhatsApp reply.
 2. **Calendar**: week, day and list views, filtered by coach or type. Click

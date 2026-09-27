@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { ContactFilters } from "@/components/ContactFilters";
 import { ContactFilter, EMPTY_FILTER, SortKey, applyFilter, lastActivity, sortContacts, waitingOnUs } from "@/lib/contactQuery";
-import { addContact, uid } from "@/lib/engine";
+import { uid } from "@/lib/engine";
 import { ago, dayTime } from "@/lib/format";
 import { useStore } from "@/lib/store";
 import { SOURCES, Source, sourceLabel, stageLabel } from "@/lib/types";
@@ -48,7 +48,7 @@ export default function ContactsPage() {
     e.preventDefault();
     if (!draft.name.trim()) return;
     const id = uid();
-    act((d) => { addContact(d, { ...draft, name: draft.name.trim() }, id); });
+    act("addContact", { ...draft, name: draft.name.trim() }, id);
     router.push(`/contacts/${id}`);
   };
 

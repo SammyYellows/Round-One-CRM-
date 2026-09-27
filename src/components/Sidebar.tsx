@@ -16,9 +16,9 @@ const NAV = [
 
 export function Sidebar({ staff }: { staff?: { name: string } }) {
   const path = usePathname();
-  const { now, act, reset } = useStore();
+  const { now, act, reset, live } = useStore();
   const isOn = (href: string) => (href === "/" ? path === "/" : path.startsWith(href));
-  const shift = (hours: number) => act((d) => { d.clockOffset += hours * 3600e3; });
+  const shift = (hours: number) => act("shiftClock", hours);
 
   return (
     <nav className="sidebar" aria-label="Main">
@@ -40,21 +40,23 @@ export function Sidebar({ staff }: { staff?: { name: string } }) {
           <div className="clock-btns"><button>Log out</button></div>
         </form>
       )}
-      <div className="clock">
-        <div className="eyebrow">Prototype clock</div>
-        <div className="small num">
-          {new Date(now).toLocaleString("en-GB", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
+      {!live && (
+        <div className="clock">
+          <div className="eyebrow">Prototype clock</div>
+          <div className="small num">
+            {new Date(now).toLocaleString("en-GB", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
+          </div>
+          <div className="clock-btns">
+            <button onClick={() => shift(1)}>+1 hour</button>
+            <button onClick={() => shift(24)}>+1 day</button>
+            <button
+              onClick={() => { if (confirm("Reset all prototype data back to the sample data?")) reset(); }}
+            >
+              Reset
+            </button>
+          </div>
         </div>
-        <div className="clock-btns">
-          <button onClick={() => shift(1)}>+1 hour</button>
-          <button onClick={() => shift(24)}>+1 day</button>
-          <button
-            onClick={() => { if (confirm("Reset all prototype data back to the sample data?")) reset(); }}
-          >
-            Reset
-          </button>
-        </div>
-      </div>
+      )}
     </nav>
   );
 }

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { describeStep, describeTrigger, toggleAutomation } from "@/lib/engine";
+import { describeStep, describeTrigger } from "@/lib/engine";
 import { ago, dayTime } from "@/lib/format";
 import { useStore } from "@/lib/store";
 
@@ -38,7 +38,7 @@ export default function AutomationsPage() {
                 className={`tog ${x.enabled ? "on" : ""}`}
                 aria-pressed={x.enabled}
                 aria-label={`${x.enabled ? "Pause" : "Turn on"} ${x.name}`}
-                onClick={() => act((d) => toggleAutomation(d, x.id))}
+                onClick={() => act("toggleAutomation", x.id)}
               />
             </div>
           ))}
