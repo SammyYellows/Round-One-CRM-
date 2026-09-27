@@ -82,14 +82,22 @@ async function sendWhatsApp(m: Message, c: Contact | undefined, templates: Map<s
 }
 
 export async function deliver(before: State, after: State) {
+  // WhatsApps and emails go out side by side. Each stays in order within
+  // itself: a contact's WhatsApps arrive in the order they were written, and
+  // emails go one at a time (Resend limits how fast we can send).
+  await Promise.all([deliverWhatsApps(before, after), deliverEmails(before, after)]);
+}
+
+async function deliverWhatsApps(before: State, after: State) {
   const sentBefore = new Set(before.messages.map((m) => m.id));
   const outgoing = after.messages.filter((m) => m.dir === "out" && !sentBefore.has(m.id));
-  if (outgoing.length) {
-    const { data } = await db().from("templates").select("name, body, language, header_video, button_url");
-    const templates = new Map(((data ?? []) as TemplateRow[]).map((t) => [t.name, t]));
-    for (const m of outgoing) await sendWhatsApp(m, after.contacts.find((x) => x.id === m.contactId), templates);
-  }
+  if (!outgoing.length) return;
+  const { data } = await db().from("templates").select("name, body, language, header_video, button_url");
+  const templates = new Map(((data ?? []) as TemplateRow[]).map((t) => [t.name, t]));
+  for (const m of outgoing) await sendWhatsApp(m, after.contacts.find((x) => x.id === m.contactId), templates);
+}
 
+async function deliverEmails(before: State, after: State) {
   const seen = new Set(before.events.map((e) => e.id));
   const emails = after.events.filter((e) => e.type === "email.sent" && !seen.has(e.id) && e.data);
   for (const e of emails) {

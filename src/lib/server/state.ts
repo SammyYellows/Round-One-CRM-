@@ -9,6 +9,7 @@ import { ActionArgs, ActionName, runAction } from "@/lib/actions";
 import {
   Ad, Appointment, Automation, CalendarDef, Campaign, Contact, CrmEvent, Form, Message, Run, Staff, State, Task, isSold,
 } from "@/lib/types";
+import { afterResponse } from "./background";
 import { deliver } from "./deliver";
 import { db } from "./supabase";
 
@@ -203,31 +204,39 @@ type Table<T extends { id: string }> = { table: string; pick: (s: State) => T[];
 // Each table's rows are compared by id, so any row type with an id will do.
 const table = <T extends { id: string }>(t: Table<T>) => t as unknown as Table<{ id: string }>;
 
-// In foreign-key order: contacts before the rows that point at them.
-const TABLES = [
-  table({ table: "contacts", pick: (s) => s.contacts, to: contactTo }),
-  table({ table: "forms", pick: (s) => s.forms, to: formTo }),
-  table({ table: "automations", pick: (s) => s.automations, to: automationTo }),
-  table({ table: "calendars", pick: (s) => s.calendars, to: calendarTo }),
-  table({ table: "appointments", pick: (s) => s.appointments, to: apptTo }),
-  table({ table: "runs", pick: (s) => s.runs, to: runTo }),
-  table({ table: "tasks", pick: (s) => s.tasks, to: taskTo }),
-  table({ table: "messages", pick: (s) => s.messages, to: messageTo, appendOnly: true }),
-  table({ table: "events", pick: (s) => s.events, to: eventTo, appendOnly: true }),
+// Saved in two rounds, in foreign-key order: the rows others point at
+// (contacts, automations, calendars), then the rows that point at them. Each
+// round's tables are written at the same time.
+const ROUNDS = [
+  [
+    table({ table: "contacts", pick: (s) => s.contacts, to: contactTo }),
+    table({ table: "forms", pick: (s) => s.forms, to: formTo }),
+    table({ table: "automations", pick: (s) => s.automations, to: automationTo }),
+    table({ table: "calendars", pick: (s) => s.calendars, to: calendarTo }),
+  ],
+  [
+    table({ table: "appointments", pick: (s) => s.appointments, to: apptTo }),
+    table({ table: "runs", pick: (s) => s.runs, to: runTo }),
+    table({ table: "tasks", pick: (s) => s.tasks, to: taskTo }),
+    table({ table: "messages", pick: (s) => s.messages, to: messageTo, appendOnly: true }),
+    table({ table: "events", pick: (s) => s.events, to: eventTo, appendOnly: true }),
+  ],
 ];
+
+async function saveTable(t: Table<{ id: string }>, before: State, after: State) {
+  const old = new Map(t.pick(before).map((x) => [x.id, JSON.stringify(t.to(x))]));
+  const changed = t
+    .pick(after)
+    .filter((x) => (t.appendOnly ? !old.has(x.id) : old.get(x.id) !== JSON.stringify(t.to(x))))
+    .map(t.to);
+  if (!changed.length) return;
+  const { error } = t.appendOnly ? await db().from(t.table).insert(changed) : await db().from(t.table).upsert(changed);
+  if (error) throw new Error(`Saving ${t.table}: ${error.message}`);
+}
 
 /** Writes every row that is new or different in `after`. Nothing is ever deleted. */
 export async function saveChanges(before: State, after: State) {
-  for (const t of TABLES) {
-    const old = new Map(t.pick(before).map((x) => [x.id, JSON.stringify(t.to(x))]));
-    const changed = t
-      .pick(after)
-      .filter((x) => (t.appendOnly ? !old.has(x.id) : old.get(x.id) !== JSON.stringify(t.to(x))))
-      .map(t.to);
-    if (!changed.length) continue;
-    const { error } = t.appendOnly ? await db().from(t.table).insert(changed) : await db().from(t.table).upsert(changed);
-    if (error) throw new Error(`Saving ${t.table}: ${error.message}`);
-  }
+  for (const round of ROUNDS) await Promise.all(round.map((t) => saveTable(t, before, after)));
 }
 
 /** Load, run one named change (plus any automation steps now due), save. */
@@ -238,7 +247,8 @@ export async function applyAction<N extends ActionName>(name: N, args: ActionArg
   runAction(after, name, args);
   tick(after);
   await saveChanges(before, after);
-  await deliver(before, after);
+  // Reply now; emails and WhatsApps finish sending in the background.
+  await afterResponse(deliver(before, after));
   return after;
 }
 
@@ -248,6 +258,6 @@ export async function loadAndTick(): Promise<State> {
   const after = structuredClone(before);
   tick(after);
   await saveChanges(before, after);
-  await deliver(before, after);
+  await afterResponse(deliver(before, after));
   return after;
 }
