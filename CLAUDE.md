@@ -67,9 +67,14 @@ In place so far:
   calendar's booking hours (Calendar → Booking hours). The id is the key,
   so contact ids come from a proper random source.
 
-Still to come: Meta Marketing API sync, and a scheduler for automation
-waits (for now they move on whenever someone has the CRM open, or when
-`/api/cron` is called).
+- **Scheduler.** A Supabase `pg_cron` job (`crm-automations`) calls
+  `/api/cron` every 5 minutes with `CRON_SECRET` (kept in Supabase Vault),
+  so automation waits and reminders run even when nobody has the CRM open.
+  Opening the CRM also runs anything due.
+- **Meta webhook** is subscribed for the test WhatsApp account only
+  (`messages` field, to `/api/webhooks/whatsapp`).
+
+Still to come: Meta Marketing API sync.
 
 ## How the code is laid out
 
