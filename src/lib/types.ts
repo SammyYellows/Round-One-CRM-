@@ -248,7 +248,7 @@ export interface Availability {
   slotMin: number; // length of each bookable slot
   capacity: number; // people per slot
   minNoticeHours: number; // earliest booking, from now
-  daysAhead: number; // how far ahead the booking page shows
+  daysAhead: number; // latest day people can book, counted from today (7 = same day next week)
   hours: Record<number, [from: string, to: string][]>; // 0 = Sunday; "08:00", "19:30"
 }
 
