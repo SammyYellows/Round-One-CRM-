@@ -41,12 +41,17 @@ In place so far:
   member except `/login`, `/auth/*`, the public forms and their submit
   route, `/api/webhooks/*` and `/api/cron`. A login only gets in if it
   matches a row in `staff`.
-- **Email** for logins (invites, password resets) goes through Resend,
-  from bookings@round1boxfit.co.uk.
+- **Email** goes through Resend, from bookings@round1boxfit.co.uk: login
+  emails (invites, password resets) via Supabase, and automation emails via
+  `src/lib/server/deliver.ts`. The engine only records an `email.sent`
+  event with the details in `data`; after a change is saved, the server
+  sends one email per new event (staff alerts go to `STAFF_EMAIL`). A
+  failure is logged as an `email.failed` event. No `RESEND_API_KEY` (e.g.
+  locally) means emails are printed to the server log, not sent.
 
 Still to come: WhatsApp Cloud API (messages are only recorded, not sent,
-until then), Meta Marketing API sync, Resend for CRM emails, and a
-scheduler for automation waits (for now they move on whenever someone has
+until then; it will follow the same record-then-deliver pattern), Meta
+Marketing API sync, and a scheduler for automation waits (for now they move on whenever someone has
 the CRM open, or when `/api/cron` is called).
 
 ## How the code is laid out

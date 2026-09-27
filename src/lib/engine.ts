@@ -13,8 +13,8 @@ export const nowMs = (s: State) => Date.now() + s.clockOffset;
 export const nowIso = (s: State) => new Date(nowMs(s)).toISOString();
 export const firstName = (c: Contact) => c.name.split(" ")[0];
 
-function log(s: State, type: EventType, contactId: string | undefined, detail: string) {
-  const ev: CrmEvent = { id: uid(), type, contactId, detail, at: nowIso(s) };
+function log(s: State, type: EventType, contactId: string | undefined, detail: string, data?: Record<string, string>) {
+  const ev: CrmEvent = { id: uid(), type, contactId, detail, at: nowIso(s), ...(data ? { data } : {}) };
   s.events.unshift(ev);
 }
 
@@ -67,8 +67,15 @@ function advanceRun(s: State, run: Run) {
       case "whatsapp":
         sendTemplate(s, c, step.template, a.name);
         break;
-      case "email":
-        log(s, "email.sent", c.id, step.to === "staff" ? `${fill(step.subject, c)} to the front desk` : `${fill(step.subject, c)} to ${c.name}`);
+      case "email": {
+        // Only recorded here. On the live server, src/lib/server/deliver.ts
+        // sends it once the change is saved.
+        const subject = fill(step.subject, c);
+        const data: Record<string, string> = { to: step.to, subject };
+        if (step.body) data.body = fill(step.body, c);
+        log(s, "email.sent", c.id, step.to === "staff" ? `${subject} to the front desk` : `${subject} to ${c.name}`, data);
+        break;
+      }
         break;
       case "wait":
         run.status = "waiting";
