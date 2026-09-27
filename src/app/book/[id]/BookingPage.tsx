@@ -15,7 +15,7 @@ function Shell({ children }: { children: React.ReactNode }) {
         <div className="runner-top">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/brand/logo.avif" alt="Round One" width={64} style={{ display: "block", height: "auto" }} />
-          <span>Book your intro meeting</span>
+          <span style={{ textAlign: "right" }}>Intro meeting</span>
         </div>
         <div className="runner-body">{children}</div>
       </div>
@@ -106,9 +106,11 @@ function Picker({
       )}
       {error && <div className="err" role="alert">{error}</div>}
       <div style={{ flex: 1 }} />
-      <button className="btn btn-red" disabled={!chosen || busy} onClick={book}>
-        {busy ? "Booking" : chosen ? `Book ${slotLabel(chosen)}` : "Pick a time"}
-      </button>
+      <div className="stick">
+        <button className="btn btn-red" disabled={!chosen || busy} onClick={book}>
+          {busy ? "Booking" : chosen ? `Book ${slotLabel(chosen)}` : "Pick a time"}
+        </button>
+      </div>
     </>
   );
 }
