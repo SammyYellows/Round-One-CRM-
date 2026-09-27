@@ -54,6 +54,7 @@ export default function AutomationsPage() {
               <span className={`chip ${a.enabled ? "chip-red" : ""}`}>{a.enabled ? "Live" : "Paused"}</span>
             </div>
             <div className="muted" style={{ fontSize: 14 }}>{a.summary}</div>
+            {a.stopOnReply && <div className="small faint">Stops for anyone who replies on WhatsApp.</div>}
           </div>
 
           <div style={{ display: "flex", flexDirection: "column", maxWidth: 640 }}>

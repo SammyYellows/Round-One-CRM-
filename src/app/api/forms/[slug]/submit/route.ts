@@ -2,7 +2,7 @@
 // Creates (or updates) the contact with its ad attribution, and fires the
 // form's automations, exactly as the prototype did in the browser.
 
-import type { Attribution } from "@/lib/engine";
+import { uid, type Attribution } from "@/lib/engine";
 import { applyAction } from "@/lib/server/state";
 import { db } from "@/lib/server/supabase";
 
@@ -28,8 +28,12 @@ export async function POST(req: Request, { params }: { params: { slug: string } 
   }
 
   try {
-    await applyAction("submitForm", [form.id as string, answers, utm]);
-    return Response.json({ ok: true });
+    // The contact's id makes the link to their booking page, shown on the
+    // form's end screen. If their number matched an existing contact, it's theirs.
+    // Events are newest first, so the first form.submitted is this one.
+    const after = await applyAction("submitForm", [form.id as string, answers, utm, uid()]);
+    const contactId = after.events.find((e) => e.type === "form.submitted")?.contactId;
+    return Response.json({ ok: true, contactId });
   } catch (e) {
     console.error("[form submit]", params.slug, e);
     return Response.json({ error: "Couldn’t save your answers. Please try again." }, { status: 500 });

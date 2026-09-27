@@ -3,13 +3,14 @@
 // against the database. To add one: write it in engine.ts, then list it here.
 
 import {
-  addContact, bookTrial, completeTask, createAppointment, markNoShow, receiveMessage, rescheduleAppointment, sendMessage,
-  sendTemplateTo, setAppointmentStatus, setStage, shiftClock, stopRun, submitForm, toggleAutomation, updateForm,
+  addContact, addTag, bookTrial, completeTask, createAppointment, markNoShow, receiveMessage, receiveWhatsApp, rescheduleAppointment, sendMessage,
+  sendTemplateTo, setAppointmentStatus, setAvailability, setStage, shiftClock, stopRun, submitForm, toggleAutomation, updateForm,
 } from "./engine";
 import { State } from "./types";
 
 export const ACTIONS = {
   addContact,
+  addTag,
   bookTrial,
   completeTask,
   createAppointment,
@@ -18,12 +19,14 @@ export const ACTIONS = {
   sendMessage,
   sendTemplateTo,
   setAppointmentStatus,
+  setAvailability,
   setStage,
   stopRun,
   toggleAutomation,
   updateForm,
-  // Local prototype only (see SERVER_REFUSES).
+  // Not from the staff screens (see SERVER_REFUSES).
   receiveMessage,
+  receiveWhatsApp,
   shiftClock,
   submitForm,
 };
@@ -34,10 +37,11 @@ export type ActionArgs<N extends ActionName> = Tail<Parameters<(typeof ACTIONS)[
 
 /**
  * Not accepted from the staff screens on the server: fake replies and the
- * prototype clock only make sense with sample data, and form submissions come
- * through the public form route instead.
+ * prototype clock only make sense with sample data, form submissions come
+ * through the public form route, and real WhatsApp messages through Meta's
+ * webhook.
  */
-export const SERVER_REFUSES = new Set<ActionName>(["receiveMessage", "shiftClock", "submitForm"]);
+export const SERVER_REFUSES = new Set<ActionName>(["receiveMessage", "receiveWhatsApp", "shiftClock", "submitForm"]);
 
 export function isActionName(x: unknown): x is ActionName {
   return typeof x === "string" && Object.prototype.hasOwnProperty.call(ACTIONS, x);

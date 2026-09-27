@@ -5,14 +5,14 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { uid } from "@/lib/engine";
 import { isSameDay, time, toLocalInput } from "@/lib/format";
 import { useStore } from "@/lib/store";
-import { APPT_STATUSES, Appointment, ApptStatus, apptStatusLabel } from "@/lib/types";
+import { APPT_STATUSES, Appointment, ApptStatus, Availability, apptStatusLabel } from "@/lib/types";
 
 const START_HOUR = 6;
 const END_HOUR = 22;
 const HOUR_PX = 56;
 const DAY_MS = 86400e3;
 
-type Panel = { kind: "new"; start: number } | { kind: "appt"; id: string } | null;
+type Panel = { kind: "new"; start: number } | { kind: "appt"; id: string } | { kind: "hours" } | null;
 
 function startOfDay(ms: number) {
   const d = new Date(ms);
@@ -139,6 +139,7 @@ export default function CalendarPage() {
           <h1 className="h h1">Calendar</h1>
         </div>
         <div className="actions">
+          <button className="btn btn-ghost" onClick={() => setPanel({ kind: "hours" })}>Booking hours</button>
           <button className="btn btn-red" onClick={() => {
             const d = new Date(now + 3600e3);
             d.setMinutes(d.getMinutes() < 30 ? 30 : 60, 0, 0);
@@ -284,8 +285,71 @@ export default function CalendarPage() {
 
         {panel?.kind === "new" && <NewPanel start={panel.start} onClose={() => setPanel(null)} onBooked={(id) => setPanel({ kind: "appt", id })} />}
         {panel?.kind === "appt" && <ApptPanel id={panel.id} onClose={() => setPanel(null)} />}
+        {panel?.kind === "hours" && <HoursPanel onClose={() => setPanel(null)} />}
       </div>
     </>
+  );
+}
+
+const WEEKDAYS = [1, 2, 3, 4, 5, 6, 0].map((d) => ({ d, name: ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][d] }));
+
+/** When people can book a free trial themselves, on their booking page. */
+function HoursPanel({ onClose }: { onClose: () => void }) {
+  const { s, act } = useStore();
+  const cal = s.calendars.find((x) => x.bookTrial);
+  const [av, setAv] = useState<Availability>(() => cal?.availability ?? { slotMin: 30, capacity: 1, minNoticeHours: 2, daysAhead: 14, hours: {} });
+  const [saved, setSaved] = useState(false);
+  if (!cal) return null;
+
+  const setDay = (d: number, from: string, to: string) => {
+    setSaved(false);
+    setAv({ ...av, hours: { ...av.hours, [d]: from && to ? [[from, to]] : [] } });
+  };
+  const num = (k: "slotMin" | "capacity" | "minNoticeHours" | "daysAhead", v: string) => {
+    setSaved(false);
+    setAv({ ...av, [k]: Math.max(k === "minNoticeHours" ? 0 : 1, Math.round(Number(v) || 0)) });
+  };
+
+  return (
+    <form className="panel" onSubmit={(e) => { e.preventDefault(); act("setAvailability", cal.id, av); setSaved(true); }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <h2 className="h h3">Booking hours</h2>
+        <button type="button" className="icon-btn" aria-label="Close" onClick={onClose}>✕</button>
+      </div>
+      <div className="small muted" style={{ lineHeight: 1.5 }}>
+        When people can book a {cal.name.toLowerCase()} themselves, from the form or a WhatsApp link. UK time. Leave a day empty to close it.
+      </div>
+      {WEEKDAYS.map(({ d, name }) => {
+        const [from, to] = av.hours[d]?.[0] ?? ["", ""];
+        return (
+          <div key={d} style={{ display: "grid", gridTemplateColumns: "84px minmax(0, 1fr) minmax(0, 1fr)", gap: 8, alignItems: "center" }}>
+            <span className="small strong">{name}</span>
+            <input type="time" className="input" style={{ minWidth: 0, padding: "0 8px" }} aria-label={`${name} from`} step={1800} value={from} onChange={(e) => setDay(d, e.target.value, to || "17:00")} />
+            <input type="time" className="input" style={{ minWidth: 0, padding: "0 8px" }} aria-label={`${name} until`} step={1800} value={to} onChange={(e) => setDay(d, from || "09:00", e.target.value)} />
+          </div>
+        );
+      })}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+        <div>
+          <label className="label" htmlFor="bh-slot">Slot length (min)</label>
+          <input id="bh-slot" type="number" min={5} step={5} className="input" value={av.slotMin} onChange={(e) => num("slotMin", e.target.value)} />
+        </div>
+        <div>
+          <label className="label" htmlFor="bh-cap">People per slot</label>
+          <input id="bh-cap" type="number" min={1} className="input" value={av.capacity} onChange={(e) => num("capacity", e.target.value)} />
+        </div>
+        <div>
+          <label className="label" htmlFor="bh-notice">Notice (hours)</label>
+          <input id="bh-notice" type="number" min={0} className="input" value={av.minNoticeHours} onChange={(e) => num("minNoticeHours", e.target.value)} />
+        </div>
+        <div>
+          <label className="label" htmlFor="bh-ahead">Days ahead</label>
+          <input id="bh-ahead" type="number" min={1} className="input" value={av.daysAhead} onChange={(e) => num("daysAhead", e.target.value)} />
+        </div>
+      </div>
+      <button className="btn btn-red" type="submit">Save hours</button>
+      {saved && <div className="small muted" role="status">Saved.</div>}
+    </form>
   );
 }
 

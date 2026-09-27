@@ -39,8 +39,9 @@ In place so far:
   `/api/forms/<slug>/submit`.
 - **Staff login** with Supabase Auth. Everything needs a signed-in staff
   member except `/login`, `/auth/*`, the public forms and their submit
-  route, `/api/webhooks/*` and `/api/cron`. A login only gets in if it
-  matches a row in `staff`.
+  route, the booking pages (`/book/<contact id>`, `/api/book/<id>`),
+  `/api/webhooks/*` and `/api/cron`. A login only gets in if it matches a
+  row in `staff`.
 - **Email** goes through Resend, from bookings@round1boxfit.co.uk: login
   emails (invites, password resets) via Supabase, and automation emails via
   `src/lib/server/deliver.ts`. The engine only records an `email.sent`
@@ -49,10 +50,26 @@ In place so far:
   failure is logged as an `email.failed` event. No `RESEND_API_KEY` (e.g.
   locally) means emails are printed to the server log, not sent.
 
-Still to come: WhatsApp Cloud API (messages are only recorded, not sent,
-until then; it will follow the same record-then-deliver pattern), Meta
-Marketing API sync, and a scheduler for automation waits (for now they move on whenever someone has
-the CRM open, or when `/api/cron` is called).
+- **WhatsApp** goes through Meta's Cloud API, on Meta's **test number**
+  until go-live (the real number stays on GymGrow until then). Same
+  record-then-deliver pattern: the engine adds an outgoing message to the
+  thread; after the save, `deliver.ts` sends each new one (templates with
+  their `{placeholder}` values, header video and "Book meeting" link) and
+  stores Meta's message id. `/api/webhooks/whatsapp` (signed with the app
+  secret) brings replies in and moves messages on to delivered, read or
+  failed. Without `WHATSAPP_TOKEN` messages are printed to the server log.
+- **The GymGrow journey** (`src/lib/playbook.ts`): Round One's real form
+  questions, 13 WhatsApp templates and the automations copied from the
+  GymGrow workflows. Templates need Meta's approval: after changing one in
+  the `templates` table, run `npm run wa:templates`.
+- **Self-booking.** The form's end screen and the WhatsApp buttons link to
+  `/book/<contact id>`, where people pick a free-trial slot from the
+  calendar's booking hours (Calendar → Booking hours). The id is the key,
+  so contact ids come from a proper random source.
+
+Still to come: Meta Marketing API sync, and a scheduler for automation
+waits (for now they move on whenever someone has the CRM open, or when
+`/api/cron` is called).
 
 ## How the code is laid out
 
@@ -78,9 +95,15 @@ the CRM open, or when `/api/cron` is called).
   login. Live, it loads the form on the server and posts answers to
   `/api/forms/<slug>/submit`, which treats them as untrusted input.
 - `src/components/FormRunner.tsx`: shared by the public form and the preview.
+- `src/app/book/[id]`: someone's own booking page. Slots come from
+  `src/lib/availability.ts`, which the server checks again when saving.
+- `src/lib/playbook.ts`: the starting templates, automations, form and
+  booking hours (the prototype uses it; a migration put it in the database).
+  `src/lib/gym.ts`: the gym's name and address, used in messages.
 - `src/lib/server/`: **server-only** code. `supabase.ts` holds the client
   with the secret key; `staff.ts` answers "who is signed in, and are they
-  staff?". Never import anything from here into a `"use client"` file.
+  staff?"; `deliver.ts`, `email.ts` and `whatsapp.ts` send things. Never
+  import anything from here into a `"use client"` file.
 - `src/lib/supabase/`: the login-session client (publishable key) and env
   settings. `src/middleware.ts` protects the staff screens.
 - `supabase/migrations/`: the database schema, one SQL file per change.

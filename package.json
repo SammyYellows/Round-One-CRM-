@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "db:migrate": "node scripts/migrate.mjs"
+    "db:migrate": "node scripts/migrate.mjs",
+    "wa:templates": "node scripts/whatsapp-templates.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",

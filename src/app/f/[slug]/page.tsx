@@ -10,7 +10,11 @@ export const dynamic = "force-dynamic";
 
 export default async function PublicFormPage({ params }: { params: { slug: string } }) {
   if (!supabaseConfigured()) return <LocalPublicForm slug={params.slug} />;
-  const { data } = await db().from("forms").select("id, slug, name, questions, thanks, responses").eq("slug", params.slug).maybeSingle();
+  const { data } = await db().from("forms").select("id, slug, name, questions, thanks, thanks_title, book_button").eq("slug", params.slug).maybeSingle();
   if (!data) notFound();
-  return <PublicForm form={data as Form} />;
+  const form: Form = {
+    id: data.id, slug: data.slug, name: data.name, questions: data.questions, thanks: data.thanks, responses: 0,
+    thanksTitle: data.thanks_title ?? undefined, bookButton: data.book_button ?? undefined,
+  };
+  return <PublicForm form={form} />;
 }
