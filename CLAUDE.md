@@ -5,11 +5,16 @@ both using Claude Code on the same repo. Read `README.md` for how to run it.
 
 ## Scope
 
-**This CRM books free trials.** It takes someone from first enquiry (ad,
-form, walk-in, referral) to a booked and attended trial, and ends at the
-sale ("Sold – Programme" or "Sold – Recurring membership"). Memberships,
-billing, member classes, renewals and PT are managed in other software:
-don't build them here. The calendar holds trials only.
+**This CRM is where Round One's selling and marketing is managed** (Sammy,
+27/09/2026). Today it takes someone from first enquiry (ad, form, walk-in,
+referral) to a booked and attended free trial and the sale ("Sold –
+Programme" or "Sold – Recurring membership"). Marketing to members and
+ex-members (e.g. email campaigns, with people picked from TeamUp) belongs
+here too: see `docs/improvement-list.md`.
+
+TeamUp is the booking and gym management system: memberships, billing,
+member classes, renewals and PT stay there. Don't rebuild them here; read
+from TeamUp when marketing needs its data. The calendar holds trials only.
 
 ## Pipeline stages
 
