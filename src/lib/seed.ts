@@ -61,18 +61,7 @@ const ROWS: Row[] = [
   ["ruth", "Ruth Brooks", "lost", "meta_ad", 350, "ad_102"],
 ];
 
-const FORMS: Form[] = [
-  { ...TRIAL_FORM, responses: 94 },
-  {
-    id: "kids", slug: "kids-trial", name: "Kids’ free trial", responses: 12,
-    thanks: "Thanks. We’ll be in touch shortly to book your child’s free trial.",
-    questions: [
-      { id: "k1", type: "text", field: "name", text: "What’s your name?" },
-      { id: "k2", type: "phone", field: "phone", text: "Your mobile number" },
-      { id: "k3", type: "choice", text: "How old is your child?", options: ["5–7", "8–12", "13–16"] },
-    ],
-  },
-];
+const FORMS: Form[] = [{ ...TRIAL_FORM, responses: 94 }];
 
 export const dayKey = (ms: number) => {
   const d = new Date(ms);
