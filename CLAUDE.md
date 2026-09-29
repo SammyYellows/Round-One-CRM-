@@ -72,6 +72,11 @@ In place so far:
   calendar's booking hours (Calendar → Booking hours). The id is the key,
   so contact ids come from a proper random source.
 
+- **Spam protection** on the public form (`src/lib/server/spam.ts`): a
+  signed start time (answers faster than 8 seconds are held back; the page
+  waits and resends), a hidden trap field, and at most 10 submissions an
+  hour per connection and 5 per mobile number (`form_attempts`, hashed
+  addresses, cleared after a day). No outside service.
 - **Scheduler.** A Supabase `pg_cron` job (`crm-automations`) calls
   `/api/cron` every 5 minutes with `CRON_SECRET` (kept in Supabase Vault),
   so automation waits and reminders run even when nobody has the CRM open.
