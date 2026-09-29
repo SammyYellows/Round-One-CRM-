@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { issueFormToken } from "@/lib/server/spam";
 import { db } from "@/lib/server/supabase";
 import { supabaseConfigured } from "@/lib/supabase/env";
 import { Form } from "@/lib/types";
@@ -16,5 +17,5 @@ export default async function PublicFormPage({ params }: { params: { slug: strin
     id: data.id, slug: data.slug, name: data.name, questions: data.questions, thanks: data.thanks, responses: 0,
     thanksTitle: data.thanks_title ?? undefined, bookButton: data.book_button ?? undefined,
   };
-  return <PublicForm form={form} />;
+  return <PublicForm form={form} token={issueFormToken(form.slug)} />;
 }

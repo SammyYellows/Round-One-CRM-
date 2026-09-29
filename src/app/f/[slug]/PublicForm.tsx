@@ -1,35 +1,54 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { FormRunner } from "@/components/FormRunner";
 import { readAttribution } from "@/lib/engine";
 import { samePhone } from "@/lib/phone";
 import { StoreProvider, useStore } from "@/lib/store";
 import { Form } from "@/lib/types";
 
-function Frame({ form, onSubmit, bookHref, note }: { form: Form; onSubmit: (answers: Record<string, string>) => void; bookHref?: string; note?: string }) {
+function Frame({ form, onSubmit, bookHref, note, children }: { form: Form; onSubmit: (answers: Record<string, string>) => void; bookHref?: string; note?: string; children?: React.ReactNode }) {
   return (
     <div style={{ minHeight: "100vh", background: "var(--black)", display: "flex", justifyContent: "center", alignItems: "center", padding: 16 }}>
       <FormRunner form={form} onSubmit={onSubmit} bookHref={bookHref} note={note} style={{ width: "100%", maxWidth: 480, minHeight: "min(720px, calc(100vh - 32px))" }} />
+      {children}
     </div>
   );
 }
 
-/** Live: answers go to the server, which creates the contact with its ad. */
-export function PublicForm({ form }: { form: Form }) {
+const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+/**
+ * Live: answers go to the server, which creates the contact with its ad.
+ * `token` (from the server, when the page loaded) lets it tell people from
+ * bots; the hidden "website" field is a trap only bots fill in.
+ */
+export function PublicForm({ form, token }: { form: Form; token: string }) {
   const [bookHref, setBookHref] = useState<string>();
   const [note, setNote] = useState<string>();
+  const trap = useRef<HTMLInputElement>(null);
   const onSubmit = async (answers: Record<string, string>) => {
-    const body = JSON.stringify({ answers, utm: readAttribution(window.location.search) });
+    const body = JSON.stringify({ answers, utm: readAttribution(window.location.search), token, hp: trap.current?.value ?? "" });
     const send = () => fetch(`/api/forms/${form.slug}/submit`, { method: "POST", headers: { "Content-Type": "application/json" }, body });
-    // One retry, so a brief network blip doesn't lose a lead.
-    let res = await send().catch(() => null);
-    if (!res?.ok) res = await send().catch(() => null);
-    const json = res?.ok ? ((await res.json().catch(() => null)) as { contactId?: string } | null) : null;
-    if (!res?.ok) setNote("We couldn’t save your answers. Please check your connection and try again.");
+    let res: Response | null = null;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      res = await send().catch(() => null);
+      if (res?.ok || (res && res.status !== 425 && res.status < 500)) break;
+      // Too quick for the spam check: wait the few seconds left, then send again.
+      // Otherwise a network blip: try again straight away.
+      const tooFast = res?.status === 425 ? ((await res.json().catch(() => null)) as { waitMs?: number } | null) : null;
+      if (tooFast?.waitMs) await wait(Math.min(tooFast.waitMs + 250, 10000));
+    }
+    const json = res ? ((await res.json().catch(() => null)) as { contactId?: string; error?: string } | null) : null;
+    if (!res?.ok) setNote(json?.error && json.error !== "too_fast" ? json.error : "We couldn’t save your answers. Please check your connection and try again.");
     else if (json?.contactId) setBookHref(`/book/${json.contactId}`);
   };
-  return <Frame form={form} onSubmit={onSubmit} bookHref={bookHref} note={note} />;
+  return (
+    <Frame form={form} onSubmit={onSubmit} bookHref={bookHref} note={note}>
+      {/* Trap for bots: hidden from people and screen readers. */}
+      <input ref={trap} name="website" tabIndex={-1} autoComplete="off" aria-hidden="true" style={{ position: "absolute", left: -10000, width: 1, height: 1, opacity: 0 }} />
+    </Frame>
+  );
 }
 
 function LocalForm({ slug }: { slug: string }) {
