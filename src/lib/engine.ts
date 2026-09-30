@@ -493,6 +493,11 @@ export function completeTask(s: State, taskId: string) {
   if (t) t.done = true;
 }
 
+/** Staff editing the one-tap WhatsApp reply lines. Blank lines are dropped. */
+export function setQuickReplies(s: State, lines: string[]) {
+  s.quickReplies = lines.map((l) => l.trim().slice(0, 500)).filter(Boolean).slice(0, 20);
+}
+
 /** Staff changing when people can book a calendar themselves. */
 export function setAvailability(s: State, calendarId: string, availability: Availability) {
   const cal = s.calendars.find((x) => x.id === calendarId);

@@ -10,7 +10,6 @@ import { LOST_REASONS, STAGES, Stage, apptStatusLabel, sourceLabel, stageLabel }
 
 const STATUS: Record<string, string> = { queued: "Sending", sent: "Sent", delivered: "Delivered", read: "Read", failed: "Not delivered" };
 
-const QUICK = ["Gloves are provided for your trial", "Complete beginners are very welcome", "Does Wednesday at 18:00 work for you?"];
 const FAKE_REPLIES = ["Sounds good, see you then", "Can I bring a friend?", "What should I wear?", "Great, thanks"];
 
 export default function ContactPage() {
@@ -182,9 +181,7 @@ export default function ContactPage() {
 
           {windowOpen ? (
             <>
-              <div style={{ padding: "14px 22px 0", display: "flex", gap: 8, flexWrap: "wrap" }}>
-                {QUICK.map((q) => <button key={q} className="qr" onClick={() => setDraft(q)}>{q}</button>)}
-              </div>
+              <QuickReplies onPick={setDraft} />
               <div style={{ padding: "12px 22px 0", display: "flex", gap: 8 }}>
                 <input
                   className="input"
@@ -207,6 +204,7 @@ export default function ContactPage() {
                   <button key={t} className="qr" title={s.templates[t]} onClick={() => act("sendTemplateTo", c.id, t)}>{t}</button>
                 ))}
               </div>
+              <QuickReplies />
             </div>
           )}
           {!live && (
@@ -273,5 +271,46 @@ export default function ContactPage() {
         </div>
       </div>
     </>
+  );
+}
+
+/**
+ * One-tap lines for WhatsApp replies, shared by all staff. With `onPick`, the
+ * lines are buttons that fill the reply box; without it (outside the 24-hour
+ * window, when free text can't be sent) only the edit link shows.
+ */
+function QuickReplies({ onPick }: { onPick?: (text: string) => void }) {
+  const { s, act } = useStore();
+  const [editing, setEditing] = useState<string[] | null>(null);
+
+  if (editing) {
+    const set = (i: number, v: string) => setEditing(editing.map((x, j) => (j === i ? v : x)));
+    return (
+      <div style={{ padding: "14px 22px 0", display: "flex", flexDirection: "column", gap: 8 }}>
+        <div className="label" style={{ margin: 0 }}>Quick replies</div>
+        {editing.map((line, i) => (
+          <div key={i} style={{ display: "flex", gap: 8 }}>
+            <input className="input" aria-label={`Quick reply ${i + 1}`} value={line} maxLength={500} onChange={(e) => set(i, e.target.value)} placeholder="e.g. Wear trainers and comfy gym clothes" />
+            <button className="icon-btn" aria-label={`Remove quick reply ${i + 1}`} onClick={() => setEditing(editing.filter((_, j) => j !== i))}>✕</button>
+          </div>
+        ))}
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          <button className="btn btn-ghost btn-sm" onClick={() => setEditing([...editing, ""])} disabled={editing.length >= 20}>Add a line</button>
+          <button className="btn btn-red btn-sm" onClick={() => { act("setQuickReplies", editing); setEditing(null); }}>Save</button>
+          <button className="btn btn-ghost btn-sm" onClick={() => setEditing(null)}>Cancel</button>
+        </div>
+        <div className="small faint">Everyone who logs in sees the same lines. Tapping one puts it in the reply box; nothing sends until you press Send.</div>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ padding: "14px 22px 0", display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+      {onPick && s.quickReplies.map((q) => <button key={q} className="qr" onClick={() => onPick(q)}>{q}</button>)}
+      {onPick && s.quickReplies.length === 0 && <span className="small faint">No quick replies yet.</span>}
+      <button className="link-btn small" onClick={() => setEditing(s.quickReplies.length ? [...s.quickReplies] : [""])}>
+        {s.quickReplies.length ? "Edit quick replies" : "Add quick replies"}
+      </button>
+    </div>
   );
 }
