@@ -177,7 +177,7 @@ export function seed(now: number): State {
   ];
 
   return {
-    version: 5,
+    version: 6,
     seededAt: new Date(now).toISOString(),
     history: sampleHistory(now, 60),
     clockOffset: 0,
@@ -187,6 +187,7 @@ export function seed(now: number): State {
       { id: "jess", name: "Jess Hart", role: "Coach" },
     ],
     appointments,
+    quickReplies: [],
     contacts,
     messages,
     tasks,

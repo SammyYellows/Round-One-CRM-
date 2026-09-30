@@ -281,7 +281,7 @@ export interface DayStat {
 }
 
 export interface State {
-  version: 5;
+  version: 6;
   seededAt: string;
   history: DayStat[];
   clockOffset: number; // ms added to real time by the prototype clock
@@ -297,4 +297,6 @@ export interface State {
   calendars: CalendarDef[];
   staff: Staff[];
   appointments: Appointment[];
+  // One-tap lines staff can drop into a WhatsApp reply. Edited on the contact page.
+  quickReplies: string[];
 }

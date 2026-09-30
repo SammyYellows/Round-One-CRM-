@@ -160,7 +160,7 @@ function buildCampaigns(ads: Row[], insights: Row[], contacts: Contact[], appts:
 
 export async function loadState(): Promise<State> {
   const since = new Date(Date.now() - AD_DAYS * 86400e3).toISOString().slice(0, 10);
-  const [contacts, messages, events, automations, runs, forms, tasks, calendars, staff, appts, templates, ads, insights] = await Promise.all([
+  const [contacts, messages, events, automations, runs, forms, tasks, calendars, staff, appts, templates, ads, insights, settings] = await Promise.all([
     all("contacts", (q) => q.order("created_at", { ascending: false })),
     all("messages", (q) => q.order("at", { ascending: true })),
     all("events", (q) => q.order("at", { ascending: false }).limit(EVENTS_KEPT)),
@@ -174,11 +174,12 @@ export async function loadState(): Promise<State> {
     all("templates"),
     all("ads"),
     all("ad_insights_daily", (q) => q.gte("day", since)),
+    all("settings"),
   ]);
   const cs = contacts.map(contactFrom);
   const as = appts.map(apptFrom);
   return {
-    version: 5,
+    version: 6,
     seededAt: new Date(0).toISOString(), // no made-up history: every day is counted from real data
     history: [],
     clockOffset: 0,
@@ -194,6 +195,7 @@ export async function loadState(): Promise<State> {
     calendars: calendars.map(calendarFrom),
     staff: staff.map(staffFrom),
     appointments: as,
+    quickReplies: (settings.find((r) => r.id === "quick_replies")?.value as string[] | undefined) ?? [],
   };
 }
 
@@ -234,9 +236,17 @@ async function saveTable(t: Table<{ id: string }>, before: State, after: State) 
   if (error) throw new Error(`Saving ${t.table}: ${error.message}`);
 }
 
+/** Shared settings, one row each in the settings table. */
+async function saveSettings(before: State, after: State) {
+  if (JSON.stringify(before.quickReplies) === JSON.stringify(after.quickReplies)) return;
+  const { error } = await db().from("settings").upsert({ id: "quick_replies", value: after.quickReplies, updated_at: new Date().toISOString() });
+  if (error) throw new Error(`Saving settings: ${error.message}`);
+}
+
 /** Writes every row that is new or different in `after`. Nothing is ever deleted. */
 export async function saveChanges(before: State, after: State) {
   for (const round of ROUNDS) await Promise.all(round.map((t) => saveTable(t, before, after)));
+  await saveSettings(before, after);
 }
 
 /** Load, run one named change (plus any automation steps now due), save. */
