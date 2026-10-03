@@ -1,6 +1,6 @@
 # TeamUp members: reminders, timetable and selling messages
 
-Status: **planned (03/10/2026), not started.** Sammy's idea: pull current
+Status: **building from 03/10/2026** (Sammy: "can be built now"). Sammy's idea: pull current
 customers from TeamUp regularly and, depending on their membership category,
 automatically send reminders, class timetable information and selling
 messages (e.g. moving Program members on to a recurring membership; Sammy
@@ -67,12 +67,19 @@ will state the wording), then prompt staff in the CRM when someone replies.
 - The plan scope in `CLAUDE.md` already covers this ("selling and marketing
   is managed in the CRM; TeamUp stays the membership system; read from it").
 
-## Decisions needed from Sammy
+## Decisions (Sammy, 03/10/2026)
 
-- Priority: build now, after the email enquiries, or after go-live?
-- Channel to start with: email now, WhatsApp after the number moves, or both?
-- Which categories get which messages, and the wording (Sammy to state).
-- Whether Staff and Youth categories are excluded.
+- **Build now.** It's independent of the email enquiries and of go-live.
+- **Both channels from the start:** every member message has an email
+  version (live as soon as built) and a WhatsApp version (switched on when
+  the real number moves from GymGrow).
+- **Program Memberships only** to start (the 28 Day Program people),
+  including the selling messages that move them on to a recurring
+  membership. Other categories later.
+- **Accountability add-on:** a separate work stream. Sammy is designing it
+  in another Claude chat and will export a Markdown file to import here.
+  Keep the member messaging generic enough to carry an add-on offer later.
+- Wording: Sammy will state it; nothing goes out with made-up facts.
 
 ## Sammy's jobs when we start
 
