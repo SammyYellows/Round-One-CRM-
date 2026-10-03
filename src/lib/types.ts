@@ -36,7 +36,7 @@ export const isSold = (s: Stage) => SOLD_STAGES.includes(s);
 /** Why someone was marked Lost. Staff pick one; it's kept on the contact. */
 export const LOST_REASONS = ["Not interested", "No response", "Not qualified", "Joined elsewhere", "Price", "Other"] as const;
 
-export type Source = "meta_ad" | "walk_in" | "referral" | "website" | "whatsapp";
+export type Source = "meta_ad" | "walk_in" | "referral" | "website" | "whatsapp" | "teamup";
 
 export const SOURCES: { id: Source; label: string }[] = [
   { id: "meta_ad", label: "Meta ad" },
@@ -44,6 +44,7 @@ export const SOURCES: { id: Source; label: string }[] = [
   { id: "referral", label: "Referral" },
   { id: "website", label: "Website" },
   { id: "whatsapp", label: "WhatsApp" },
+  { id: "teamup", label: "TeamUp member" },
 ];
 
 export const sourceLabel = (s: Source) => SOURCES.find((x) => x.id === s)?.label ?? s;
@@ -66,6 +67,26 @@ export interface Contact {
   answers: { question: string; answer: string }[];
   trialAt?: string;
   createdAt: string;
+  // Their current TeamUp membership, kept up to date by the nightly sync.
+  membership?: Membership;
+  // Asked us to stop marketing messages (replied STOP, or staff set it).
+  // Messages about their own booking or membership still go.
+  marketingOptOut?: boolean;
+}
+
+/** A customer's membership as TeamUp reports it. TeamUp stays the source of truth. */
+export interface Membership {
+  customerId: string; // TeamUp customer id
+  id: string; // TeamUp customer_membership id
+  name: string; // e.g. Premium Middleweight, 28 Day Program
+  category: string; // TeamUp membership category, e.g. Program Memberships
+  status: "active" | "on_hold" | "ended";
+  startedAt?: string;
+  endsAt?: string; // expiry or next renewal, when TeamUp gives one
+  lastAttendedAt?: string;
+  syncedAt: string;
+  // Keys of "ending soon" notices already sent, e.g. "ending:7:2026-10-31".
+  noticesSent?: string[];
 }
 
 export interface Message {
@@ -116,13 +137,18 @@ export type Trigger =
   // A free-trial appointment marked with this status (e.g. cancelled).
   | { type: "appointment.status"; status: ApptStatus }
   // A booked free trial moved to a new time.
-  | { type: "appointment.moved" };
+  | { type: "appointment.moved" }
+  // TeamUp memberships (see docs/teamup-members.md). `category` limits the
+  // trigger to one membership category; leave it out for all.
+  | { type: "membership.started"; category?: string }
+  | { type: "membership.ending"; daysBefore: number; category?: string }
+  | { type: "membership.ended"; category?: string };
 
 export type Step =
   | { kind: "whatsapp"; template: string }
   // Staff emails get a summary of the contact. Emails to the contact are only
   // sent when there's a body to send.
-  | { kind: "email"; to: "staff" | "contact"; subject: string; body?: string }
+  | { kind: "email"; to: "staff" | "contact"; subject: string; body?: string; marketing?: boolean }
   | { kind: "wait"; hours: number }
   // Waits until this long before the trial. If that time has already gone
   // (e.g. they booked for later today), skipIfLate skips the next step.
@@ -281,7 +307,7 @@ export interface DayStat {
 }
 
 export interface State {
-  version: 6;
+  version: 7;
   seededAt: string;
   history: DayStat[];
   clockOffset: number; // ms added to real time by the prototype clock

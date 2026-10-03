@@ -151,6 +151,22 @@ export default function ContactPage() {
             ))}
             <div className="field"><dt>Added</dt><dd>{ago(c.createdAt, now)}</dd></div>
           </dl>
+          {c.membership && (
+            <div style={{ borderTop: "1px solid var(--line)", paddingTop: 12, display: "flex", flexDirection: "column", gap: 4 }}>
+              <div className="label" style={{ margin: 0 }}>Membership (TeamUp)</div>
+              <div className="strong">{c.membership.name}</div>
+              <div className="small muted">
+                {c.membership.category} · {c.membership.status === "active" ? "Active" : c.membership.status === "on_hold" ? "On hold" : "Ended"}
+                {c.membership.startedAt ? ` · since ${dayTime(c.membership.startedAt).split(",")[0]}` : ""}
+                {c.membership.endsAt ? ` · ${c.membership.status === "ended" ? "ended" : "ends or renews"} ${dayTime(c.membership.endsAt).split(",")[0]}` : ""}
+              </div>
+              <div className="small faint">Change it in TeamUp; synced {ago(c.membership.syncedAt, now)}.</div>
+            </div>
+          )}
+          <label className="small" style={{ display: "flex", alignItems: "center", gap: 8, borderTop: "1px solid var(--line)", paddingTop: 12 }}>
+            <input type="checkbox" checked={!!c.marketingOptOut} onChange={(e) => act("setMarketingOptOut", c.id, e.target.checked)} />
+            No marketing messages{c.marketingOptOut ? "" : " (they can reply STOP to set this)"}
+          </label>
           {c.tags.length > 0 && (
             <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
               {c.tags.map((t) => <span key={t} className={`chip ${t === "no-show" ? "chip-red" : ""}`}>{t}</span>)}

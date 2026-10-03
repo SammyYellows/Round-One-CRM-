@@ -4,7 +4,7 @@
 // routes and the automation part moves to a job runner (Inngest / Trigger.dev).
 
 import {
-  Appointment, Automation, Availability, Contact, CrmEvent, EventType, Form, Run, Source, Stage, State, Step, apptStatusLabel, stageLabel,
+  Appointment, Automation, Availability, Membership, Contact, CrmEvent, EventType, Form, Run, Source, Stage, State, Step, apptStatusLabel, stageLabel,
 } from "./types";
 import { GYM } from "./gym";
 import { samePhone } from "./phone";
@@ -62,7 +62,12 @@ type Fired =
   | { type: "stage.changed"; contactId: string; stage: Stage }
   | { type: "tag.added"; contactId: string; tag: string }
   | { type: "appointment.status"; contactId: string; status: Appointment["status"] }
-  | { type: "appointment.moved"; contactId: string };
+  | { type: "appointment.moved"; contactId: string }
+  | { type: "membership.started"; contactId: string; category: string }
+  | { type: "membership.ending"; contactId: string; category: string; daysBefore: number }
+  | { type: "membership.ended"; contactId: string; category: string };
+
+const sameCategory = (want: string | undefined, got: string) => !want || want.trim().toLowerCase() === got.trim().toLowerCase();
 
 function matches(a: Automation, ev: Fired) {
   const t = a.trigger;
@@ -72,6 +77,9 @@ function matches(a: Automation, ev: Fired) {
   if (t.type === "tag.added" && ev.type === "tag.added") return t.tag === ev.tag;
   if (t.type === "appointment.status" && ev.type === "appointment.status") return t.status === ev.status;
   if (t.type === "appointment.moved" && ev.type === "appointment.moved") return true;
+  if (t.type === "membership.started" && ev.type === "membership.started") return sameCategory(t.category, ev.category);
+  if (t.type === "membership.ended" && ev.type === "membership.ended") return sameCategory(t.category, ev.category);
+  if (t.type === "membership.ending" && ev.type === "membership.ending") return t.daysBefore === ev.daysBefore && sameCategory(t.category, ev.category);
   return false;
 }
 
@@ -105,6 +113,7 @@ function advanceRun(s: State, run: Run) {
         const subject = fill(step.subject, c);
         const data: Record<string, string> = { to: step.to, subject };
         if (step.body) data.body = fill(step.body, c);
+        if (step.marketing) data.marketing = "yes";
         log(s, "email.sent", c.id, step.to === "staff" ? `${subject} to the front desk` : `${subject} to ${c.name}`, data);
         break;
       }
@@ -188,6 +197,10 @@ export function describeTrigger(a: Automation, forms: Form[]) {
   if (t.type === "stage.changed") return `Stage changes to ${stageLabel(t.to)}`;
   if (t.type === "appointment.status") return `Free trial marked ${apptStatusLabel(t.status).toLowerCase()}`;
   if (t.type === "appointment.moved") return "Free trial moved to a new time";
+  const cat = (c?: string) => (c ? ` (${c})` : "");
+  if (t.type === "membership.started") return `Membership starts${cat(t.category)}`;
+  if (t.type === "membership.ending") return `Membership ends in ${t.daysBefore} day${t.daysBefore === 1 ? "" : "s"}${cat(t.category)}`;
+  if (t.type === "membership.ended") return `Membership ends${cat(t.category)}`;
   return `Tagged “${t.tag}”`;
 }
 
@@ -222,6 +235,8 @@ export function receiveMessage(s: State, contactId: string, text: string, id = u
   if (!c) return;
   s.messages.push({ id, contactId, dir: "in", text, at: nowIso(s) });
   log(s, "whatsapp.received", contactId, `From ${c.name}`);
+  // "STOP" (on its own, any case) opts them out of marketing messages.
+  if (/^\s*(stop|unsubscribe|opt ?out)\s*[.!]?\s*$/i.test(text) && !c.marketingOptOut) setMarketingOptOut(s, contactId, true, "they replied STOP");
   // A reply ends any flow that is waiting for one (e.g. the booking push).
   for (const r of s.runs) {
     if (r.contactId !== contactId || (r.status !== "waiting" && r.status !== "running")) continue;
@@ -491,6 +506,132 @@ export function submitForm(s: State, formId: string, answers: Record<string, str
 export function completeTask(s: State, taskId: string) {
   const t = s.tasks.find((x) => x.id === taskId);
   if (t) t.done = true;
+}
+
+/** Stop (or allow again) marketing messages to someone. Messages about their own booking or membership still go. */
+export function setMarketingOptOut(s: State, contactId: string, optOut: boolean, why = "set by staff") {
+  const c = s.contacts.find((x) => x.id === contactId);
+  if (!c || !!c.marketingOptOut === optOut) return;
+  c.marketingOptOut = optOut || undefined;
+  log(s, "tag.added", contactId, optOut ? `${c.name} opted out of marketing: ${why}` : `${c.name} opted back in to marketing (${why})`);
+  if (optOut) {
+    // End any marketing flow that was waiting to message them.
+    for (const r of s.runs) {
+      if (r.contactId !== contactId || r.status !== "waiting") continue;
+      const a = s.automations.find((x) => x.id === r.automationId);
+      if (!a || !a.trigger.type.startsWith("membership.")) continue;
+      r.status = "stopped";
+      r.resumeAt = undefined;
+      log(s, "automation.stopped", contactId, `${a.name} stopped: ${firstName(c)} opted out`);
+    }
+  }
+}
+
+// ---- TeamUp members ------------------------------------------------------
+
+/** One TeamUp customer membership, as read by src/lib/server/teamup.ts. */
+export interface MemberInput {
+  customerId: string;
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  membershipName: string;
+  category: string;
+  status: Membership["status"];
+  startedAt?: string;
+  endsAt?: string;
+}
+
+const isProgramme = (m: { category: string; membershipName: string }) => /program/i.test(m.category) || /program/i.test(m.membershipName);
+
+/**
+ * Applies what TeamUp says about everyone's memberships. Members are
+ * contacts: new people are added (source "teamup"), existing ones matched on
+ * TeamUp id, email or mobile. Fires membership.started when a membership is
+ * new to the CRM and recent, membership.ended when one that was active has
+ * ended, and moves the stage to the matching Sold stage.
+ *
+ * `baseline` is true for the very first sync, so hundreds of existing members
+ * don't each get a welcome message.
+ */
+export function importMembers(s: State, inputs: MemberInput[], opts: { baseline?: boolean } = {}) {
+  const now = nowMs(s);
+  // One membership per customer: the active one, else the most recent.
+  const best = new Map<string, MemberInput>();
+  for (const m of inputs) {
+    const cur = best.get(m.customerId);
+    const rank = (x: MemberInput) => (x.status === "active" ? 2 : x.status === "on_hold" ? 1 : 0) * 1e13 + (x.startedAt ? Date.parse(x.startedAt) : 0);
+    if (!cur || rank(m) > rank(cur)) best.set(m.customerId, m);
+  }
+  let added = 0, updated = 0, started = 0, ended = 0;
+  for (const m of best.values()) {
+    let c =
+      s.contacts.find((x) => x.membership?.customerId === m.customerId) ??
+      (m.email ? s.contacts.find((x) => x.email && x.email.toLowerCase() === m.email) : undefined) ??
+      (m.phone ? s.contacts.find((x) => samePhone(x.phone, m.phone)) : undefined);
+    if (!c) {
+      c = { id: uid(), name: m.name || m.email || "TeamUp member", phone: m.phone, email: m.email, source: "teamup", stage: "new", tags: [], answers: [], createdAt: nowIso(s) };
+      s.contacts.unshift(c);
+      log(s, "contact.created", c.id, `${c.name} from TeamUp (${m.membershipName})`);
+      added++;
+    } else {
+      if (!c.email && m.email) c.email = m.email;
+      if (!c.phone && m.phone) c.phone = m.phone;
+      updated++;
+    }
+    const prev = c.membership;
+    c.membership = {
+      customerId: m.customerId, id: m.id, name: m.membershipName, category: m.category, status: m.status,
+      startedAt: m.startedAt, endsAt: m.endsAt, lastAttendedAt: prev?.lastAttendedAt, syncedAt: nowIso(s),
+      noticesSent: prev?.id === m.id ? prev.noticesSent : undefined,
+    };
+    const soldStage: Stage = isProgramme(m) ? "sold_programme" : "sold_membership";
+    if (m.status !== "ended") {
+      const isNew = !prev || prev.id !== m.id || prev.status === "ended";
+      const recent = !m.startedAt || now - Date.parse(m.startedAt) < 14 * 86400e3;
+      if (opts.baseline) {
+        if (c.stage !== soldStage) c.stage = soldStage; // no events, no automations: it's history
+      } else if (isNew) {
+        log(s, "stage.changed", c.id, `${c.name} started ${m.membershipName} (TeamUp)`);
+        if (c.stage !== soldStage) setStage(s, c.id, soldStage);
+        if (recent) {
+          fire(s, { type: "membership.started", contactId: c.id, category: m.category });
+          started++;
+        }
+      }
+    } else if (prev && prev.status !== "ended" && !opts.baseline) {
+      log(s, "stage.changed", c.id, `${c.name}’s ${prev.name} ended (TeamUp)`);
+      fire(s, { type: "membership.ended", contactId: c.id, category: prev.category });
+      ended++;
+    }
+  }
+  return { added, updated, started, ended };
+}
+
+/**
+ * Fires membership.ending for anyone whose membership ends within one of the
+ * day counts that an enabled automation asks for, once per membership and
+ * day count. Run daily by the sync.
+ */
+export function checkMembershipsEnding(s: State) {
+  const now = nowMs(s);
+  const wanted = new Set<number>();
+  for (const a of s.automations) if (a.enabled && a.trigger.type === "membership.ending") wanted.add(a.trigger.daysBefore);
+  let fired = 0;
+  for (const c of s.contacts) {
+    const m = c.membership;
+    if (!m || m.status !== "active" || !m.endsAt) continue;
+    const daysLeft = (Date.parse(m.endsAt) - now) / 86400e3;
+    for (const d of wanted) {
+      const key = `ending:${d}:${m.endsAt.slice(0, 10)}`;
+      if (daysLeft > d || daysLeft < 0 || m.noticesSent?.includes(key)) continue;
+      m.noticesSent = [...(m.noticesSent ?? []), key];
+      fire(s, { type: "membership.ending", contactId: c.id, category: m.category, daysBefore: d });
+      fired++;
+    }
+  }
+  return fired;
 }
 
 /** Staff editing the one-tap WhatsApp reply lines. Blank lines are dropped. */

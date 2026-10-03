@@ -121,6 +121,8 @@ export function seed(now: number): State {
     { question: "How committed are you?", answer: "8" },
   ];
   byId("priya").tags = ["no-show"];
+  byId("tom").membership = { customerId: "tu-1", id: "cm-1", name: "Premium Middleweight", category: "Premium Memberships", status: "active", startedAt: ago(24 * 20), endsAt: at(24 * 10), syncedAt: ago(6) };
+  byId("dan").membership = { customerId: "tu-2", id: "cm-2", name: "28 Day Program", category: "Program Memberships", status: "active", startedAt: ago(24 * 12), endsAt: at(24 * 16), syncedAt: ago(6) };
   byId("ruth").lostReason = "Price";
 
   // Trial slots on the half hour, relative to today.
@@ -177,7 +179,7 @@ export function seed(now: number): State {
   ];
 
   return {
-    version: 6,
+    version: 7,
     seededAt: new Date(now).toISOString(),
     history: sampleHistory(now, 60),
     clockOffset: 0,

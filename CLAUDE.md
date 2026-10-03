@@ -84,6 +84,19 @@ In place so far:
 - **Meta webhook** is subscribed for the test WhatsApp account only
   (`messages` field, to `/api/webhooks/whatsapp`).
 
+- **TeamUp members** (`docs/teamup-members.md`). Members are contacts: the
+  nightly sync (`/api/cron?job=teamup`, `src/lib/server/teamupSync.ts`)
+  reads every customer membership from TeamUp with the M2M token and runs
+  `importMembers` in the engine, which adds or matches contacts (source
+  `teamup`), keeps `contact.membership` current, moves them to the right
+  Sold stage and fires `membership.started` / `membership.ended`;
+  `checkMembershipsEnding` fires `membership.ending` once per day count.
+  The first ever sync is a baseline: no messages. TeamUp webhooks
+  (`/api/webhooks/teamup/<secret>`) are unsigned nudges that re-sync one
+  customer. Imported members don't show on the Pipeline; they live on
+  Members. `marketingOptOut` (reply STOP, or staff) blocks marketing
+  templates and `marketing: true` email steps, never service messages.
+
 Still to come: Meta Marketing API sync.
 
 ## How the code is laid out
