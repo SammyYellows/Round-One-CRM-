@@ -39,12 +39,15 @@ const contactFrom = (r: Row): Contact => ({
   answers: (r.answers as Contact["answers"]) ?? [],
   trialAt: opt(r.trial_at),
   createdAt: r.created_at as string,
+  ...(r.membership ? { membership: r.membership as Contact["membership"] } : {}),
+  ...(r.marketing_opt_out ? { marketingOptOut: true } : {}),
 });
 const contactTo = (c: Contact): Row => ({
   id: c.id, name: c.name, phone: c.phone, email: c.email, source: c.source,
   campaign: c.campaign ?? null, adset: c.adset ?? null, ad: c.ad ?? null, ad_id: c.adId ?? null,
   stage: c.stage, lost_reason: c.lostReason ?? null, tags: c.tags, answers: c.answers,
   trial_at: c.trialAt ?? null, created_at: c.createdAt,
+  membership: c.membership ?? null, marketing_opt_out: !!c.marketingOptOut,
 });
 
 const messageFrom = (r: Row): Message => ({
@@ -179,7 +182,7 @@ export async function loadState(): Promise<State> {
   const cs = contacts.map(contactFrom);
   const as = appts.map(apptFrom);
   return {
-    version: 6,
+    version: 7,
     seededAt: new Date(0).toISOString(), // no made-up history: every day is counted from real data
     history: [],
     clockOffset: 0,
@@ -260,6 +263,20 @@ export async function applyAction<N extends ActionName>(name: N, args: ActionArg
   // Reply now; emails and WhatsApps finish sending in the background.
   await afterResponse(deliver(before, after));
   return after;
+}
+
+/**
+ * Load, run a pure change written for the server (e.g. the TeamUp import,
+ * which touches many contacts at once), save, deliver. Returns what it did.
+ */
+export async function applyMany<T>(fn: (s: State) => T): Promise<T> {
+  const before = await loadState();
+  const after = structuredClone(before);
+  const result = fn(after);
+  tick(after);
+  await saveChanges(before, after);
+  await afterResponse(deliver(before, after));
+  return result;
 }
 
 /** Load, run any automation steps that have come due, save if anything moved. */

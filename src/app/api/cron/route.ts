@@ -6,12 +6,16 @@
 
 import { db } from "@/lib/server/supabase";
 import { loadAndTick } from "@/lib/server/state";
+import { syncTeamUp } from "@/lib/server/teamupSync";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(req: Request) {
   const secret = process.env.CRON_SECRET;
   if (!secret || req.headers.get("authorization") !== `Bearer ${secret}`) return Response.json({ error: "Forbidden" }, { status: 403 });
+
+  // ?job=teamup: the nightly members sync (a second pg_cron job calls this).
+  if (new URL(req.url).searchParams.get("job") === "teamup") return Response.json(await syncTeamUp());
 
   const { data, error } = await db()
     .from("runs")

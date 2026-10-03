@@ -9,7 +9,7 @@ import { useStore } from "@/lib/store";
 import { Contact, STAGES, Source, Stage, sourceLabel } from "@/lib/types";
 
 const COLUMNS = STAGES.filter((st) => st.id !== "lost");
-const SRC_CHIP: Record<Source, string> = { meta_ad: "chip-red", walk_in: "", referral: "chip-light", website: "", whatsapp: "" };
+const SRC_CHIP: Record<Source, string> = { meta_ad: "chip-red", walk_in: "", referral: "chip-light", website: "", whatsapp: "", teamup: "" };
 
 export default function PipelinePage() {
   const { s, now, act } = useStore();
@@ -18,8 +18,10 @@ export default function PipelinePage() {
   const [dragId, setDragId] = useState<string | null>(null);
   const [over, setOver] = useState<Stage | null>(null);
 
-  const visible = applyFilter(s, s.contacts, filter, now);
-  const inPlay = s.contacts.filter((c) => c.stage !== "lost");
+  // People imported from TeamUp as members never went through the pipeline; they live on Members.
+  const leads = s.contacts.filter((c) => c.source !== "teamup");
+  const visible = applyFilter(s, leads, filter, now);
+  const inPlay = leads.filter((c) => c.stage !== "lost");
 
   const next = (c: Contact) => {
     if (c.stage === "booked" && c.trialAt) return `Trial ${dayTime(c.trialAt)}`;

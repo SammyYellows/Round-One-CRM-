@@ -45,7 +45,7 @@ async function setMessage(id: string, patch: { status: string; provider_id?: str
   if (error) console.error("[deliver] couldn't update message", id, error.message);
 }
 
-type TemplateRow = { name: string; body: string; language: string; header_video: string | null; button_url: string | null };
+type TemplateRow = { name: string; body: string; language: string; category: string; header_video: string | null; button_url: string | null };
 
 /** A public link to a file in the whatsapp-media storage bucket. */
 const mediaUrl = (file: string) =>
@@ -59,6 +59,7 @@ async function sendWhatsApp(m: Message, c: Contact | undefined, templates: Map<s
   } else if (m.template) {
     const t = templates.get(m.template);
     if (!t) res = { ok: false as const, error: `No template called ${m.template}` };
+    else if (t.category === "marketing" && c.marketingOptOut) res = { ok: false as const, error: "Not sent: they’ve opted out of marketing messages" };
     else {
       const v = placeholders(c);
       res = await sendTemplate(to, {
@@ -92,7 +93,7 @@ async function deliverWhatsApps(before: State, after: State) {
   const sentBefore = new Set(before.messages.map((m) => m.id));
   const outgoing = after.messages.filter((m) => m.dir === "out" && !sentBefore.has(m.id));
   if (!outgoing.length) return;
-  const { data } = await db().from("templates").select("name, body, language, header_video, button_url");
+  const { data } = await db().from("templates").select("name, body, language, category, header_video, button_url");
   const templates = new Map(((data ?? []) as TemplateRow[]).map((t) => [t.name, t]));
   for (const m of outgoing) await sendWhatsApp(m, after.contacts.find((x) => x.id === m.contactId), templates);
 }
@@ -102,6 +103,7 @@ async function deliverEmails(before: State, after: State) {
   const emails = after.events.filter((e) => e.type === "email.sent" && !seen.has(e.id) && e.data);
   for (const e of emails) {
     const { to, subject } = e.data!;
+    if (e.data!.marketing === "yes" && after.contacts.find((x) => x.id === e.contactId)?.marketingOptOut) continue; // opted out
     const body = e.data!.body?.replaceAll("{bookLink}", bookLink(e.contactId ?? ""));
     const contact = after.contacts.find((x) => x.id === e.contactId);
     let address: string | undefined;
