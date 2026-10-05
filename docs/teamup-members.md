@@ -131,10 +131,21 @@ raw copies. Vercel has `TEAMUP_PROVIDER_ID=10418134` and
 **Sammy is uploading a Markdown file from other work (05/10) that may
 answer some of this. Read it first when resuming.**
 
-**Claude's next steps, in order, once the token is in:**
-1. Run the first sync (it's a baseline: no messages). Check the field
-   mapping against the raw rows in `teamup_members` and fix
-   `readMembership` in `src/lib/server/teamup.ts` if any field is wrong.
+**Update 05/10/2026:** the token is in Vercel as `TEAMUP_M2M_TOKEN` (Sammy
+gave it to Claude in chat, so it's on the go-live rotation list). Mapping
+checked against the real rows: 744 customer memberships (315 active, 234
+cancelled, 193 completed, 2 on hold), 7 categories by id, Program
+Memberships = category 86746 (prepaid, 24 active rows). Fixed: `completed`
+now counts as ended; `renewal_date` is read as the end date. **TeamUp's
+API has no phone numbers on customers**, so members are matched on TeamUp
+id or email, and WhatsApp to members will need their numbers from
+somewhere else (the trial form, or an export). TeamUp also keeps its own
+customer `status` (e.g. `at_risk`), which could feed the nurture messages
+later.
+
+**Claude's next steps, in order:**
+1. ~~Run the first sync and check the mapping.~~ Mapping checked and
+   fixed (above). The first live sync is the baseline: no messages.
 2. Add the TeamUp webhook destination (dashboard: Settings → Integrations →
    API Integration → the application → Add Webhook Destination, URL
    `https://round-one-crm.vercel.app/api/webhooks/teamup/<TEAMUP_WEBHOOK_SECRET>`,
