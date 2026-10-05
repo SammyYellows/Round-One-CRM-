@@ -14,6 +14,10 @@ export interface DayPoint {
   isToday: boolean;
 }
 
+// The dashboard is about the trial journey. People synced from TeamUp
+// (members, ex-members, old sign-ups) aren't leads, so they're left out.
+const leads = (s: State) => s.contacts.filter((c) => c.source !== "teamup");
+
 const startOfDay = (ms: number) => {
   const d = new Date(ms);
   d.setHours(0, 0, 0, 0);
@@ -39,7 +43,7 @@ export function daily(s: State, now: number, days: number): DayPoint[] {
     out.push({
       key,
       date,
-      leads: s.contacts.filter((c) => dayKey(Date.parse(c.createdAt)) === key).length,
+      leads: leads(s).filter((c) => dayKey(Date.parse(c.createdAt)) === key).length,
       trials: s.appointments.filter((a) => trialCals.includes(a.calendarId) && a.status !== "cancelled" && dayKey(Date.parse(a.start)) === key).length,
       spend: Math.round(avgSpend),
       isToday: date === today,
@@ -52,12 +56,13 @@ export function stageCounts(s: State) {
   return STAGES.filter((st) => st.id !== "lost").map((st) => ({
     id: st.id,
     label: st.label,
-    value: s.contacts.filter((c) => c.stage === st.id).length,
+    value: leads(s).filter((c) => c.stage === st.id).length,
   }));
 }
 
 export function sourceCounts(s: State) {
-  return SOURCES.map((src) => ({ id: src.id, label: src.label, value: s.contacts.filter((c) => c.source === src.id).length }))
+  return SOURCES.filter((src) => src.id !== "teamup")
+    .map((src) => ({ id: src.id, label: src.label, value: s.contacts.filter((c) => c.source === src.id).length }))
     .sort((a, b) => b.value - a.value);
 }
 
@@ -67,7 +72,7 @@ export function sourceCounts(s: State) {
  * anything beyond it. Lost contacts are left out.
  */
 export function funnelCounts(s: State) {
-  const live = s.contacts.filter((c) => c.stage !== "lost");
+  const live = leads(s).filter((c) => c.stage !== "lost");
   const count = (stages: Stage[]) => live.filter((c) => stages.includes(c.stage)).length;
   const sold = count(SOLD_STAGES);
   const attended = sold + count(["attended", "nurture"]);
