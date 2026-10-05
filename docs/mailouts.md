@@ -42,11 +42,9 @@ upgrades.** Improvement list item 4.
 6. **Afterwards** Resend's webhook reports delivered, opened, clicked,
    bounced and spam complaints per recipient; the mailout shows the
    numbers. A bounce sets `contact.emailBounced`; a complaint opts them out.
-   **The webhook's event list in Resend still needs widening** from
-   `email.received` to also include sent, delivered, delivery_delayed,
-   bounced, complained, opened, clicked (Resend → Webhooks → the
-   round-one-crm.vercel.app one → Edit). Until then the counts stay at
-   "Sent".
+   The webhook in Resend is subscribed to received, sent, delivered,
+   delivery_delayed, bounced, complained, opened and clicked (done
+   06/10/2026 via the API).
 
 Service messages (bookings, reminders, Program messages) are separate and
 never blocked by the opt-out; see `docs/teamup-members.md`.
@@ -61,7 +59,7 @@ never blocked by the opt-out; see `docs/teamup-members.md`.
 
 ## Where we stopped (06/10/2026)
 
-Built and merged; migration applied. Not yet used for real. Tests are E1 to
-E9 in `docs/test-log.md`. Still to do: Sammy widens the Resend webhook
-events (above) and upgrades Resend to Pro before the first big send, then
+Built and merged; migration applied; webhook events widened. Not yet used
+for real. Tests are E1 to E9 in `docs/test-log.md`. Still to do: Sammy
+upgrades Resend to Pro before the first big send, then
 `MAILOUT_DAILY_LIMIT=0` in Vercel.

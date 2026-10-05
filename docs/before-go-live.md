@@ -45,8 +45,7 @@ over it).
   "I will upgrade, but develop on free, make a reminder"). Free allows 100
   emails a day shared with bookings and reminders; the CRM holds mailouts
   to `MAILOUT_DAILY_LIMIT` (80) a day until then. After upgrading, set
-  `MAILOUT_DAILY_LIMIT=0` in Vercel. Also widen the Resend webhook's events
-  (see `docs/mailouts.md`).
+  `MAILOUT_DAILY_LIMIT=0` in Vercel.
 - The crm.round1boxfit.co.uk address (CNAME at SiteGround).
 - Switch-over day: move the WhatsApp number from GymGrow, re-approve the
   templates on the real WhatsApp account, subscribe the webhook for it,
