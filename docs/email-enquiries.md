@@ -102,15 +102,21 @@ staff member; the AI never sends.
    asking about a 12-year-old, and a Mailchimp report (read as "other").
    Note: `claude-opus-5-5` rejects forced tool calls, so the draft comes
    back as structured JSON output (`output_config.format`).
-2. **Resend receiving.** In Resend (resend.com → Domains): add
-   `inbound.round1boxfit.co.uk`, choose receiving, copy the MX record it
-   shows. Then Webhooks → Add: URL
-   `https://round-one-crm.vercel.app/api/webhooks/resend`, event
-   `email.received`; copy the signing secret → Vercel
-   `RESEND_WEBHOOK_SECRET` (Sensitive). (If Sammy gives Claude the Resend
-   key, Claude can do the webhook part via the API.)
-3. **SiteGround.** Site Tools → Domain → DNS Zone Editor: add Resend's MX
-   record for `inbound`. Site Tools → Email → Forwarders: forward info@ to
-   `crm@inbound.round1boxfit.co.uk` (keep a copy in the inbox).
+2. ~~Resend receiving~~ Done 05/10 via the API with a full-access key
+   Sammy made for the purpose (he can delete it in Resend → API Keys
+   afterwards; the CRM only needs the send-only one). Receiving domain
+   `inbound.round1boxfit.co.uk` (id a108b713…, eu-west-1, receiving only)
+   and webhook d2e54431… → `/api/webhooks/resend` for `email.received`;
+   its signing secret is in Vercel as `RESEND_WEBHOOK_SECRET`.
+3. **SiteGround (Sammy).** Site Tools → Domain → DNS Zone Editor, two
+   records on round1boxfit.co.uk:
+   - MX: name `inbound`, value `inbound-smtp.eu-west-1.amazonaws.com`,
+     priority 10.
+   - TXT: name `resend._domainkey.inbound`, value the DKIM `p=MIGf…` string
+     from Resend → Domains → inbound.round1boxfit.co.uk (Claude has it too).
+   Then Site Tools → Email → Forwarders: forward info@ to
+   `crm@inbound.round1boxfit.co.uk`, keeping a copy in the inbox. The
+   existing MX records for round1boxfit.co.uk itself stay as they are.
+   Afterwards Claude presses Verify on the domain via the API.
 4. Redeploy, then Sammy sends a test email to info@ from his own address,
    sees it on Enquiries with a draft, and sends the reply from there.
