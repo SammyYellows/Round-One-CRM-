@@ -7,8 +7,10 @@
 import { db } from "@/lib/server/supabase";
 import { loadAndTick } from "@/lib/server/state";
 import { syncTeamUp } from "@/lib/server/teamupSync";
+import { drainQueue, queuedCount } from "@/lib/server/mailouts";
 
 export const dynamic = "force-dynamic";
+export const maxDuration = 60;
 
 export async function GET(req: Request) {
   const secret = process.env.CRON_SECRET;
@@ -17,6 +19,9 @@ export async function GET(req: Request) {
   // ?job=teamup: the nightly members sync (a second pg_cron job calls this).
   if (new URL(req.url).searchParams.get("job") === "teamup") return Response.json(await syncTeamUp());
 
+  // Mailout emails still queued (within today's allowance) go out first.
+  const mailout = (await queuedCount()) > 0 ? await drainQueue() : undefined;
+
   const { data, error } = await db()
     .from("runs")
     .select("id")
@@ -24,8 +29,8 @@ export async function GET(req: Request) {
     .lte("resume_at", new Date().toISOString())
     .limit(1);
   if (error) throw new Error(`Checking for due runs: ${error.message}`);
-  if (!data?.length) return Response.json({ ok: true, due: false });
+  if (!data?.length) return Response.json({ ok: true, due: false, mailout });
 
   await loadAndTick();
-  return Response.json({ ok: true, due: true });
+  return Response.json({ ok: true, due: true, mailout });
 }

@@ -49,6 +49,23 @@ and hours are marked "check").
 | C3 | Open a TeamUp member who never filled the form | No Questionnaire card | |
 | C4 | Delete the test contact afterwards (ask Claude) | | |
 
+## E. Mailouts (built 06/10)
+
+Do these on the free plan with a tiny audience first (yourself), never a
+real list until the Resend Pro upgrade and the webhook events are done.
+
+| # | Do | Expect | Result |
+|---|---|---|---|
+| E1 | Open Mailouts, press New mailout | A draft opens with the audience picker, a live count and the message box | |
+| E2 | Pick Current members, then one category, then Ex-members within 6 months | The count and the sample names change each time | |
+| E3 | Pick a lead stage (e.g. Nurture) | Leads are added to the count | |
+| E4 | Write a subject and message with {first}, press Send me a test | An email arrives at info@ from info@, "[Test] …", your first name filled in, unsubscribe line at the bottom; mail app shows an Unsubscribe option | |
+| E5 | Press Send, then Cancel | The confirm box closes, nothing sent | |
+| E6 | Make a draft whose audience is only you (e.g. a lead stage you alone are in, or ask Claude to set it), Send, Yes | It arrives; the mailout shows Sent to 1; counts move to Delivered/Opened once the webhook events are widened | |
+| E7 | Click the unsubscribe link in that email | A cream page with an Unsubscribe button; press it → "You're unsubscribed"; your contact shows "No marketing messages" ticked and an opt-out line in its timeline | |
+| E8 | Make another draft with the same audience | The count is now 0 (you're opted out) | |
+| E9 | Reply to the mailout email | It appears on Enquiries | |
+
 ## D. Still parked, no test yet
 
 - Booked video on discovery_1 (needs a screenshot from Sammy's phone).

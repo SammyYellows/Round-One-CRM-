@@ -10,6 +10,7 @@ const NAV = [
   { href: "/pipeline", label: "Pipeline", icon: <><rect x="3" y="4" width="5" height="16" /><rect x="10" y="4" width="5" height="11" /><rect x="17" y="4" width="4" height="7" /></> },
   { href: "/contacts", label: "Contacts", icon: <><circle cx="12" cy="8" r="4" /><path d="M4 21c1-4 4-6 8-6s7 2 8 6" /></> },
   { href: "/enquiries", label: "Enquiries", icon: <><rect x="3" y="5" width="18" height="14" /><path d="m3 6 9 7 9-7" /></> },
+  { href: "/mailouts", label: "Mailouts", icon: <><path d="M3 8h13l5 4-5 4H3z" /><path d="M7 12h6" /></> },
   { href: "/members", label: "Members", icon: <><circle cx="9" cy="8" r="3.5" /><circle cx="17" cy="9" r="2.5" /><path d="M3 20c1-3.5 3.5-5.5 6-5.5s5 2 6 5.5M15 19c.5-2 2-3.5 4-3.5s2.5 1 2 3.5" /></> },
   { href: "/automations", label: "Automations", icon: <path d="M13 2 4 14h7l-1 8 9-12h-7z" /> },
   { href: "/forms", label: "Forms", icon: <><rect x="5" y="3" width="14" height="18" /><path d="M9 8h6M9 12h6M9 16h4" /></> },

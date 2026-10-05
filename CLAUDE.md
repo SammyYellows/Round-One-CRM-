@@ -109,6 +109,18 @@ In place so far:
   Enquiries screen; the reply goes as info@ with `In-Reply-To` so it
   threads. Events: `email.received`, `email.replied`.
 
+- **Mailouts** (`docs/mailouts.md`). One plain-text email to many people,
+  picked from contacts (members, ex-members by category and how recently
+  they ended, old leads by stage), written on the Mailouts screen and sent
+  from info@ **only after Send and a confirm of the count**.
+  `src/lib/server/mailouts.ts` queues one `mailout_recipients` row each
+  and sends in batches of 100 via Resend, at once and from `/api/cron`,
+  within `MAILOUT_DAILY_LIMIT` a day (free plan). Every email has an
+  unsubscribe link (`/u/<contact id>`, one-click via
+  `/api/unsubscribe/<id>`) that sets `marketingOptOut`; bounces set
+  `emailBounced`; both are skipped next time. Delivery events come back
+  through `/api/webhooks/resend`.
+
 Still to come: Meta Marketing API sync.
 
 ## How the code is laid out

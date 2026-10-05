@@ -305,3 +305,23 @@ a.crow:hover { background: var(--char); color: var(--white); }
 .qa-row dt { color: var(--muted); }
 .qa-row dd { margin: 0; white-space: pre-wrap; line-height: 1.5; }
 @media (max-width: 700px) { .qa-row { grid-template-columns: 1fr; gap: 4px; } }
+
+/* ---- Unsubscribe page (public, light like the form) ---- */
+.unsub { min-height: 100vh; background: var(--cream); color: var(--black); font-family: var(--ui); }
+.unsub-bar { background: var(--black); padding: 18px 24px; }
+.unsub-box { max-width: 520px; margin: 0 auto; padding: 40px 24px; display: flex; flex-direction: column; gap: 16px; font-size: 16px; line-height: 1.5; }
+.unsub-box p { margin: 0; }
+
+/* ---- Mailouts ---- */
+.mo { display: grid; grid-template-columns: 360px minmax(0, 1fr); gap: 20px; align-items: start; }
+.mo-row { display: flex; flex-direction: column; gap: 4px; width: 100%; text-align: left; padding: 14px 16px; background: transparent; border: 0; border-top: 1px solid var(--line); color: var(--white); cursor: pointer; font-size: 14px; }
+.mo-row:hover { background: var(--well); }
+.mo-row.on { background: var(--well); box-shadow: inset 3px 0 0 var(--red); }
+.mo-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(90px, 1fr)); gap: 10px; padding: 0 22px 18px; }
+.mo-stat { background: var(--char); padding: 12px 14px; display: flex; flex-direction: column; gap: 2px; }
+.mo-stat .num { font-family: var(--display); font-size: 26px; line-height: 1; }
+.mo-aud { display: flex; flex-direction: column; gap: 12px; padding: 0 22px 18px; }
+.mo-aud .opts { display: flex; gap: 8px; flex-wrap: wrap; }
+.mo-count { border: 1px solid var(--line); padding: 12px 14px; font-size: 14px; }
+.mo-confirm { border: 1px solid var(--red); padding: 16px 18px; display: flex; flex-direction: column; gap: 10px; }
+@media (max-width: 900px) { .mo { grid-template-columns: 1fr; } }
