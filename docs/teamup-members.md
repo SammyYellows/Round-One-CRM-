@@ -144,8 +144,13 @@ customer `status` (e.g. `at_risk`), which could feed the nurture messages
 later.
 
 **Claude's next steps, in order:**
-1. ~~Run the first sync and check the mapping.~~ Mapping checked and
-   fixed (above). The first live sync is the baseline: no messages.
+1. ~~Run the first sync and check the mapping.~~ Done 05/10/2026: the
+   baseline sync ran on the live site. 542 contacts added (source
+   `teamup`), 5 matched existing ones, no messages. 304 active members
+   (281 Sold – Recurring membership, 23 Sold – Programme) and 238
+   ex-members (ended membership; they stay at stage "new" and off the
+   Pipeline). None has a phone number; 20 have no email either. The Members
+   screen now shows real people.
 2. Add the TeamUp webhook destination (dashboard: Settings → Integrations →
    API Integration → the application → Add Webhook Destination, URL
    `https://round-one-crm.vercel.app/api/webhooks/teamup/<TEAMUP_WEBHOOK_SECRET>`,
