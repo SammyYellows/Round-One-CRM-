@@ -67,11 +67,15 @@ export function readMembership(row: Json, categories: Map<string, string>): Memb
   const name = str(customer.name, customer.full_name, `${first} ${last}`.trim());
   const categoryId = idOf(membership.category ?? membership.membership_category);
   const category = str(obj(membership.category).name, categories.get(categoryId), "Uncategorised");
+  // Real values seen on Round One's account (05/10/2026): active, hold,
+  // cancelled, completed (a prepaid plan such as the 28 Day Program that ran
+  // to its end). TeamUp's customer records carry no phone number, so phone
+  // stays empty and matching is on TeamUp id or email.
   const rawStatus = str(row.status, row.state).toLowerCase();
   const onHold = rawStatus.includes("hold") || rawStatus.includes("pause") || row.is_on_hold === true || row.on_hold === true;
   const ended =
-    rawStatus.includes("expir") || rawStatus.includes("cancel") || rawStatus.includes("inactive") || rawStatus.includes("ended") ||
-    row.is_active === false || row.active === false || !!row.canceled_at || !!row.cancelled_at;
+    rawStatus.includes("expir") || rawStatus.includes("cancel") || rawStatus.includes("complet") || rawStatus.includes("inactive") ||
+    rawStatus.includes("ended") || row.is_active === false || row.active === false || !!row.canceled_at || !!row.cancelled_at;
   return {
     customerId,
     id: idOf(row.id),
@@ -82,7 +86,7 @@ export function readMembership(row: Json, categories: Map<string, string>): Memb
     category,
     status: ended ? "ended" : onHold ? "on_hold" : "active",
     startedAt: iso(row.start_date ?? row.starts_at ?? row.started_at ?? row.created_at),
-    endsAt: iso(row.expiration_date ?? row.expires_at ?? row.end_date ?? row.ends_at ?? row.next_payment_date ?? row.renews_at),
+    endsAt: iso(row.expiration_date ?? row.expires_at ?? row.end_date ?? row.ends_at ?? row.renewal_date ?? row.next_payment_date ?? row.renews_at),
   };
 }
 
