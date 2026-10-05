@@ -129,10 +129,19 @@ const staffFrom = (r: Row): Staff => ({ id: r.id as string, name: r.name as stri
 
 type Query = ReturnType<ReturnType<ReturnType<typeof db>["from"]>["select"]>;
 
-async function all(table: string, build: (q: Query) => Query = (q) => q) {
-  const { data, error } = await build(db().from(table).select("*"));
-  if (error) throw new Error(`Loading ${table}: ${error.message}`);
-  return (data ?? []) as Row[];
+// Supabase returns at most 1,000 rows per query, so every table is read in
+// pages; `max` caps the total (events keep only the latest EVENTS_KEPT).
+async function all(table: string, build: (q: Query) => Query = (q) => q, max = Infinity) {
+  const PAGE = 1000;
+  const rows: Row[] = [];
+  for (let from = 0; rows.length < max; from += PAGE) {
+    const to = Math.min(from + PAGE, max) - 1;
+    const { data, error } = await build(db().from(table).select("*")).range(from, to);
+    if (error) throw new Error(`Loading ${table}: ${error.message}`);
+    rows.push(...((data ?? []) as Row[]));
+    if (!data || data.length < to - from + 1) break;
+  }
+  return rows;
 }
 
 /** Meta ads with spend from the nightly sync, and trials/sales counted from the CRM. */
@@ -168,7 +177,7 @@ export async function loadState(): Promise<State> {
   const [contacts, messages, events, automations, runs, forms, tasks, calendars, staff, appts, templates, ads, insights, settings] = await Promise.all([
     all("contacts", (q) => q.order("created_at", { ascending: false })),
     all("messages", (q) => q.order("at", { ascending: true })),
-    all("events", (q) => q.order("at", { ascending: false }).limit(EVENTS_KEPT)),
+    all("events", (q) => q.order("at", { ascending: false }), EVENTS_KEPT),
     all("automations", (q) => q.order("created_at", { ascending: true })),
     all("runs", (q) => q.order("started_at", { ascending: false })),
     all("forms", (q) => q.order("created_at", { ascending: true })),
