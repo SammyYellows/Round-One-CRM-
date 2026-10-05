@@ -5,8 +5,10 @@ this; Claude keeps it current. Last updated 06/10/2026.
 
 ## Work streams
 
-1. **TeamUp members** (`docs/teamup-members.md`). Sync live, 304 active
-   members on the Members screen. Program messages are service messages.
+1. **TeamUp members** (`docs/teamup-members.md`). Sync live: all 1,264
+   TeamUp customers are in (304 active members, 238 ex-members, 675 who
+   never joined under Members → Never joined). Program messages are
+   service messages.
    Waiting on Sammy: the Program message wording and when each goes.
 2. **Accountability programme** (`docs/accountability.md`). Plan only,
    parked. Both keys it needs are in Vercel.
@@ -44,4 +46,5 @@ this; Claude keeps it current. Last updated 06/10/2026.
 
 Email enquiries built and connected end to end; questionnaire card on the
 contact page; mailouts; Resend webhook events; TeamUp token in and baseline
-sync run; accountability plan written and parked; PR #2 closed.
+sync run; every TeamUp customer imported (06/10); accountability plan
+written and parked; PR #2 closed.
