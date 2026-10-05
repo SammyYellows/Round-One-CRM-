@@ -80,6 +80,13 @@ will state the wording), then prompt staff in the CRM when someone replies.
   in another Claude chat and will export a Markdown file to import here.
   Keep the member messaging generic enough to carry an add-on offer later.
 - Wording: Sammy will state it; nothing goes out with made-up facts.
+- **Program messages are service messages, not marketing (Sammy,
+  05/10/2026).** They are part of what Program members are paying for, so
+  they don't need a STOP option and are not blocked by `marketingOptOut`.
+  In the CRM that means: email steps without `marketing: true`, and
+  WhatsApp templates submitted to Meta as Utility, not Marketing. The
+  opt-out still applies to genuine marketing to members and ex-members
+  (improvement list item 4).
 
 ## Sammy's jobs when we start
 
