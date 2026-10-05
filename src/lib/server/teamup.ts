@@ -3,7 +3,7 @@
 // from it (docs/teamup-members.md). Needs TEAMUP_M2M_TOKEN (a machine-to-
 // machine token made in TeamUp's dashboard) and TEAMUP_PROVIDER_ID.
 
-import { MemberInput } from "@/lib/engine";
+import { CustomerInput, MemberInput } from "@/lib/engine";
 
 const BASE = "https://goteamup.com/api/v2";
 
@@ -85,9 +85,32 @@ export function readMembership(row: Json, categories: Map<string, string>): Memb
     membershipName: str(membership.name, "Membership"),
     category,
     status: ended ? "ended" : onHold ? "on_hold" : "active",
+    createdAt: iso(customer.created_at),
     startedAt: iso(row.start_date ?? row.starts_at ?? row.started_at ?? row.created_at),
     endsAt: iso(row.expiration_date ?? row.expires_at ?? row.end_date ?? row.ends_at ?? row.renewal_date ?? row.next_payment_date ?? row.renews_at),
   };
+}
+
+/** One TeamUp customer row (with or without a membership). */
+export function readCustomer(row: Json): CustomerInput | null {
+  const customerId = idOf(row.id);
+  if (!customerId) return null;
+  const first = str(row.first_name, row.given_name);
+  const last = str(row.last_name, row.family_name);
+  return {
+    customerId,
+    name: str(row.name, row.full_name, `${first} ${last}`.trim()),
+    email: str(row.email, row.email_address).toLowerCase(),
+    phone: str(row.phone_number, row.mobile_phone, row.mobile, row.phone),
+    status: str(row.status) || undefined,
+    createdAt: iso(row.created_at),
+  };
+}
+
+/** Every customer in TeamUp, members or not. */
+export async function fetchCustomers(): Promise<CustomerInput[]> {
+  const rows = await list("/customers");
+  return rows.map(readCustomer).filter((c): c is CustomerInput => !!c);
 }
 
 /** Everyone with a membership in TeamUp, plus the raw rows for the audit copy. */

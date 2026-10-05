@@ -2,8 +2,8 @@
 // the "ending soon" checks, and keep a raw copy for checking the mapping.
 // Server-only. Called by /api/cron?job=teamup and by the TeamUp webhook.
 
-import { checkMembershipsEnding, importMembers } from "@/lib/engine";
-import { fetchCustomerMembers, fetchMembers, teamupConfigured } from "./teamup";
+import { checkMembershipsEnding, importCustomers, importMembers } from "@/lib/engine";
+import { fetchCustomerMembers, fetchCustomers, fetchMembers, teamupConfigured } from "./teamup";
 import { applyMany } from "./state";
 import { db } from "./supabase";
 
@@ -11,13 +11,15 @@ export async function syncTeamUp() {
   if (!teamupConfigured()) return { ok: false, skipped: "TeamUp isn’t configured (TEAMUP_M2M_TOKEN, TEAMUP_PROVIDER_ID)" };
   const startedAt = new Date().toISOString();
   try {
-    const { members, raw } = await fetchMembers();
+    const [{ members, raw }, customers] = await Promise.all([fetchMembers(), fetchCustomers()]);
     const result = await applyMany((s) => {
       // The first ever sync just records what's there, without messaging anyone.
       const baseline = !s.contacts.some((c) => c.membership);
+      // Everyone first (so each person exists once), then their memberships.
+      const people = importCustomers(s, customers);
       const counts = importMembers(s, members, { baseline });
       const ending = baseline ? 0 : checkMembershipsEnding(s);
-      return { ...counts, ending, baseline, members: members.length };
+      return { ...counts, customers: customers.length, customersAdded: people.added, ending, baseline, members: members.length };
     });
     if (raw.length) {
       const { error } = await db().from("teamup_members").upsert(raw.map((r) => ({ ...r, synced_at: startedAt })));

@@ -9,7 +9,7 @@ import { STAGES, Stage } from "@/lib/types";
 // CRM. Nothing sends until Send is pressed and the count confirmed
 // (docs/mailouts.md).
 
-interface Audience { membership: "any" | "active" | "ended" | "none"; categories: string[]; endedWithinDays?: number; leadStages: Stage[] }
+interface Audience { membership: "any" | "active" | "ended" | "none"; categories: string[]; endedWithinDays?: number; leadStages: Stage[]; neverJoined?: boolean; cameInWithinDays?: number }
 type Counts = { total: number; queued: number; sent: number; delivered: number; opened: number; clicked: number; bounced: number; complained: number; failed: number };
 interface Mailout { id: string; subject: string; body: string; audience: Audience; status: "draft" | "sending" | "sent"; createdAt: string; createdBy: string | null; startedAt: string | null; finishedAt: string | null; counts: Counts }
 
@@ -22,6 +22,7 @@ const describeAudience = (a: Audience) => {
     const who = a.membership === "active" ? "Current members" : a.membership === "ended" ? "Ex-members" : "Current and ex-members";
     parts.push(`${who}${a.categories.length ? ` (${a.categories.join(", ")})` : ""}${a.membership !== "active" && a.endedWithinDays ? `, ended within ${a.endedWithinDays} days` : ""}`);
   }
+  if (a.neverJoined) parts.push(`TeamUp sign-ups who never joined${a.cameInWithinDays ? `, came in within ${a.cameInWithinDays} days` : ""}`);
   if (a.leadStages.length) parts.push(`Leads: ${a.leadStages.map((s) => STAGES.find((x) => x.id === s)?.label ?? s).join(", ")}`);
   return parts.join(" · ") || "Nobody picked yet";
 };
@@ -214,7 +215,22 @@ export default function MailoutsPage() {
                   </div>
                 )}
                 <div>
-                  <div className="label">Old leads who never joined</div>
+                  <div className="label">TeamUp sign-ups who never joined</div>
+                  <div className="opts" style={{ alignItems: "center" }}>
+                    <button className={`fchip fchip-sm ${audience.neverJoined ? "on" : ""}`} aria-pressed={!!audience.neverJoined} onClick={() => setAudience({ ...audience, neverJoined: !audience.neverJoined })}>Include them</button>
+                    {audience.neverJoined && (
+                      <select className="select" style={{ maxWidth: 240, height: 36 }} aria-label="Came in within" value={audience.cameInWithinDays ?? 0} onChange={(e) => setAudience({ ...audience, cameInWithinDays: Number(e.target.value) || undefined })}>
+                        <option value={0}>Came in any time</option>
+                        <option value={30}>Last 30 days</option>
+                        <option value={90}>Last 3 months</option>
+                        <option value={180}>Last 6 months</option>
+                        <option value={365}>Last year</option>
+                      </select>
+                    )}
+                  </div>
+                </div>
+                <div>
+                  <div className="label">CRM leads who never joined</div>
                   <div className="opts">
                     {LEAD_STAGES.map((s) => (
                       <button key={s.id} className={`fchip fchip-sm ${audience.leadStages.includes(s.id) ? "on" : ""}`} aria-pressed={audience.leadStages.includes(s.id)} onClick={() => setAudience({ ...audience, leadStages: toggle(audience.leadStages, s.id) })}>{s.label}</button>

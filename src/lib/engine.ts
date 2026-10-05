@@ -541,6 +541,51 @@ export interface MemberInput {
   status: Membership["status"];
   startedAt?: string;
   endsAt?: string;
+  createdAt?: string; // when the customer first appeared in TeamUp
+}
+
+/** One TeamUp customer, with or without a membership (src/lib/server/teamup.ts). */
+export interface CustomerInput {
+  customerId: string;
+  name: string;
+  email: string;
+  phone: string;
+  status?: string;
+  createdAt?: string;
+}
+
+/** The TeamUp "came in" date is the truth for when someone first appeared. */
+function backdate(c: Contact, createdAt?: string) {
+  if (createdAt && Date.parse(createdAt) < Date.parse(c.createdAt)) c.createdAt = createdAt;
+}
+
+/**
+ * Every TeamUp customer becomes a contact (source "teamup"), including the
+ * people who made an account and never bought: they stay off the Pipeline
+ * but can be picked for mailouts by when they came in. No automations fire;
+ * this is bookkeeping, not an event in anyone's journey.
+ */
+export function importCustomers(s: State, inputs: CustomerInput[]) {
+  let added = 0, updated = 0;
+  for (const m of inputs) {
+    let c =
+      s.contacts.find((x) => x.teamup?.customerId === m.customerId) ??
+      s.contacts.find((x) => x.membership?.customerId === m.customerId) ??
+      (m.email ? s.contacts.find((x) => x.email && x.email.toLowerCase() === m.email) : undefined);
+    if (!c) {
+      c = { id: uid(), name: m.name || m.email || "TeamUp customer", phone: m.phone, email: m.email, source: "teamup", stage: "new", tags: [], answers: [], createdAt: m.createdAt ?? nowIso(s) };
+      s.contacts.unshift(c);
+      log(s, "contact.created", c.id, `${c.name} from TeamUp (no membership)`);
+      added++;
+    } else {
+      if (!c.email && m.email) c.email = m.email;
+      if (!c.phone && m.phone) c.phone = m.phone;
+      if (c.source === "teamup") backdate(c, m.createdAt);
+      updated++;
+    }
+    c.teamup = { customerId: m.customerId, status: m.status, createdAt: m.createdAt, syncedAt: nowIso(s) };
+  }
+  return { added, updated };
 }
 
 const isProgramme = (m: { category: string; membershipName: string }) => /program/i.test(m.category) || /program/i.test(m.membershipName);
@@ -568,16 +613,18 @@ export function importMembers(s: State, inputs: MemberInput[], opts: { baseline?
   for (const m of best.values()) {
     let c =
       s.contacts.find((x) => x.membership?.customerId === m.customerId) ??
+      s.contacts.find((x) => x.teamup?.customerId === m.customerId) ??
       (m.email ? s.contacts.find((x) => x.email && x.email.toLowerCase() === m.email) : undefined) ??
       (m.phone ? s.contacts.find((x) => samePhone(x.phone, m.phone)) : undefined);
     if (!c) {
-      c = { id: uid(), name: m.name || m.email || "TeamUp member", phone: m.phone, email: m.email, source: "teamup", stage: "new", tags: [], answers: [], createdAt: nowIso(s) };
+      c = { id: uid(), name: m.name || m.email || "TeamUp member", phone: m.phone, email: m.email, source: "teamup", stage: "new", tags: [], answers: [], createdAt: m.createdAt ?? nowIso(s) };
       s.contacts.unshift(c);
       log(s, "contact.created", c.id, `${c.name} from TeamUp (${m.membershipName})`);
       added++;
     } else {
       if (!c.email && m.email) c.email = m.email;
       if (!c.phone && m.phone) c.phone = m.phone;
+      if (c.source === "teamup") backdate(c, m.createdAt);
       updated++;
     }
     const prev = c.membership;

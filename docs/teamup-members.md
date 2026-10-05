@@ -152,6 +152,21 @@ later.
 - **Sammy writes the Program messages himself** and will say what to build
   and when. Claude builds nothing for member messaging until then.
 
+**Update 06/10/2026: every TeamUp customer, not just members.** Sammy
+compared the CRM with TeamUp's customer list (1,264 people) and the CRM had
+only the 532 who had ever held a membership. The other 732 made a TeamUp
+account (free class, enquiry) and never bought; TeamUp labels most of them
+"lost". Sammy's decision: bring them all in, with a filter and sort by how
+long ago they came in. So the sync now reads `/customers` too
+(`importCustomers` in the engine): they become contacts with source
+`teamup`, stage "new", off the Pipeline, `contact.teamup` holding TeamUp's
+customer id, status and created date, and `createdAt` set to when they
+first appeared in TeamUp (existing TeamUp contacts were backdated the same
+way). Members → "Never joined" lists them newest first with a "came in
+within" filter; Mailouts can pick "TeamUp sign-ups who never joined" with
+the same filter. Members' and never-joined people's mobile numbers still
+don't come from TeamUp.
+
 **Claude's next steps, in order:**
 1. ~~Run the first sync and check the mapping.~~ Done 05/10/2026: the
    baseline sync ran on the live site. 542 contacts added (source

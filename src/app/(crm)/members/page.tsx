@@ -12,17 +12,33 @@ import { Contact, Membership } from "@/lib/types";
 
 const STATUS_LABEL: Record<Membership["status"], string> = { active: "Active", on_hold: "On hold", ended: "Ended" };
 type Ending = "all" | "7" | "30";
+type CameIn = "all" | "30" | "90" | "180" | "365";
+const TEAMUP_STATUS: Record<string, string> = { prospect: "Prospect", prospect_drop_off: "Dropped off", at_risk: "At risk", converted: "Converted", churned: "Churned", lost: "Lost" };
 
 export default function MembersPage() {
   const { s, now } = useStore();
   const [q, setQ] = useState("");
   const [category, setCategory] = useState("all");
-  const [status, setStatus] = useState<"all" | Membership["status"]>("active");
+  const [status, setStatus] = useState<"all" | Membership["status"] | "never">("active");
   const [ending, setEnding] = useState<Ending>("all");
+  const [cameIn, setCameIn] = useState<CameIn>("all");
   const [optedOut, setOptedOut] = useState(false);
 
   const members = useMemo(() => s.contacts.filter((c): c is Contact & { membership: Membership } => !!c.membership), [s.contacts]);
   const categories = useMemo(() => [...new Set(members.map((m) => m.membership.category))].sort(), [members]);
+  // People who made a TeamUp account but never had a membership: old enquiries, free-class sign-ups.
+  const never = useMemo(() => s.contacts.filter((c) => c.teamup && !c.membership), [s.contacts]);
+  const neverList = never
+    .filter((c) => {
+      if (cameIn !== "all" && now - Date.parse(c.createdAt) > Number(cameIn) * 86400e3) return false;
+      if (optedOut && !c.marketingOptOut) return false;
+      if (q.trim()) {
+        const hay = `${c.name} ${c.email} ${c.phone} ${c.teamup?.status ?? ""}`.toLowerCase();
+        if (!q.trim().toLowerCase().split(/\s+/).every((t) => hay.includes(t))) return false;
+      }
+      return true;
+    })
+    .sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt));
 
   const list = members
     .filter((c) => {
@@ -74,18 +90,51 @@ export default function MembersPage() {
             <option value="active">Active</option>
             <option value="on_hold">On hold</option>
             <option value="ended">Ended</option>
-            <option value="all">Any status</option>
+            <option value="all">Any membership</option>
+            <option value="never">Never joined · {never.length}</option>
           </select>
-          <select className="select" aria-label="Ending" value={ending} onChange={(e) => setEnding(e.target.value as Ending)}>
-            <option value="all">Any end date</option>
-            <option value="7">Ends in the next 7 days</option>
-            <option value="30">Ends in the next 30 days</option>
-          </select>
+          {status === "never" ? (
+            <select className="select" aria-label="Came in" value={cameIn} onChange={(e) => setCameIn(e.target.value as CameIn)}>
+              <option value="all">Came in any time</option>
+              <option value="30">Came in the last 30 days</option>
+              <option value="90">Came in the last 3 months</option>
+              <option value="180">Came in the last 6 months</option>
+              <option value="365">Came in the last year</option>
+            </select>
+          ) : (
+            <select className="select" aria-label="Ending" value={ending} onChange={(e) => setEnding(e.target.value as Ending)}>
+              <option value="all">Any end date</option>
+              <option value="7">Ends in the next 7 days</option>
+              <option value="30">Ends in the next 30 days</option>
+            </select>
+          )}
           <button className={`fchip fchip-sm ${optedOut ? "on" : ""}`} aria-pressed={optedOut} onClick={() => setOptedOut((v) => !v)}>Opted out of marketing</button>
-          <span className="small muted" style={{ marginLeft: "auto" }} aria-live="polite">{list.length} of {members.length} members</span>
+          <span className="small muted" style={{ marginLeft: "auto" }} aria-live="polite">
+            {status === "never" ? `${neverList.length} of ${never.length} who never joined` : `${list.length} of ${members.length} members`}
+          </span>
         </div>
       </div>
 
+      {status === "never" ? (
+        <section className="card">
+          <div className="crow thead" style={{ borderTop: 0 }}>
+            <div>Name</div><div>Came in</div><div>TeamUp says</div><div /><div /><div>Marketing</div>
+          </div>
+          {neverList.map((c) => (
+            <Link key={c.id} href={`/contacts/${c.id}`} className="crow">
+              <div style={{ minWidth: 0 }}>
+                <div className="strong">{c.name}</div>
+                <div className="faint num" style={{ fontSize: 12 }}>{c.phone || c.email}</div>
+              </div>
+              <div className="muted small">{dayTime(c.createdAt).split(",")[0]} · {ago(c.createdAt, now)}</div>
+              <div className="muted">{TEAMUP_STATUS[c.teamup?.status ?? ""] ?? c.teamup?.status ?? "–"}</div>
+              <div /><div />
+              <div>{c.marketingOptOut ? <span className="chip" style={{ height: 20, fontSize: 10 }}>No marketing</span> : c.email ? "Email OK" : <span className="faint">No email</span>}</div>
+            </Link>
+          ))}
+          {neverList.length === 0 && <div className="empty">{never.length === 0 ? "Nobody here yet. They appear after the next TeamUp sync." : "Nobody matches these filters."}</div>}
+        </section>
+      ) : (
       <section className="card">
         <div className="crow thead" style={{ borderTop: 0 }}>
           <div>Name</div><div>Membership</div><div>Category</div><div>Started</div><div>Ends or renews</div><div>Status</div>
@@ -116,6 +165,7 @@ export default function MembersPage() {
           </div>
         )}
       </section>
+      )}
     </>
   );
 }
