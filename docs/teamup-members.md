@@ -108,9 +108,13 @@ raw copies. Vercel has `TEAMUP_PROVIDER_ID=10418134` and
 `TEAMUP_WEBHOOK_SECRET`. The sync answers "skipped" until the token is in.
 
 **Waiting on Sammy:**
-1. The M2M token in Vercel as `TEAMUP_M2M_TOKEN` (TeamUp: Settings →
-   Integrations → API Integration → Get Started → create "Round One CRM" →
-   Options → View and Update Applications → M2M Tokens → Add).
+1. The M2M token in Vercel as `TEAMUP_M2M_TOKEN`. **Update 05/10: one
+   already exists** (from `docs/accountability-handover.md`): TeamUp app
+   "Round One Accountability", read-only scope, token expires 3 Aug 2027,
+   viewable again via the eye icon on TeamUp's Integrations page. Read-only
+   is all the CRM needs, so reuse it rather than making another: copy it
+   into Vercel as `TEAMUP_M2M_TOKEN` (Sensitive). Set a go-live reminder to
+   replace it, since it was pasted in that other chat.
 2. The wording and timing for the Program Memberships messages (welcome,
    reminders, timetable information, "move to recurring" offers), in both
    email and WhatsApp versions.
