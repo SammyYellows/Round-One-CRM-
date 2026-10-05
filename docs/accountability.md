@@ -66,3 +66,19 @@ the CRM rather than on Make, Tally and Google Sheets. The design decisions in
   recommendation) or keep "at least four" (Sammy added it).
 - The confirmation and check-in email wording, or OK for Claude to draft
   from the handover's tone for Sammy to edit.
+
+## Where we stopped (05/10/2026)
+
+Parked by Sammy on 05/10 straight after the plan was merged (PR #27).
+Nothing has been built. To resume, pick up exactly here:
+
+1. Sammy puts `TEAMUP_M2M_TOKEN` and `ANTHROPIC_API_KEY` into Vercel
+   (Production + Preview, Sensitive). Both already exist; see the handover.
+   The TeamUp token also unparks `docs/teamup-members.md`.
+2. Sammy answers two questions, still open:
+   - Floor options: cap at three a week, or keep "at least four".
+   - Email wording: Claude drafts from the handover's tone for Sammy to
+     edit, or Sammy writes it.
+3. Then start at build order step 1 (commitment form + `contact.accountability`
+   + intake). Step 4 also needs the `@anthropic-ai/sdk` dependency agreed
+   (shared with `docs/email-enquiries.md`).
