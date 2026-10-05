@@ -1,7 +1,7 @@
 # Email enquiries with AI-drafted replies
 
-Status: **planned, parked** (Sammy, 02/10/2026). Nothing built yet. When we
-pick this up again, start at "Where we stopped" below.
+Status: **built 05/10/2026, waiting to be connected.** See "Where we
+stopped" at the bottom for what's left.
 
 ## What Sammy decided (02/10/2026)
 
@@ -40,11 +40,10 @@ Model and price (from the claude-api skill, 02/10/2026): `claude-opus-5-5`,
 $4 per million input tokens, $20 per million output; about 1–2p per
 enquiry, so roughly £3 a month for 200 emails. Pay as you go.
 
-## Still to agree
+## No new package
 
-- **One new package:** `@anthropic-ai/sdk`, Anthropic's official library.
-  Our rule is no new dependencies without agreeing it. Sammy hasn't said
-  yes or no yet.
+Claude is called over plain `fetch` (`src/lib/server/ai.ts`), the same way
+Resend and WhatsApp are, so the `@anthropic-ai/sdk` question went away.
 
 ## Sammy's jobs (not started)
 
@@ -78,9 +77,35 @@ enquiry, so roughly £3 a month for 200 emails. Pay as you go.
   address, memberships, classes) and TeamUp.
 - Test with sending off, then one real enquiry from Sammy's own email.
 
-## Where we stopped
+## Where we stopped (05/10/2026)
 
-02/10/2026: decisions made, costs given, Sammy's jobs listed. Waiting on:
-Sammy's OK for the `@anthropic-ai/sdk` package, and the Anthropic key in
-Vercel. First build step when resumed: the facts sheet draft and the
-Enquiries screen, which need neither.
+**Built (PR #33):** `enquiries` table and migration (applied to
+round1-dev), `src/lib/server/enquiries.ts` (ingest, classify and draft,
+contact matching, "Draft ready" nudge, send with threading),
+`src/lib/server/ai.ts`, `/api/webhooks/resend` (Svix signature),
+`/api/enquiries*` routes, the Enquiries screen (list, email, editable
+draft, **Send reply → "Send this reply to …?" → Yes, send it**, Draft
+again, No reply needed, Gym facts editor), sidebar link, `email.received`
+and `email.replied` events. The facts sheet's first draft is from the
+website and is in the database; Sammy should read and correct it on the
+screen (prices and hours are marked "check").
+
+**Rule from Sammy (05/10):** nothing is ever sent unless the confirm box
+is pressed. The only sending route needs `confirm: true` and a signed-in
+staff member; the AI never sends.
+
+**To connect it, in this order:**
+1. **Anthropic key** → Vercel `ANTHROPIC_API_KEY` (Sensitive). Sammy gives
+   it to Claude in chat, like the TeamUp token (rotate at go-live).
+2. **Resend receiving.** In Resend (resend.com → Domains): add
+   `inbound.round1boxfit.co.uk`, choose receiving, copy the MX record it
+   shows. Then Webhooks → Add: URL
+   `https://round-one-crm.vercel.app/api/webhooks/resend`, event
+   `email.received`; copy the signing secret → Vercel
+   `RESEND_WEBHOOK_SECRET` (Sensitive). (If Sammy gives Claude the Resend
+   key, Claude can do the webhook part via the API.)
+3. **SiteGround.** Site Tools → Domain → DNS Zone Editor: add Resend's MX
+   record for `inbound`. Site Tools → Email → Forwarders: forward info@ to
+   `crm@inbound.round1boxfit.co.uk` (keep a copy in the inbox).
+4. Redeploy, then Sammy sends a test email to info@ from his own address,
+   sees it on Enquiries with a draft, and sends the reply from there.

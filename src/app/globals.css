@@ -287,3 +287,14 @@ a.crow:hover { background: var(--char); color: var(--white); }
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; animation: none !important; }
 }
+
+/* ---- Enquiries ---- */
+.enq { display: grid; grid-template-columns: 360px minmax(0, 1fr); gap: 20px; align-items: start; }
+.enq-row { display: flex; flex-direction: column; gap: 3px; width: 100%; text-align: left; padding: 14px 16px; background: transparent; border: 0; border-top: 1px solid var(--line); color: var(--white); cursor: pointer; font-size: 14px; }
+.enq-row:hover { background: var(--well); }
+.enq-row.on { background: var(--well); box-shadow: inset 3px 0 0 var(--red); }
+.enq-row-top { display: flex; justify-content: space-between; gap: 10px; }
+.enq-mail { margin: 0 22px 18px; padding: 16px 18px; background: var(--char); white-space: pre-wrap; font-size: 14px; line-height: 1.5; max-height: 320px; overflow-y: auto; }
+.enq-text { height: auto; padding: 12px 14px; line-height: 1.5; resize: vertical; }
+.enq-confirm { border: 1px solid var(--red); padding: 16px 18px; display: flex; flex-direction: column; gap: 10px; }
+@media (max-width: 900px) { .enq { grid-template-columns: 1fr; } }

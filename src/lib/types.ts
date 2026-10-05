@@ -36,7 +36,7 @@ export const isSold = (s: Stage) => SOLD_STAGES.includes(s);
 /** Why someone was marked Lost. Staff pick one; it's kept on the contact. */
 export const LOST_REASONS = ["Not interested", "No response", "Not qualified", "Joined elsewhere", "Price", "Other"] as const;
 
-export type Source = "meta_ad" | "walk_in" | "referral" | "website" | "whatsapp" | "teamup";
+export type Source = "meta_ad" | "walk_in" | "referral" | "website" | "whatsapp" | "teamup" | "email";
 
 export const SOURCES: { id: Source; label: string }[] = [
   { id: "meta_ad", label: "Meta ad" },
@@ -45,6 +45,7 @@ export const SOURCES: { id: Source; label: string }[] = [
   { id: "website", label: "Website" },
   { id: "whatsapp", label: "WhatsApp" },
   { id: "teamup", label: "TeamUp member" },
+  { id: "email", label: "Email enquiry" },
 ];
 
 export const sourceLabel = (s: Source) => SOURCES.find((x) => x.id === s)?.label ?? s;
@@ -115,6 +116,8 @@ export type EventType =
   | "whatsapp.failed"
   | "email.sent"
   | "email.failed"
+  | "email.received" // an enquiry came in to info@ (docs/email-enquiries.md)
+  | "email.replied" // staff sent the reply
   | "task.created"
   | "automation.stopped"
   | "appointment.booked"

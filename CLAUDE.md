@@ -97,6 +97,18 @@ In place so far:
   Members. `marketingOptOut` (reply STOP, or staff) blocks marketing
   templates and `marketing: true` email steps, never service messages.
 
+- **Email enquiries** (`docs/email-enquiries.md`). Resend receives a copy
+  of everything sent to info@ (a forwarder to `inbound.round1boxfit.co.uk`)
+  and calls `/api/webhooks/resend` (Svix-signed with
+  `RESEND_WEBHOOK_SECRET`). `src/lib/server/enquiries.ts` keeps the email
+  in the `enquiries` table (not part of `State`), asks Claude
+  (`src/lib/server/ai.ts`, plain fetch to the Messages API, facts from the
+  `gym_facts` setting only) whether it's an enquiry and for a draft, makes
+  the sender a contact (source `email`), and emails `STAFF_EMAIL` "Draft
+  ready". **Nothing sends until staff press Send and confirm** on the
+  Enquiries screen; the reply goes as info@ with `In-Reply-To` so it
+  threads. Events: `email.received`, `email.replied`.
+
 Still to come: Meta Marketing API sync.
 
 ## How the code is laid out
