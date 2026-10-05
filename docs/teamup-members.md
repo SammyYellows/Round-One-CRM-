@@ -143,6 +143,15 @@ somewhere else (the trial form, or an export). TeamUp also keeps its own
 customer `status` (e.g. `at_risk`), which could feed the nurture messages
 later.
 
+**Decisions (Sammy, 05/10/2026, after the baseline):**
+- **Mobile numbers come from the CRM's own data**, not TeamUp: when a trial
+  lead joins, the sync matches their TeamUp record to the existing contact
+  on email, so the mobile they gave on the form is already there. Members
+  who never came through the form have no number until staff add one on
+  the contact page. No TeamUp export.
+- **Sammy writes the Program messages himself** and will say what to build
+  and when. Claude builds nothing for member messaging until then.
+
 **Claude's next steps, in order:**
 1. ~~Run the first sync and check the mapping.~~ Done 05/10/2026: the
    baseline sync ran on the live site. 542 contacts added (source
