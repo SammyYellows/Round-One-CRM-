@@ -40,6 +40,8 @@ and hours are marked "check").
 | B5 | The morning after someone joins or cancels in TeamUp, open Members | The change is there (nightly sync at 03:00 UK time, give or take) | |
 | B6 | Open Pipeline | No TeamUp members on it | |
 | B7 | Members → status "Never joined" | About 730 people newest first, with when they came in and TeamUp's label; "came in within" filter narrows it | |
+| B9 | Sidebar → TeamUp pipeline | All TeamUp people, New lead column holds never-joined and ex-members, Sold columns hold members; filter Never joined + came in last 3 months narrows it, newest first | |
+| B10 | Sidebar → Meta pipeline | Only non-TeamUp leads; Today's "Where leads come from" shows the TeamUp total alongside the lead sources | |
 | B8 | Open one of them | Left column shows "Never had a membership", came-in date and TeamUp's label; no Questionnaire card | |
 
 ## C. Contact page questionnaire card (built 05/10)

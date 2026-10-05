@@ -8,11 +8,12 @@ export interface ContactFilter {
   stages: Stage[]; // empty = all
   source: Source | "all";
   ad: string; // ad id, "all", or "none" for no ad
-  added: "all" | "7" | "30";
+  added: "all" | "7" | "30" | "90" | "180" | "365"; // came in within this many days
+  membership: "all" | "active" | "ended" | "never"; // TeamUp pipeline: members, ex-members, never joined
   waiting: boolean; // only people whose last WhatsApp is from them
 }
 
-export const EMPTY_FILTER: ContactFilter = { q: "", stages: [], source: "all", ad: "all", added: "all", waiting: false };
+export const EMPTY_FILTER: ContactFilter = { q: "", stages: [], source: "all", ad: "all", added: "all", membership: "all", waiting: false };
 
 export type SortKey = "newest" | "oldest" | "name" | "activity" | "trial" | "stage" | "source" | "ad";
 
@@ -52,6 +53,11 @@ export function applyFilter(s: State, contacts: Contact[], f: ContactFilter, now
     if (f.source !== "all" && c.source !== f.source) return false;
     if (f.ad === "none" ? !!c.adId : f.ad !== "all" && c.adId !== f.ad) return false;
     if (since && Date.parse(c.createdAt) < since) return false;
+    if (f.membership !== "all") {
+      const m = c.membership;
+      const state = m ? (m.status === "ended" ? "ended" : "active") : "never";
+      if (state !== f.membership) return false;
+    }
     if (f.waiting && !waitingOnUs(s, c)) return false;
     if (tokens.length) {
       const hay = haystack(s, c);

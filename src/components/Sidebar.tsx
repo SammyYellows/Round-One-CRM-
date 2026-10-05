@@ -7,7 +7,8 @@ import { useStore } from "@/lib/store";
 const NAV = [
   { href: "/", label: "Today", icon: <path d="M3 11 12 4l9 7v9H3z" /> },
   { href: "/calendar", label: "Calendar", icon: <><rect x="3" y="4" width="18" height="17" /><path d="M3 9h18M8 2v4M16 2v4" /></> },
-  { href: "/pipeline", label: "Pipeline", icon: <><rect x="3" y="4" width="5" height="16" /><rect x="10" y="4" width="5" height="11" /><rect x="17" y="4" width="4" height="7" /></> },
+  { href: "/pipeline", label: "Meta pipeline", icon: <><rect x="3" y="4" width="5" height="16" /><rect x="10" y="4" width="5" height="11" /><rect x="17" y="4" width="4" height="7" /></> },
+  { href: "/pipeline/teamup", label: "TeamUp pipeline", icon: <><rect x="3" y="4" width="5" height="7" /><rect x="10" y="4" width="5" height="11" /><rect x="17" y="4" width="4" height="16" /></> },
   { href: "/contacts", label: "Contacts", icon: <><circle cx="12" cy="8" r="4" /><path d="M4 21c1-4 4-6 8-6s7 2 8 6" /></> },
   { href: "/enquiries", label: "Enquiries", icon: <><rect x="3" y="5" width="18" height="14" /><path d="m3 6 9 7 9-7" /></> },
   { href: "/mailouts", label: "Mailouts", icon: <><path d="M3 8h13l5 4-5 4H3z" /><path d="M7 12h6" /></> },
@@ -20,7 +21,7 @@ const NAV = [
 export function Sidebar({ staff }: { staff?: { name: string } }) {
   const path = usePathname();
   const { now, act, reset, live } = useStore();
-  const isOn = (href: string) => (href === "/" ? path === "/" : path.startsWith(href));
+  const isOn = (href: string) => (href === "/" || href === "/pipeline" ? path === href : path.startsWith(href));
   const shift = (hours: number) => act("shiftClock", hours);
 
   return (

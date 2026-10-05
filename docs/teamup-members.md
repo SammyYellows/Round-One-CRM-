@@ -164,7 +164,13 @@ customer id, status and created date, and `createdAt` set to when they
 first appeared in TeamUp (existing TeamUp contacts were backdated the same
 way). Members → "Never joined" lists them newest first with a "came in
 within" filter; Mailouts can pick "TeamUp sign-ups who never joined" with
-the same filter. Members' and never-joined people's mobile numbers still
+the same filter. **Two pipelines (Sammy, 06/10):** the sidebar has a Meta
+pipeline (ads, form, walk-ins, referrals, WhatsApp, email) and a TeamUp
+pipeline (everyone from TeamUp) with filters for members / ex-members /
+never joined and came in within 7 days to a year, newest first. Dragging a
+TeamUp person to a stage works the same as on the Meta pipeline. The
+Today page counts TeamUp people under "Where leads come from" but keeps
+them out of the trial funnel and daily leads chart. Members' and never-joined people's mobile numbers still
 don't come from TeamUp.
 
 **Claude's next steps, in order:**
