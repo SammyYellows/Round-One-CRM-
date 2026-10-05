@@ -35,7 +35,10 @@ clearly said no.
 staff screens and public forms read and write the Supabase database. Without
 them (e.g. a fresh clone), the app runs as the original prototype: made-up
 sample data from `src/lib/seed.ts` in the browser, with the prototype clock.
-See `docs/build-plan.md` for the order of work.
+The plan docs live in `docs/`: `improvement-list.md` (ideas and what's
+been built), `before-go-live.md`, `test-log.md`, and one file per work
+stream. (The original build plan, PR #2, was never merged and was closed
+on 06/10/2026 as out of date.)
 
 In place so far:
 - **Supabase database** (`round1-dev`): the tables in
