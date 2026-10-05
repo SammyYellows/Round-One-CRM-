@@ -95,8 +95,13 @@ is pressed. The only sending route needs `confirm: true` and a signed-in
 staff member; the AI never sends.
 
 **To connect it, in this order:**
-1. **Anthropic key** → Vercel `ANTHROPIC_API_KEY` (Sensitive). Sammy gives
-   it to Claude in chat, like the TeamUp token (rotate at go-live).
+1. ~~Anthropic key~~ Done 05/10: Sammy made a new key (console, workspace
+   scope) and gave it to Claude in chat; it's in Vercel as
+   `ANTHROPIC_API_KEY` (rotate at go-live). Drafting checked on three
+   sample emails with the real facts sheet: beginner enquiry, a parent
+   asking about a 12-year-old, and a Mailchimp report (read as "other").
+   Note: `claude-opus-5-5` rejects forced tool calls, so the draft comes
+   back as structured JSON output (`output_config.format`).
 2. **Resend receiving.** In Resend (resend.com → Domains): add
    `inbound.round1boxfit.co.uk`, choose receiving, copy the MX record it
    shows. Then Webhooks → Add: URL
