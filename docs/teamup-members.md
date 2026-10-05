@@ -1,6 +1,6 @@
 # TeamUp members: reminders, timetable and selling messages
 
-Status: **building from 03/10/2026** (Sammy: "can be built now"). Sammy's idea: pull current
+Status: **part 1 built and live (03/10/2026); parked by Sammy on 05/10/2026.** Pick up from "Where we stopped" at the bottom. Sammy's idea: pull current
 customers from TeamUp regularly and, depending on their membership category,
 automatically send reminders, class timetable information and selling
 messages (e.g. moving Program members on to a recurring membership; Sammy
@@ -98,3 +98,39 @@ will state the wording), then prompt staff in the CRM when someone replies.
 - New triggers and the `schedule` trigger in `engine.ts`; a timetable text
   builder; opt-out handling in `receiveWhatsApp` (STOP) and email.
 - Templates for Meta (after the number moves) and email versions now.
+
+## Where we stopped (05/10/2026)
+
+**Done and live (PR #24):** nightly sync at 03:00 (`/api/cron?job=teamup`),
+Members screen, membership triggers (`membership.started`, `.ending`,
+`.ended`), STOP / staff opt-out, TeamUp webhook receiver, `teamup_members`
+raw copies. Vercel has `TEAMUP_PROVIDER_ID=10418134` and
+`TEAMUP_WEBHOOK_SECRET`. The sync answers "skipped" until the token is in.
+
+**Waiting on Sammy:**
+1. The M2M token in Vercel as `TEAMUP_M2M_TOKEN` (TeamUp: Settings →
+   Integrations → API Integration → Get Started → create "Round One CRM" →
+   Options → View and Update Applications → M2M Tokens → Add).
+2. The wording and timing for the Program Memberships messages (welcome,
+   reminders, timetable information, "move to recurring" offers), in both
+   email and WhatsApp versions.
+3. The accountability add-on notes (separate stream, Markdown export from
+   another chat).
+
+**Sammy is uploading a Markdown file from other work (05/10) that may
+answer some of this. Read it first when resuming.**
+
+**Claude's next steps, in order, once the token is in:**
+1. Run the first sync (it's a baseline: no messages). Check the field
+   mapping against the raw rows in `teamup_members` and fix
+   `readMembership` in `src/lib/server/teamup.ts` if any field is wrong.
+2. Add the TeamUp webhook destination (dashboard: Settings → Integrations →
+   API Integration → the application → Add Webhook Destination, URL
+   `https://round-one-crm.vercel.app/api/webhooks/teamup/<TEAMUP_WEBHOOK_SECRET>`,
+   all event types) or via `POST /webhook_destinations`.
+3. Build the Program Memberships automations from Sammy's wording: email
+   steps now, WhatsApp templates submitted to Meta (live after the number
+   moves). Timetable step: a text builder from TeamUp `/events` for the
+   coming week (not built yet).
+4. Member replies: WhatsApp already lands in the CRM; email replies need
+   the inbound route from `docs/email-enquiries.md`.
