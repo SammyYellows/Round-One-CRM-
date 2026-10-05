@@ -71,6 +71,15 @@ real list until the Resend Pro upgrade and the webhook events are done.
 | E8 | Make another draft with the same audience | The count is now 0 (you're opted out) | |
 | E9 | Reply to the mailout email | It appears on Enquiries | |
 
+## F. Win-back after notice (built 06/10, automation off)
+
+| # | Do | Expect | Result |
+|---|---|---|---|
+| F1 | Automations → "Gave notice – win-back" | Shows the trigger "Gives notice to cancel", a one-day wait, the email draft; switched off | |
+| F2 | In TeamUp, set a test member (or yourself) to cancel; after the next nightly sync open them in the CRM | Membership line says "gave notice"; timeline has "gave notice on …" | |
+| F3 | With the automation on, the day after | They get "Sorry to see you go" from bookings@ with an unsubscribe line; the run shows on the contact | |
+| F4 | Tick "No marketing messages" on someone before the day is up | The email is skipped | |
+
 ## D. Still parked, no test yet
 
 - Booked video on discovery_1 (needs a screenshot from Sammy's phone).

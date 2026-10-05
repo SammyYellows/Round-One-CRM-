@@ -16,6 +16,15 @@ export const appUrl = () => (process.env.APP_URL || "https://round-one-crm.verce
 /** The contact's private booking page. */
 export const bookLink = (contactId: string) => `${appUrl()}/book/${contactId}`;
 
+/** The contact's unsubscribe page, on every marketing email. */
+export const unsubscribeLink = (contactId: string) => `${appUrl()}/u/${contactId}`;
+export const unsubscribeFooter = (contactId: string) =>
+  `\n\n—\nYou’re getting this because you’re a member of Round One or have been in touch with us. To stop these emails: ${unsubscribeLink(contactId)}`;
+export const unsubscribeHeaders = (contactId: string) => ({
+  "List-Unsubscribe": `<${unsubscribeLink(contactId)}>`,
+  "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+});
+
 /** What the front desk needs to act on a lead, in plain text. */
 function staffBody(s: State, contactId: string | undefined) {
   const c = s.contacts.find((x) => x.id === contactId);
@@ -116,7 +125,10 @@ async function deliverEmails(before: State, after: State) {
       text = body;
     }
     if (!address || !text) continue; // nothing to send (e.g. no email address for this person)
-    const res = await sendEmail(address, subject, text);
+    const marketing = e.data!.marketing === "yes" && to === "contact" && contact;
+    const res = marketing
+      ? await sendEmail(address, subject, text.trimEnd() + unsubscribeFooter(contact.id), { headers: unsubscribeHeaders(contact.id) })
+      : await sendEmail(address, subject, text);
     if (!res.ok) {
       console.error("[deliver]", subject, res.error);
       await recordEvent("email.failed", e.contactId, `Email “${subject}” to ${address} wasn’t sent: ${res.error}`);

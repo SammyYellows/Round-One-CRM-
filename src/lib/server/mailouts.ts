@@ -9,7 +9,7 @@
 import { fill, setMarketingOptOut } from "@/lib/engine";
 import { GYM } from "@/lib/gym";
 import { Contact, Membership, STAGES, Stage } from "@/lib/types";
-import { appUrl } from "./deliver";
+import { unsubscribeFooter, unsubscribeHeaders, unsubscribeLink } from "./deliver";
 import { enquiriesFrom } from "./enquiries";
 import { sendEmail } from "./email";
 import { applyMany } from "./state";
@@ -203,20 +203,14 @@ export async function deleteMailout(id: string) {
 
 // ---- The email itself ----------------------------------------------------
 
-export const unsubscribeLink = (contactId: string) => `${appUrl()}/u/${contactId}`;
-
 /** The text one person receives: their placeholders filled, with the unsubscribe line. */
 export function renderBody(body: string, c: Pick) {
   const contact = { ...c, tags: [], answers: [], createdAt: "" } as unknown as Contact;
   const main = fill(body, contact).replace(/\{unsubscribe\}/g, unsubscribeLink(c.id));
-  const footer = `\n\n—\nYou’re getting this because you’re a member of ${GYM.name} or have been in touch with us. To stop these emails: ${unsubscribeLink(c.id)}`;
-  return main.trimEnd() + footer;
+  return main.trimEnd() + unsubscribeFooter(c.id);
 }
 
-const headersFor = (contactId: string) => ({
-  "List-Unsubscribe": `<${unsubscribeLink(contactId)}>`,
-  "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
-});
+const headersFor = unsubscribeHeaders;
 
 /** Sends the mailout to one staff address, filled in as if for the first recipient (or the staff member). */
 export async function sendTest(id: string, to: string, staffName: string) {
