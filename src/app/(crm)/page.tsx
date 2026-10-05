@@ -229,6 +229,8 @@ const EVENT_LABEL: Record<string, string> = {
   "whatsapp.sent": "WhatsApp sent",
   "whatsapp.received": "WhatsApp received",
   "email.sent": "Email sent",
+  "email.received": "Email received",
+  "email.replied": "Email reply sent",
   "task.created": "Task created",
   "automation.stopped": "Automation ended",
   "appointment.booked": "Trial booked",

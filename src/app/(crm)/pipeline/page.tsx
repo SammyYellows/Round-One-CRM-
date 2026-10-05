@@ -9,7 +9,7 @@ import { useStore } from "@/lib/store";
 import { Contact, STAGES, Source, Stage, sourceLabel } from "@/lib/types";
 
 const COLUMNS = STAGES.filter((st) => st.id !== "lost");
-const SRC_CHIP: Record<Source, string> = { meta_ad: "chip-red", walk_in: "", referral: "chip-light", website: "", whatsapp: "", teamup: "" };
+const SRC_CHIP: Record<Source, string> = { meta_ad: "chip-red", walk_in: "", referral: "chip-light", website: "", whatsapp: "", teamup: "", email: "" };
 
 export default function PipelinePage() {
   const { s, now, act } = useStore();
