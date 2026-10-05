@@ -20,7 +20,9 @@ upgrades.** Improvement list item 4.
 
 1. **Mailouts screen** (sidebar). New mailout → pick who gets it: current
    members, ex-members (optionally only those who ended within 3, 6, 12 or
-   24 months), both, or none; TeamUp categories; old leads by stage. The
+   24 months), both, or none; TeamUp categories; TeamUp sign-ups who never
+   joined (optionally only those who came in within 30, 90, 180 or 365
+   days); CRM leads by stage. The
    count updates as you pick, with a few names. Anyone with no email, who
    opted out (STOP, unsubscribe link, staff tick box, or a spam complaint)
    or whose email bounced before is left out. One email per address.

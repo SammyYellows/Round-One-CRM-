@@ -74,9 +74,19 @@ export interface Contact {
   // Messages about their own booking or membership still go.
   marketingOptOut?: boolean;
   emailBounced?: boolean; // a mailout to them bounced; skipped by later mailouts
+  // Their TeamUp customer record, for everyone synced from TeamUp (members
+  // and the people who made an account but never bought).
+  teamup?: TeamUpCustomer;
 }
 
 /** A customer's membership as TeamUp reports it. TeamUp stays the source of truth. */
+export interface TeamUpCustomer {
+  customerId: string;
+  status?: string; // TeamUp's own label: prospect, at_risk, converted, churned, lost…
+  createdAt?: string; // when they first appeared in TeamUp ("came in")
+  syncedAt: string;
+}
+
 export interface Membership {
   customerId: string; // TeamUp customer id
   id: string; // TeamUp customer_membership id

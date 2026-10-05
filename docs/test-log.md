@@ -39,6 +39,8 @@ and hours are marked "check").
 | B4 | Filter Ended | Ex-members; they don't appear on the Pipeline | |
 | B5 | The morning after someone joins or cancels in TeamUp, open Members | The change is there (nightly sync at 03:00 UK time, give or take) | |
 | B6 | Open Pipeline | No TeamUp members on it | |
+| B7 | Members → status "Never joined" | About 730 people newest first, with when they came in and TeamUp's label; "came in within" filter narrows it | |
+| B8 | Open one of them | Left column shows "Never had a membership", came-in date and TeamUp's label; no Questionnaire card | |
 
 ## C. Contact page questionnaire card (built 05/10)
 
@@ -59,6 +61,7 @@ real list until the Resend Pro upgrade and the webhook events are done.
 | E1 | Open Mailouts, press New mailout | A draft opens with the audience picker, a live count and the message box | |
 | E2 | Pick Current members, then one category, then Ex-members within 6 months | The count and the sample names change each time | |
 | E3 | Pick a lead stage (e.g. Nurture) | Leads are added to the count | |
+| E3b | Tick "Include them" under TeamUp sign-ups who never joined, then "Last 6 months" | The count jumps by the never-joined people, then narrows | |
 | E4 | Write a subject and message with {first}, press Send me a test | An email arrives at info@ from info@, "[Test] …", your first name filled in, unsubscribe line at the bottom; mail app shows an Unsubscribe option | |
 | E5 | Press Send, then Cancel | The confirm box closes, nothing sent | |
 | E6 | Make a draft whose audience is only you (e.g. a lead stage you alone are in, or ask Claude to set it), Send, Yes | It arrives; the mailout shows Sent to 1; counts move to Delivered/Opened once the webhook events are widened | |

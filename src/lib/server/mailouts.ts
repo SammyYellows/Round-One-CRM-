@@ -24,6 +24,10 @@ export interface Audience {
   endedWithinDays?: number;
   /** Pipeline stages of non-member leads to include; empty means no leads. */
   leadStages: Stage[];
+  /** TeamUp customers who never had a membership (old enquiries, free-class sign-ups). */
+  neverJoined?: boolean;
+  /** For those: only people who came in within this many days. */
+  cameInWithinDays?: number;
 }
 
 export type MailoutStatus = "draft" | "sending" | "sent";
@@ -62,12 +66,14 @@ function normaliseAudience(a: Partial<Audience> | null | undefined): Audience {
     categories: Array.isArray(a?.categories) ? a!.categories.filter((x): x is string => typeof x === "string").slice(0, 20) : [],
     endedWithinDays: typeof a?.endedWithinDays === "number" && a.endedWithinDays > 0 ? Math.round(a.endedWithinDays) : undefined,
     leadStages: Array.isArray(a?.leadStages) ? a!.leadStages.filter((x): x is Stage => stageIds.has(x as Stage)) : [],
+    neverJoined: a?.neverJoined === true,
+    cameInWithinDays: typeof a?.cameInWithinDays === "number" && a.cameInWithinDays > 0 ? Math.round(a.cameInWithinDays) : undefined,
   };
 }
 
 const EMAIL_OK = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-interface Pick { id: string; name: string; email: string; phone: string; source: string; stage: Stage; trialAt?: string; membership: Membership | null }
+interface Pick { id: string; name: string; email: string; phone: string; source: string; stage: Stage; trialAt?: string; membership: Membership | null; teamup?: boolean; createdAt?: string }
 
 async function allContacts(): Promise<Pick[]> {
   const out: Pick[] = [];
@@ -75,7 +81,7 @@ async function allContacts(): Promise<Pick[]> {
   for (let from = 0; ; from += PAGE) {
     const { data, error } = await db()
       .from("contacts")
-      .select("id, name, email, phone, source, stage, trial_at, membership, marketing_opt_out, email_bounced")
+      .select("id, name, email, phone, source, stage, trial_at, membership, teamup, created_at, marketing_opt_out, email_bounced")
       .eq("marketing_opt_out", false)
       .eq("email_bounced", false)
       .order("created_at", { ascending: false })
@@ -85,6 +91,7 @@ async function allContacts(): Promise<Pick[]> {
       out.push({
         id: r.id as string, name: (r.name as string) ?? "", email: ((r.email as string) ?? "").trim().toLowerCase(), phone: (r.phone as string) ?? "",
         source: r.source as string, stage: r.stage as Stage, trialAt: (r.trial_at as string) ?? undefined, membership: (r.membership as Membership | null) ?? null,
+        teamup: !!r.teamup, createdAt: (r.created_at as string) ?? undefined,
       });
     }
     if (!data || data.length < PAGE) break;
@@ -109,6 +116,9 @@ export async function resolveAudience(input: Partial<Audience>): Promise<Pick[]>
       const statusOk = a.membership === "any" ? active || (ended && recentEnough) : a.membership === "active" ? active : ended && recentEnough;
       const categoryOk = a.categories.length === 0 || a.categories.includes(m.category);
       wanted = statusOk && categoryOk;
+    } else if (!m && c.teamup) {
+      const recent = !a.cameInWithinDays || !c.createdAt || now - Date.parse(c.createdAt) <= a.cameInWithinDays * 86400e3;
+      wanted = !!a.neverJoined && recent;
     } else if (!m && a.leadStages.length) {
       wanted = c.source !== "teamup" && a.leadStages.includes(c.stage);
     }

@@ -161,6 +161,16 @@ export default function ContactPage() {
               <div className="small faint">Change it in TeamUp; synced {ago(c.membership.syncedAt, now)}.</div>
             </div>
           )}
+          {c.teamup && !c.membership && (
+            <div style={{ borderTop: "1px solid var(--line)", paddingTop: 12, display: "flex", flexDirection: "column", gap: 4 }}>
+              <div className="label" style={{ margin: 0 }}>TeamUp</div>
+              <div className="strong">Never had a membership</div>
+              <div className="small muted">
+                Came in {c.teamup.createdAt ? dayTime(c.teamup.createdAt).split(",")[0] : "–"}
+                {c.teamup.status ? ` · TeamUp says ${c.teamup.status.replace(/_/g, " ")}` : ""}
+              </div>
+            </div>
+          )}
           <label className="small" style={{ display: "flex", alignItems: "center", gap: 8, borderTop: "1px solid var(--line)", paddingTop: 12 }}>
             <input type="checkbox" checked={!!c.marketingOptOut} onChange={(e) => act("setMarketingOptOut", c.id, e.target.checked)} />
             No marketing messages{c.marketingOptOut ? "" : " (they can reply STOP to set this)"}
