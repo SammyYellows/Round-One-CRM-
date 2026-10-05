@@ -75,6 +75,27 @@ export const TEMPLATES: TemplateDef[] = [
   },
 ];
 
+// First draft by Claude (06/10/2026) for Sammy to edit. Facts used: Facility
+// access only and Classes only memberships exist; TeamUp allows holds.
+const WIN_BACK_EMAIL = {
+  subject: "Sorry to see you go, {first}",
+  body: [
+    "Hi {first},",
+    "",
+    "We saw you’ve given notice on your membership. No hard feelings, and thank you for training with us.",
+    "",
+    "Before you go, a couple of things worth knowing:",
+    "",
+    "If it’s about time or money, there may be a membership that fits better. Facility access only, classes only, or putting your membership on hold for a while are all options.",
+    "",
+    "If something put you off, tell us. We’d much rather hear it than guess.",
+    "",
+    "If you’d like to talk it through, just reply to this email or grab one of the coaches next time you’re in. Your membership runs until the end of your notice, so there’s time to decide.",
+    "",
+    "{team}",
+  ].join("\n"),
+};
+
 const WELCOME_EMAIL = {
   subject: "Welcome to {gym}, {first}!",
   body: "Hey {first},\n\nWe’re so excited to have you starting with us.\n\nYour first session is the beginning of something great - we’re really glad you’ve taken this step and we can’t wait to see what you achieve.\n\nIf you have any questions before your first session, just reach out and we’ll help you out.\n\nThe Round One team",
@@ -193,6 +214,15 @@ export const AUTOMATIONS: Automation[] = [
       { kind: "email", to: "staff", subject: "Sold – Recurring membership: {name}" },
       { kind: "email", to: "contact", ...WELCOME_EMAIL },
       { kind: "whatsapp", template: "recurring_member" },
+    ],
+  },
+  {
+    id: "win_back", name: "Gave notice – win-back", enabled: false, runs: 0,
+    summary: "The day after someone gives notice to cancel in TeamUp, emails them to see if anything would change their mind. Off until Sammy approves the wording.",
+    trigger: { type: "membership.cancelling" },
+    steps: [
+      { kind: "wait", hours: 24 },
+      { kind: "email", to: "contact", marketing: true, ...WIN_BACK_EMAIL },
     ],
   },
   {

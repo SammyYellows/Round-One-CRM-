@@ -65,6 +65,7 @@ type Fired =
   | { type: "appointment.moved"; contactId: string }
   | { type: "membership.started"; contactId: string; category: string }
   | { type: "membership.ending"; contactId: string; category: string; daysBefore: number }
+  | { type: "membership.cancelling"; contactId: string; category: string }
   | { type: "membership.ended"; contactId: string; category: string };
 
 const sameCategory = (want: string | undefined, got: string) => !want || want.trim().toLowerCase() === got.trim().toLowerCase();
@@ -79,6 +80,7 @@ function matches(a: Automation, ev: Fired) {
   if (t.type === "appointment.moved" && ev.type === "appointment.moved") return true;
   if (t.type === "membership.started" && ev.type === "membership.started") return sameCategory(t.category, ev.category);
   if (t.type === "membership.ended" && ev.type === "membership.ended") return sameCategory(t.category, ev.category);
+  if (t.type === "membership.cancelling" && ev.type === "membership.cancelling") return sameCategory(t.category, ev.category);
   if (t.type === "membership.ending" && ev.type === "membership.ending") return t.daysBefore === ev.daysBefore && sameCategory(t.category, ev.category);
   return false;
 }
@@ -200,6 +202,7 @@ export function describeTrigger(a: Automation, forms: Form[]) {
   const cat = (c?: string) => (c ? ` (${c})` : "");
   if (t.type === "membership.started") return `Membership starts${cat(t.category)}`;
   if (t.type === "membership.ending") return `Membership ends in ${t.daysBefore} day${t.daysBefore === 1 ? "" : "s"}${cat(t.category)}`;
+  if (t.type === "membership.cancelling") return `Gives notice to cancel${cat(t.category)}`;
   if (t.type === "membership.ended") return `Membership ends${cat(t.category)}`;
   return `Tagged “${t.tag}”`;
 }
@@ -541,6 +544,7 @@ export interface MemberInput {
   status: Membership["status"];
   startedAt?: string;
   endsAt?: string;
+  cancelling?: boolean; // TeamUp's is_set_for_cancellation
   createdAt?: string; // when the customer first appeared in TeamUp
 }
 
@@ -630,9 +634,15 @@ export function importMembers(s: State, inputs: MemberInput[], opts: { baseline?
     const prev = c.membership;
     c.membership = {
       customerId: m.customerId, id: m.id, name: m.membershipName, category: m.category, status: m.status,
-      startedAt: m.startedAt, endsAt: m.endsAt, lastAttendedAt: prev?.lastAttendedAt, syncedAt: nowIso(s),
+      startedAt: m.startedAt, endsAt: m.endsAt, cancelling: !!m.cancelling, lastAttendedAt: prev?.lastAttendedAt, syncedAt: nowIso(s),
       noticesSent: prev?.id === m.id ? prev.noticesSent : undefined,
     };
+    // Notice given since the last sync (on a membership we already knew and
+    // had recorded as not cancelling): the win-back moment.
+    if (m.status !== "ended" && m.cancelling && prev?.id === m.id && prev.cancelling === false && !opts.baseline) {
+      log(s, "stage.changed", c.id, `${c.name} gave notice on ${m.membershipName} (TeamUp)`);
+      fire(s, { type: "membership.cancelling", contactId: c.id, category: m.category });
+    }
     const soldStage: Stage = isProgramme(m) ? "sold_programme" : "sold_membership";
     if (m.status !== "ended") {
       const isNew = !prev || prev.id !== m.id || prev.status === "ended";

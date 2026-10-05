@@ -95,6 +95,7 @@ export interface Membership {
   status: "active" | "on_hold" | "ended";
   startedAt?: string;
   endsAt?: string; // expiry or next renewal, when TeamUp gives one
+  cancelling?: boolean; // notice given in TeamUp; the membership runs out at endsAt
   lastAttendedAt?: string;
   syncedAt: string;
   // Keys of "ending soon" notices already sent, e.g. "ending:7:2026-10-31".
@@ -156,6 +157,7 @@ export type Trigger =
   // trigger to one membership category; leave it out for all.
   | { type: "membership.started"; category?: string }
   | { type: "membership.ending"; daysBefore: number; category?: string }
+  | { type: "membership.cancelling"; category?: string } // they've given notice; it still runs until endsAt
   | { type: "membership.ended"; category?: string };
 
 export type Step =

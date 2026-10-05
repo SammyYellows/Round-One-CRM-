@@ -85,6 +85,7 @@ export function readMembership(row: Json, categories: Map<string, string>): Memb
     membershipName: str(membership.name, "Membership"),
     category,
     status: ended ? "ended" : onHold ? "on_hold" : "active",
+    cancelling: row.is_set_for_cancellation === true,
     createdAt: iso(customer.created_at),
     startedAt: iso(row.start_date ?? row.starts_at ?? row.started_at ?? row.created_at),
     endsAt: iso(row.expiration_date ?? row.expires_at ?? row.end_date ?? row.ends_at ?? row.renewal_date ?? row.next_payment_date ?? row.renews_at),

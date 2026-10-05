@@ -173,6 +173,15 @@ Today page counts TeamUp people under "Where leads come from" but keeps
 them out of the trial funnel and daily leads chart. Members' and never-joined people's mobile numbers still
 don't come from TeamUp.
 
+**Win-back (06/10/2026):** the sync records TeamUp's
+`is_set_for_cancellation` as `membership.cancelling` and fires
+`membership.cancelling` the first sync after it flips (the first sync
+after this change only records it, so nobody already serving notice gets
+emailed). Automation "Gave notice – win-back": wait 24 hours, marketing
+email drafted by Claude, off until Sammy approves it. Marketing emails
+from automations now carry the unsubscribe footer and headers, like
+mailouts.
+
 **Claude's next steps, in order:**
 1. ~~Run the first sync and check the mapping.~~ Done 05/10/2026: the
    baseline sync ran on the live site. 542 contacts added (source

@@ -152,7 +152,7 @@ export default function MembersPage() {
               <div className="muted small">{m.startedAt ? dayTime(m.startedAt).split(",")[0] : "–"}</div>
               <div className="muted small">{m.endsAt ? `${dayTime(m.endsAt).split(",")[0]} (${ago(m.endsAt, now)})` : "–"}</div>
               <div>
-                {STATUS_LABEL[m.status]}
+                {STATUS_LABEL[m.status]}{m.cancelling && m.status !== "ended" ? " · gave notice" : ""}
                 {c.marketingOptOut && <span className="chip" style={{ height: 20, fontSize: 10, marginLeft: 6 }}>No marketing</span>}
                 {waitingOnUs(s, c) && <span className="chip chip-light" style={{ height: 20, fontSize: 10, marginLeft: 6 }}>Reply</span>}
               </div>
