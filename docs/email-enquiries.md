@@ -118,5 +118,7 @@ staff member; the AI never sends.
    `crm@inbound.round1boxfit.co.uk`, keeping a copy in the inbox. The
    existing MX records for round1boxfit.co.uk itself stay as they are.
    Afterwards Claude presses Verify on the domain via the API.
-4. Redeploy, then Sammy sends a test email to info@ from his own address,
-   sees it on Enquiries with a draft, and sends the reply from there.
+4. ~~SiteGround~~ Done 05/10: MX and DKIM records added by Sammy, domain
+   verified by Resend the same evening, forwarder set up. **Connected end
+   to end; not yet tested.** The tests are A1 to A14 in `docs/test-log.md`,
+   to run in one sitting with the other owed tests.

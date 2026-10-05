@@ -34,7 +34,8 @@ over it).
 
 ## 2. Other items (from earlier)
 
-- Pre-live test checklist: build it, then run it.
+- Pre-live test checklist: build it, then run it. (Tests owed for things
+  built since 05/10 are in `docs/test-log.md`, to be run in one go.)
 - Decide which database is the real one (everything runs on `round1-dev`).
 - Replace the keys that were pasted in chat: Supabase access token and
   database password, both Resend keys, the WhatsApp token and Meta app
