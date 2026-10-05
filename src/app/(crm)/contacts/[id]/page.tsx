@@ -49,6 +49,7 @@ export default function ContactPage() {
   const runs = s.runs.filter((r) => r.contactId === id && r.status === "waiting");
   const appts = s.appointments.filter((a) => a.contactId === id).sort((a, b) => Date.parse(b.start) - Date.parse(a.start)).slice(0, 6);
   const timeline = s.events.filter((e) => e.contactId === id).slice(0, 12);
+  const submitted = s.events.find((e) => e.contactId === id && e.type === "form.submitted");
 
   const send = () => {
     if (!draft.trim() || !windowOpen) return;
@@ -146,9 +147,6 @@ export default function ContactPage() {
                 </dd>
               </div>
             )}
-            {c.answers.map((a) => (
-              <div key={a.question} className="field"><dt>{a.question}</dt><dd>{a.answer || "Skipped"}</dd></div>
-            ))}
             <div className="field"><dt>Added</dt><dd>{ago(c.createdAt, now)}</dd></div>
           </dl>
           {c.membership && (
@@ -174,6 +172,7 @@ export default function ContactPage() {
           )}
         </section>
 
+        <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
         <section className="card">
           <div className="card-head" style={{ alignItems: "center" }}>
             <h2 className="h" style={{ fontSize: 24 }}>WhatsApp</h2>
@@ -234,6 +233,26 @@ export default function ContactPage() {
             </div>
           )}
         </section>
+
+          {c.answers.length > 0 && (
+            <section className="card">
+              <div className="card-head">
+                <div>
+                  <div className="eyebrow">{submitted ? `Answered ${ago(submitted.at, now)}` : "From the form"}</div>
+                  <h2 className="h h3">Questionnaire</h2>
+                </div>
+              </div>
+              <dl className="qa">
+                {c.answers.map((a) => (
+                  <div key={a.question} className="qa-row">
+                    <dt>{a.question}</dt>
+                    <dd className={a.answer ? "" : "faint"}>{a.answer || "Skipped"}</dd>
+                  </div>
+                ))}
+              </dl>
+            </section>
+          )}
+        </div>
 
         <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
           <section className="card pad" style={{ display: "flex", flexDirection: "column", gap: 4 }}>
