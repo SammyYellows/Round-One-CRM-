@@ -41,6 +41,12 @@ over it).
   database password, both Resend keys, the WhatsApp token and Meta app
   secret.
 - Vercel Pro (needed for business use).
+- **Resend Pro ($20/month) before the first real mailout** (Sammy, 05/10:
+  "I will upgrade, but develop on free, make a reminder"). Free allows 100
+  emails a day shared with bookings and reminders; the CRM holds mailouts
+  to `MAILOUT_DAILY_LIMIT` (80) a day until then. After upgrading, set
+  `MAILOUT_DAILY_LIMIT=0` in Vercel. Also widen the Resend webhook's events
+  (see `docs/mailouts.md`).
 - The crm.round1boxfit.co.uk address (CNAME at SiteGround).
 - Switch-over day: move the WhatsApp number from GymGrow, re-approve the
   templates on the real WhatsApp account, subscribe the webhook for it,

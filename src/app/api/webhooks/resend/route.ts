@@ -1,10 +1,11 @@
 // Resend's webhook: an email arrived for the receiving address (a copy of
-// everything sent to info@). Signed the Svix way with RESEND_WEBHOOK_SECRET.
+// everything sent to info@), or a delivery update for an email we sent. Signed the Svix way with RESEND_WEBHOOK_SECRET.
 // Answer at once; fetching and reading the email happens in the background.
 
 import crypto from "node:crypto";
 import { afterResponse } from "@/lib/server/background";
 import { ingestReceived } from "@/lib/server/enquiries";
+import { recordDeliveryEvent } from "@/lib/server/mailouts";
 
 export const dynamic = "force-dynamic";
 
@@ -30,6 +31,9 @@ export async function POST(req: Request) {
   const body = JSON.parse(raw) as { type?: string; data?: { email_id?: string } };
   if (body.type === "email.received" && body.data?.email_id) {
     await afterResponse(ingestReceived(body.data.email_id));
+  } else if (body.type?.startsWith("email.") && body.data?.email_id) {
+    // Delivered, opened, bounced… for mailouts (other emails are ignored).
+    await afterResponse(recordDeliveryEvent(body.type, body.data.email_id));
   }
   return Response.json({ ok: true });
 }

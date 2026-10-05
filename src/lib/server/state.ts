@@ -41,13 +41,14 @@ const contactFrom = (r: Row): Contact => ({
   createdAt: r.created_at as string,
   ...(r.membership ? { membership: r.membership as Contact["membership"] } : {}),
   ...(r.marketing_opt_out ? { marketingOptOut: true } : {}),
+  ...(r.email_bounced ? { emailBounced: true } : {}),
 });
 const contactTo = (c: Contact): Row => ({
   id: c.id, name: c.name, phone: c.phone, email: c.email, source: c.source,
   campaign: c.campaign ?? null, adset: c.adset ?? null, ad: c.ad ?? null, ad_id: c.adId ?? null,
   stage: c.stage, lost_reason: c.lostReason ?? null, tags: c.tags, answers: c.answers,
   trial_at: c.trialAt ?? null, created_at: c.createdAt,
-  membership: c.membership ?? null, marketing_opt_out: !!c.marketingOptOut,
+  membership: c.membership ?? null, marketing_opt_out: !!c.marketingOptOut, email_bounced: !!c.emailBounced,
 });
 
 const messageFrom = (r: Row): Message => ({

@@ -73,6 +73,7 @@ export interface Contact {
   // Asked us to stop marketing messages (replied STOP, or staff set it).
   // Messages about their own booking or membership still go.
   marketingOptOut?: boolean;
+  emailBounced?: boolean; // a mailout to them bounced; skipped by later mailouts
 }
 
 /** A customer's membership as TeamUp reports it. TeamUp stays the source of truth. */

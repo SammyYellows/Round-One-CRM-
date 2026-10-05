@@ -12,7 +12,9 @@ const PUBLIC = [
   /^\/api\/forms\/[^/]+\/submit$/, // their submissions
   /^\/book\/[^/]+$/, // someone's own booking page, from the form or a WhatsApp button
   /^\/api\/book\/[^/]+$/, // booking a slot there
-  /^\/api\/webhooks\//, // WhatsApp and Meta (they check their own signatures)
+  /^\/u\/[^/]+$/, // unsubscribe page from a mailout
+  /^\/api\/unsubscribe\/[^/]+$/, // and its one-click form
+  /^\/api\/webhooks\//, // WhatsApp, Meta, TeamUp and Resend (they check their own signatures)
   /^\/api\/cron$/, // scheduled runs (checks CRON_SECRET itself)
 ];
 
