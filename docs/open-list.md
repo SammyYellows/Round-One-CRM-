@@ -16,6 +16,10 @@ this; Claude keeps it current. Last updated 06/10/2026.
    least four"); whether Claude drafts the email wording.
 3. **Photo background on the questionnaire** (improvement list item 1).
    Waiting on Sammy: a photo from Round One.
+3b. **Win-back email the day after a cancellation** (improvement list
+   item 7, added 06/10). Not started.
+   Waiting on Sammy: say go; whether "cancellation" means the notice day or
+   the day the membership ends; which categories; the email wording.
 
 ## Testing
 
