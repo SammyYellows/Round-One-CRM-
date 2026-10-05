@@ -298,3 +298,10 @@ a.crow:hover { background: var(--char); color: var(--white); }
 .enq-text { height: auto; padding: 12px 14px; line-height: 1.5; resize: vertical; }
 .enq-confirm { border: 1px solid var(--red); padding: 16px 18px; display: flex; flex-direction: column; gap: 10px; }
 @media (max-width: 900px) { .enq { grid-template-columns: 1fr; } }
+
+/* ---- Questionnaire answers on the contact page ---- */
+.qa { margin: 0; padding: 0 22px 8px; }
+.qa-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.6fr); gap: 16px; padding: 12px 0; border-top: 1px solid var(--line); font-size: 14px; }
+.qa-row dt { color: var(--muted); }
+.qa-row dd { margin: 0; white-space: pre-wrap; line-height: 1.5; }
+@media (max-width: 700px) { .qa-row { grid-template-columns: 1fr; gap: 4px; } }
