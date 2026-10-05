@@ -46,17 +46,18 @@ export async function draftReply(input: DraftInput): Promise<DraftResult> {
     headers: { "x-api-key": key, "anthropic-version": "2023-06-01", "content-type": "application/json" },
     body: JSON.stringify({
       model: MODEL,
-      max_tokens: 1024,
+      max_tokens: 2048,
       system: [
         { type: "text", text: VOICE },
         // The facts sheet is the same for every email, so it's cached.
         { type: "text", text: `FACTS SHEET\n\n${input.facts}`, cache_control: { type: "ephemeral" } },
       ],
-      tools: [
-        {
-          name: "answer",
-          description: "Your reading of the email and the reply draft.",
-          input_schema: {
+      // Structured output: the reply comes back as JSON matching this shape.
+      output_config: {
+        effort: "medium",
+        format: {
+          type: "json_schema",
+          schema: {
             type: "object",
             properties: {
               kind: { type: "string", enum: ["enquiry", "other"] },
@@ -64,10 +65,10 @@ export async function draftReply(input: DraftInput): Promise<DraftResult> {
               draft: { type: "string", description: "The full reply, ready to send, or empty for 'other'." },
             },
             required: ["kind", "summary", "draft"],
+            additionalProperties: false,
           },
         },
-      ],
-      tool_choice: { type: "tool", name: "answer" },
+      },
       messages: [
         {
           role: "user",
@@ -80,9 +81,11 @@ export async function draftReply(input: DraftInput): Promise<DraftResult> {
     const err = (await res.json().catch(() => ({}))) as { error?: { message?: string } };
     throw new Error(err.error?.message || `Anthropic said ${res.status}`);
   }
-  const json = (await res.json()) as { content: { type: string; name?: string; input?: Record<string, unknown> }[] };
-  const call = json.content.find((c) => c.type === "tool_use" && c.name === "answer");
-  const out = (call?.input ?? {}) as Partial<DraftResult>;
+  const json = (await res.json()) as { stop_reason?: string; content: { type: string; text?: string }[] };
+  if (json.stop_reason === "refusal") throw new Error("The AI declined to answer this email");
+  const text = json.content.find((c) => c.type === "text")?.text ?? "{}";
+  let out: Partial<DraftResult> = {};
+  try { out = JSON.parse(text) as Partial<DraftResult>; } catch { throw new Error("The AI's answer wasn’t valid JSON"); }
   const kind = out.kind === "other" ? "other" : "enquiry";
   return { kind, summary: String(out.summary ?? "").trim(), draft: kind === "other" ? "" : String(out.draft ?? "").trim() };
 }
