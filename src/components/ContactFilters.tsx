@@ -5,13 +5,17 @@ import { useStore } from "@/lib/store";
 import { SOURCES, STAGES, Source, Stage } from "@/lib/types";
 
 export function ContactFilters({
-  filter, onChange, sort, onSort, showStages = true, count, total,
+  filter, onChange, sort, onSort, showStages = true, showSource = true, showAds = true, showMembership = false, addedLabel = "Added", count, total,
 }: {
   filter: ContactFilter;
   onChange: (f: ContactFilter) => void;
   sort?: SortKey;
   onSort?: (k: SortKey) => void;
   showStages?: boolean;
+  showSource?: boolean;
+  showAds?: boolean;
+  showMembership?: boolean; // the TeamUp pipeline: members, ex-members, never joined
+  addedLabel?: string; // "Added" for leads, "Came in" for TeamUp people
   count: number;
   total: number;
 }) {
@@ -36,19 +40,34 @@ export function ContactFilters({
             onChange={(e) => set({ q: e.target.value })}
           />
         </div>
-        <select className="select" aria-label="Source" value={filter.source} onChange={(e) => set({ source: e.target.value as Source | "all" })}>
-          <option value="all">All sources</option>
-          {SOURCES.map((x) => <option key={x.id} value={x.id}>{x.label}</option>)}
-        </select>
-        <select className="select" aria-label="Ad" value={filter.ad} onChange={(e) => set({ ad: e.target.value })}>
-          <option value="all">All ads</option>
-          <option value="none">No ad</option>
-          {allAds(s).map((a) => <option key={a.id} value={a.id}>{a.name} ({a.campaign})</option>)}
-        </select>
-        <select className="select" aria-label="Added" value={filter.added} onChange={(e) => set({ added: e.target.value as ContactFilter["added"] })}>
-          <option value="all">Any time</option>
-          <option value="7">Added in the last 7 days</option>
-          <option value="30">Added in the last 30 days</option>
+        {showSource && (
+          <select className="select" aria-label="Source" value={filter.source} onChange={(e) => set({ source: e.target.value as Source | "all" })}>
+            <option value="all">All sources</option>
+            {SOURCES.map((x) => <option key={x.id} value={x.id}>{x.label}</option>)}
+          </select>
+        )}
+        {showAds && (
+          <select className="select" aria-label="Ad" value={filter.ad} onChange={(e) => set({ ad: e.target.value })}>
+            <option value="all">All ads</option>
+            <option value="none">No ad</option>
+            {allAds(s).map((a) => <option key={a.id} value={a.id}>{a.name} ({a.campaign})</option>)}
+          </select>
+        )}
+        {showMembership && (
+          <select className="select" aria-label="Membership" value={filter.membership} onChange={(e) => set({ membership: e.target.value as ContactFilter["membership"] })}>
+            <option value="all">Members, ex-members and never joined</option>
+            <option value="never">Never joined</option>
+            <option value="ended">Ex-members</option>
+            <option value="active">Current members</option>
+          </select>
+        )}
+        <select className="select" aria-label={addedLabel} value={filter.added} onChange={(e) => set({ added: e.target.value as ContactFilter["added"] })}>
+          <option value="all">{addedLabel} any time</option>
+          <option value="7">{addedLabel} in the last 7 days</option>
+          <option value="30">{addedLabel} in the last 30 days</option>
+          <option value="90">{addedLabel} in the last 3 months</option>
+          <option value="180">{addedLabel} in the last 6 months</option>
+          <option value="365">{addedLabel} in the last year</option>
         </select>
         {onSort && sort && (
           <select className="select" aria-label="Sort" value={sort} onChange={(e) => onSort(e.target.value as SortKey)}>

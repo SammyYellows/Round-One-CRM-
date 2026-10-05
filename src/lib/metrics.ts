@@ -61,8 +61,8 @@ export function stageCounts(s: State) {
 }
 
 export function sourceCounts(s: State) {
-  return SOURCES.filter((src) => src.id !== "teamup")
-    .map((src) => ({ id: src.id, label: src.label, value: s.contacts.filter((c) => c.source === src.id).length }))
+  // Every source, TeamUp included: this is "who do we have", not the funnel.
+  return SOURCES.map((src) => ({ id: src.id, label: src.label, value: s.contacts.filter((c) => c.source === src.id).length }))
     .sort((a, b) => b.value - a.value);
 }
 
