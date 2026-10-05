@@ -48,9 +48,10 @@ enquiry, so roughly £3 a month for 200 emails. Pay as you go.
 
 ## Sammy's jobs (not started)
 
-1. Anthropic account: console.anthropic.com, sign up with info@, add a card
-   under Billing (£10 is plenty to start), API Keys → Create Key "Round One
-   CRM".
+1. Anthropic account. **Update 05/10: one already exists** (from
+   `docs/accountability-handover.md`): API key created, $5 credit loaded,
+   $500/month cap. Reuse it: copy the key into Vercel as `ANTHROPIC_API_KEY`
+   (Sensitive). It was pasted in that other chat, so replace it at go-live.
 2. Put the key in Vercel: round-one-crm → Settings → Environment Variables →
    `ANTHROPIC_API_KEY`, Sensitive, Production + Preview.
 3. Later, once Claude has set up the receiving address: add one MX record
