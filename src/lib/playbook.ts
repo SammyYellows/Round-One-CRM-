@@ -110,6 +110,34 @@ const PROGRAM_ENDING_EMAIL = {
   ].join("\n"),
 };
 
+// The rest of the Program schedule, two a week (Sammy, 06/10/2026). All off
+// until approved on the Program members screen. Days 1 (welcome), 14
+// (check-in) and 21 (move to recurring) are the automations above and below.
+const PROGRAM_DAY_3_EMAIL = {
+  subject: "Day 3, {first}: get your sessions in the diary",
+  body: "Hi {first},\n\nThree days in. The single biggest thing that decides how the 28 days go is whether your sessions are booked before the week starts, not decided on the day.\n\nOpen the TeamUp app now and book this week’s sessions. Pick the days you know you can make, not the days you hope you can.\n\nIf anything about booking isn’t clear, reply to this email and we’ll sort it.\n\n{team}",
+};
+const PROGRAM_DAY_7_EMAIL = {
+  subject: "One week done, {first}",
+  body: "Hi {first},\n\nThat’s week one. However it went, you turned up, and that’s the part most people never get past.\n\nQuick question for you: what was the hardest bit? Fitting it in, the sessions themselves, or something else? Reply with a line or two. The coaches read these and it helps us help you.\n\nWeek two starts now. Same plan: book the sessions first.\n\n{team}",
+};
+const PROGRAM_DAY_10_EMAIL = {
+  subject: "Day 10, {first}: this is the dip",
+  body: "Hi {first},\n\nAround day 10 is when the newness wears off and the excuses get louder. Everyone hits it. It isn’t a sign anything’s wrong.\n\nThe way through is small: the next session, not the next 18 days. If you’ve missed one, don’t make it up, just book the next one.\n\nIf you want a word with a coach about anything, reply here or grab us at the desk.\n\n{team}",
+};
+const PROGRAM_DAY_17_EMAIL = {
+  subject: "Day 17, {first}: the second half",
+  body: "Hi {first},\n\nYou’re into the second half. If you’ve kept the sessions going, you’ll probably notice things feel a bit easier than they did on day one. That’s the point.\n\nTwo things for the rest of the Program: keep the booking habit, and ask the coaches for one thing to work on. A single cue in your technique goes a long way.\n\nEleven days left. Make them count.\n\n{team}",
+};
+const PROGRAM_DAY_24_EMAIL = {
+  subject: "Day 24, {first}: finish strong",
+  body: "Hi {first},\n\nFour days left on the Program. Book your last sessions now so they actually happen.\n\nHave a think about what comes next too. If you want to keep training with us, reply to this email or ask at the desk and we’ll set up whichever membership suits you, with no gap after your last day.\n\nNearly there.\n\n{team}",
+};
+const PROGRAM_DAY_28_EMAIL = {
+  subject: "You did it, {first}",
+  body: "Hi {first},\n\n28 days. Done. Thank you for trusting us with it, and well done for seeing it through.\n\nWhatever you’ve decided about carrying on, we’d genuinely like to know how you found it. Reply with the one thing that was best and the one thing we could do better.\n\nAnd if you’re staying, see you next week.\n\n{team}",
+};
+
 const WIN_BACK_EMAIL = {
   subject: "Sorry to see you go, {first}",
   body: [
@@ -263,6 +291,60 @@ export const AUTOMATIONS: Automation[] = [
     summary: "A week before the 28 Day Program ends (from TeamUp), offers a recurring membership. Off until approved on the Program members screen.",
     trigger: { type: "membership.ending", daysBefore: 7, category: "Program Memberships" },
     steps: [{ kind: "email", to: "contact", ...PROGRAM_ENDING_EMAIL }],
+  },
+  {
+    id: "program_day_3", name: "Program – day 3: get your sessions in the diary", enabled: false, runs: 0,
+    summary: "Day 3 of the 28 Day Program (from TeamUp). Off until approved on the Program members screen.",
+    trigger: { type: "membership.started", category: "Program Memberships" },
+    steps: [
+      { kind: "wait", hours: 48 },
+      { kind: "email", to: "contact", ...PROGRAM_DAY_3_EMAIL },
+    ],
+  },
+  {
+    id: "program_day_7", name: "Program – one week done", enabled: false, runs: 0,
+    summary: "Day 7 of the 28 Day Program (from TeamUp). Off until approved on the Program members screen.",
+    trigger: { type: "membership.started", category: "Program Memberships" },
+    steps: [
+      { kind: "wait", hours: 144 },
+      { kind: "email", to: "contact", ...PROGRAM_DAY_7_EMAIL },
+    ],
+  },
+  {
+    id: "program_day_10", name: "Program – day 10: the dip", enabled: false, runs: 0,
+    summary: "Day 10 of the 28 Day Program (from TeamUp). Off until approved on the Program members screen.",
+    trigger: { type: "membership.started", category: "Program Memberships" },
+    steps: [
+      { kind: "wait", hours: 216 },
+      { kind: "email", to: "contact", ...PROGRAM_DAY_10_EMAIL },
+    ],
+  },
+  {
+    id: "program_day_17", name: "Program – day 17: second half", enabled: false, runs: 0,
+    summary: "Day 17 of the 28 Day Program (from TeamUp). Off until approved on the Program members screen.",
+    trigger: { type: "membership.started", category: "Program Memberships" },
+    steps: [
+      { kind: "wait", hours: 384 },
+      { kind: "email", to: "contact", ...PROGRAM_DAY_17_EMAIL },
+    ],
+  },
+  {
+    id: "program_day_24", name: "Program – day 24: finishing strong", enabled: false, runs: 0,
+    summary: "Day 24 of the 28 Day Program (from TeamUp). Off until approved on the Program members screen.",
+    trigger: { type: "membership.started", category: "Program Memberships" },
+    steps: [
+      { kind: "wait", hours: 552 },
+      { kind: "email", to: "contact", ...PROGRAM_DAY_24_EMAIL },
+    ],
+  },
+  {
+    id: "program_day_28", name: "Program – day 28: you did it", enabled: false, runs: 0,
+    summary: "Day 28 of the 28 Day Program (from TeamUp). Off until approved on the Program members screen.",
+    trigger: { type: "membership.started", category: "Program Memberships" },
+    steps: [
+      { kind: "wait", hours: 648 },
+      { kind: "email", to: "contact", ...PROGRAM_DAY_28_EMAIL },
+    ],
   },
   {
     id: "win_back", name: "Gave notice – win-back", enabled: false, runs: 0,

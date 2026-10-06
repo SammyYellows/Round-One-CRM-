@@ -11,10 +11,16 @@ import { useStore } from "@/lib/store";
 // move-to-recurring offer and the did-not-convert catch-up (Sammy, 06/10).
 
 const PROGRAM = /program/i;
-const MESSAGES: { id: string; title: string; purpose: string; when: string }[] = [
-  { id: "sold_programme", title: "Welcome to the Program", purpose: "welcoming someone who has just bought the 28 Day Program", when: "Goes when someone is marked Sold – Programme, or starts a Program membership in TeamUp" },
-  { id: "program_check_in", title: "Two-week check-in", purpose: "a check-in two weeks into the 28 Day Program, asking how it's going", when: "Goes two weeks after a Program membership starts in TeamUp" },
-  { id: "program_ending", title: "A week to go: move to recurring", purpose: "a week before the 28 Day Program ends, offering a recurring membership so there's no gap", when: "Goes a week before a Program membership ends in TeamUp" },
+const MESSAGES: { id: string; day: number; title: string; purpose: string; when: string }[] = [
+  { id: "sold_programme", day: 1, title: "Day 1: welcome", purpose: "welcoming someone who has just bought the 28 Day Program", when: "Goes when someone is marked Sold – Programme, or starts a Program membership in TeamUp" },
+  { id: "program_day_3", day: 3, title: "Day 3: get your sessions in the diary", purpose: "day 3 of the 28 Day Program, getting them to book the week's sessions", when: "Goes on day 3 of a Program membership from TeamUp" },
+  { id: "program_day_7", day: 7, title: "Day 7: one week done", purpose: "end of week one of the 28 Day Program, asking what was hardest", when: "Goes on day 7 of a Program membership from TeamUp" },
+  { id: "program_day_10", day: 10, title: "Day 10: the dip", purpose: "day 10 of the 28 Day Program, when motivation dips", when: "Goes on day 10 of a Program membership from TeamUp" },
+  { id: "program_check_in", day: 14, title: "Day 14: two-week check-in", purpose: "a check-in two weeks into the 28 Day Program, asking how it's going", when: "Goes on day 15 of a Program membership from TeamUp" },
+  { id: "program_day_17", day: 17, title: "Day 17: the second half", purpose: "day 17 of the 28 Day Program, keeping momentum", when: "Goes on day 17 of a Program membership from TeamUp" },
+  { id: "program_ending", day: 21, title: "Day 21: a week to go, move to recurring", purpose: "a week before the 28 Day Program ends, offering a recurring membership so there's no gap", when: "Goes a week before a Program membership ends in TeamUp" },
+  { id: "program_day_24", day: 24, title: "Day 24: finish strong", purpose: "day 24 of the 28 Day Program, booking the last sessions and thinking about what's next", when: "Goes on day 24 of a Program membership from TeamUp" },
+  { id: "program_day_28", day: 28, title: "Day 28: you did it", purpose: "the last day of the 28 Day Program, thanks and asking for feedback", when: "Goes on day 28 of a Program membership from TeamUp" },
 ];
 
 export default function ProgramPage() {
@@ -28,7 +34,7 @@ export default function ProgramPage() {
   const finished = s.contacts.filter((c) => c.membership && PROGRAM.test(c.membership.category) && c.membership.status === "ended").length;
   const sentTo = (contactId: string) => {
     const done = s.runs.filter((r) => r.contactId === contactId && r.status === "done" && (MESSAGES.some((m) => m.id === r.automationId) || r.automationId === "did_not_convert"));
-    return done.map((r) => s.automations.find((a) => a.id === r.automationId)?.name.replace(/^Program – |^Intro Programme – /, "") ?? r.automationId);
+    return done.map((r) => s.automations.find((a) => a.id === r.automationId)?.name.replace(/^Program – |^Intro Programme – /, "").replace(/:.*$/, "") ?? r.automationId);
   };
   const dayOf = (startedAt?: string) => (startedAt ? Math.max(1, Math.min(28, Math.floor((now - Date.parse(startedAt)) / 86400e3) + 1)) : null);
 
@@ -43,9 +49,9 @@ export default function ProgramPage() {
       </header>
 
       <div className="small muted" style={{ marginBottom: 14 }}>
-        The Program messages, in the order they go. Each is off until approved here; edit the wording, save drafts, or ask the AI to change it. These are service messages for people on the Program, so they go regardless of marketing opt-outs.
+        The Program schedule: two emails a week across the 28 days, timed from the day the Program membership starts in TeamUp. Each is off until approved here; edit the wording, save drafts, or ask the AI to change it. Service messages, so they go regardless of marketing opt-outs. {MESSAGES.filter((m) => s.automations.find((a) => a.id === m.id)?.enabled).length} of {MESSAGES.length} on.
       </div>
-      {MESSAGES.map((m, i) => <EmailAutomationCard key={m.id} automationId={m.id} title={m.title} purpose={m.purpose} when={m.when} startOpen={i === 0} />)}
+      {MESSAGES.map((m) => <EmailAutomationCard key={m.id} automationId={m.id} title={m.title} purpose={m.purpose} when={m.when} startOpen={false} />)}
 
       <section className="card">
         <div className="card-head">
