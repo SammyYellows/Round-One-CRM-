@@ -7,7 +7,7 @@ import { addContact } from "@/lib/engine";
 import { GYM } from "@/lib/gym";
 import { aiConfigured, draftReply } from "./ai";
 import { appUrl } from "./deliver";
-import { fetchReceivedEmail, sendEmail } from "./email";
+import { fetchReceivedEmail, listReceivedEmailIds, sendEmail } from "./email";
 import { applyMany } from "./state";
 import { db } from "./supabase";
 
@@ -109,6 +109,28 @@ export async function ingestReceived(resendId: string) {
   }
   await processEnquiry(id);
   return { ok: true, id };
+}
+
+/**
+ * Safety net, run by /api/cron: any received email Resend has that we don't
+ * (a missed or failed webhook call) is pulled in. Newest 50 are checked.
+ */
+export async function catchUpReceived() {
+  if (!process.env.RESEND_API_KEY) return { checked: 0, added: 0 };
+  const ids = await listReceivedEmailIds(50);
+  if (!ids.length) return { checked: 0, added: 0 };
+  const { data } = await db().from("enquiries").select("resend_id").in("resend_id", ids);
+  const known = new Set(((data as { resend_id: string }[] | null) ?? []).map((r) => r.resend_id));
+  let added = 0;
+  for (const id of ids.filter((x) => !known.has(x)).reverse()) {
+    try {
+      const r = await ingestReceived(id);
+      if ("id" in r) added++;
+    } catch (e) {
+      console.error("[enquiries] catch-up failed for", id, e instanceof Error ? e.message : e);
+    }
+  }
+  return { checked: ids.length, added };
 }
 
 const stripHtml = (html: string | null) =>
