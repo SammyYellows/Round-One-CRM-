@@ -65,6 +65,39 @@ export const TEMPLATES: TemplateDef[] = [
     name: "intro_programme_2", category: "marketing",
     body: "Hi {first},\n\nJust checking in after your first week - how are your sessions going? 🙌\n\nWanted to make sure you’re getting the most out of the programme!\n\nAnything at all - questions, feedback, anything - just reply here.\n\nThe Round One team :)",
   },
+  // Program schedule (06/10/2026): service messages, one per email in the sequence.
+  {
+    name: "program_day_3", category: "utility",
+    body: "Hi {first}, three days into the Program. The one thing that decides how it goes: book this week’s sessions in the TeamUp app now, on the days you know you can make. Anything unclear, just reply here.\n\n{team}",
+  },
+  {
+    name: "program_day_7", category: "utility",
+    body: "Hi {first}, that’s week one done. Quick one: what was the hardest bit, fitting it in or the sessions themselves? Reply with a line, the coaches read these. Week two: book the sessions first.\n\n{team}",
+  },
+  {
+    name: "program_day_10", category: "utility",
+    body: "Hi {first}, day 10 is where the newness wears off and the excuses get louder. Everyone hits it. Just book the next session, not the next 18 days. Want a word with a coach? Reply here.\n\n{team}",
+  },
+  {
+    name: "program_day_14", category: "utility",
+    body: "Hi {first}, you’re halfway through the 28 Day Program. How many sessions have you managed so far, and is anything getting in the way? Reply here and a coach will come back to you.\n\n{team}",
+  },
+  {
+    name: "program_day_17", category: "utility",
+    body: "Hi {first}, you’re into the second half. Keep the booking habit, and ask the coaches for one thing to work on in your technique. Eleven days left, make them count.\n\n{team}",
+  },
+  {
+    name: "program_day_21", category: "utility",
+    body: "Hi {first}, your 28 Day Program finishes in a week. If you’d like to carry on with no gap, reply here or ask at the desk and we’ll set up the membership that suits you. No joining fee.\n\n{team}",
+  },
+  {
+    name: "program_day_24", category: "utility",
+    body: "Hi {first}, four days left. Book your last sessions now so they happen. If you want to keep training with us, reply here and we’ll sort what comes next before your last day.\n\n{team}",
+  },
+  {
+    name: "program_day_28", category: "utility",
+    body: "Hi {first}, 28 days, done. Well done for seeing it through. Reply with the one thing that was best and the one thing we could do better. And if you’re staying, see you next week.\n\n{team}",
+  },
   {
     name: "recurring_member", category: "marketing",
     body: "Hi {first},\n\nWelcome to the Round One community! ⭐\n\nI couldn’t be happier to have you with us.\n\nIf there’s ever anything you need, just reach out - always happy to help.\n\nThe Round One team 🙌",
@@ -284,6 +317,7 @@ export const AUTOMATIONS: Automation[] = [
     steps: [
       { kind: "wait", hours: 14 * 24 },
       { kind: "email", to: "contact", ...PROGRAM_CHECK_IN_EMAIL },
+      { kind: "whatsapp", template: "program_day_14" },
     ],
   },
   {
@@ -299,6 +333,8 @@ export const AUTOMATIONS: Automation[] = [
     steps: [
       { kind: "wait", hours: 48 },
       { kind: "email", to: "contact", ...PROGRAM_DAY_3_EMAIL },
+      { kind: "whatsapp", template: "program_day_3" },
+      { kind: "whatsapp", template: "program_day_21" },
     ],
   },
   {
@@ -308,6 +344,7 @@ export const AUTOMATIONS: Automation[] = [
     steps: [
       { kind: "wait", hours: 144 },
       { kind: "email", to: "contact", ...PROGRAM_DAY_7_EMAIL },
+      { kind: "whatsapp", template: "program_day_7" },
     ],
   },
   {
@@ -317,6 +354,7 @@ export const AUTOMATIONS: Automation[] = [
     steps: [
       { kind: "wait", hours: 216 },
       { kind: "email", to: "contact", ...PROGRAM_DAY_10_EMAIL },
+      { kind: "whatsapp", template: "program_day_10" },
     ],
   },
   {
@@ -326,6 +364,7 @@ export const AUTOMATIONS: Automation[] = [
     steps: [
       { kind: "wait", hours: 384 },
       { kind: "email", to: "contact", ...PROGRAM_DAY_17_EMAIL },
+      { kind: "whatsapp", template: "program_day_17" },
     ],
   },
   {
@@ -335,6 +374,7 @@ export const AUTOMATIONS: Automation[] = [
     steps: [
       { kind: "wait", hours: 552 },
       { kind: "email", to: "contact", ...PROGRAM_DAY_24_EMAIL },
+      { kind: "whatsapp", template: "program_day_24" },
     ],
   },
   {
@@ -344,6 +384,7 @@ export const AUTOMATIONS: Automation[] = [
     steps: [
       { kind: "wait", hours: 648 },
       { kind: "email", to: "contact", ...PROGRAM_DAY_28_EMAIL },
+      { kind: "whatsapp", template: "program_day_28" },
     ],
   },
   {

@@ -204,6 +204,16 @@ TeamUp sync (`membership.started` / `membership.ending` for the Program
 category) and are service messages. The accountability check-ins will
 live on this screen too when that programme is built.
 
+**Program schedule (06/10):** nine messages across the 28 days (days 1, 3,
+7, 10, 14, 17, 21, 24, 28), each a WhatsApp template (utility) plus an
+email, timed from the Program membership start in TeamUp. All off except
+the day-1 welcome. The WhatsApp templates (`program_day_3` … `program_day_28`)
+are in the templates table as drafts and need submitting to Meta
+(`npm run wa:templates`, needs `WHATSAPP_TOKEN`) and, at go-live,
+re-approving on the real account. WhatsApp only reaches people who have a
+mobile in the CRM (TeamUp gives none), so most Program members get the
+email only until numbers are added.
+
 **Claude's next steps, in order:**
 1. ~~Run the first sync and check the mapping.~~ Done 05/10/2026: the
    baseline sync ran on the live site. 542 contacts added (source

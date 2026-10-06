@@ -49,7 +49,7 @@ export default function ProgramPage() {
       </header>
 
       <div className="small muted" style={{ marginBottom: 14 }}>
-        The Program schedule: two emails a week across the 28 days, timed from the day the Program membership starts in TeamUp. Each is off until approved here; edit the wording, save drafts, or ask the AI to change it. Service messages, so they go regardless of marketing opt-outs. {MESSAGES.filter((m) => s.automations.find((a) => a.id === m.id)?.enabled).length} of {MESSAGES.length} on.
+        The Program schedule: two messages a week across the 28 days, each by WhatsApp and email, timed from the day the Program membership starts in TeamUp. Each is off until approved here; edit the wording, save drafts, or ask the AI to change it. Service messages, so they go regardless of marketing opt-outs. {MESSAGES.filter((m) => s.automations.find((a) => a.id === m.id)?.enabled).length} of {MESSAGES.length} on.
       </div>
       {MESSAGES.map((m) => <EmailAutomationCard key={m.id} automationId={m.id} title={m.title} purpose={m.purpose} when={m.when} startOpen={false} />)}
 
