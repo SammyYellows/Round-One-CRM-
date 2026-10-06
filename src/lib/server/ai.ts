@@ -141,3 +141,45 @@ export async function rewriteDraft(input: DraftInput & { currentDraft: string; i
   const out = JSON.parse(text) as { draft?: string };
   return String(out.draft ?? "").trim();
 }
+
+/**
+ * Rewrites an email template (sent to many people, so it keeps the
+ * placeholders) the way the staff member asks. Returns subject and body.
+ */
+export async function rewriteTemplate(input: { subject: string; body: string; instruction: string; facts: string; purpose: string }): Promise<{ subject: string; body: string }> {
+  const key = process.env.ANTHROPIC_API_KEY;
+  if (!key) throw new Error("ANTHROPIC_API_KEY isn’t set");
+  const res = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: { "x-api-key": key, "anthropic-version": "2023-06-01", "content-type": "application/json" },
+    body: JSON.stringify({
+      model: MODEL,
+      max_tokens: 2048,
+      system: [
+        { type: "text", text: VOICE },
+        { type: "text", text: `FACTS SHEET\n\n${input.facts}`, cache_control: { type: "ephemeral" } },
+      ],
+      output_config: {
+        effort: "medium",
+        format: { type: "json_schema", schema: { type: "object", properties: { subject: { type: "string" }, body: { type: "string" } }, required: ["subject", "body"], additionalProperties: false } },
+      },
+      messages: [
+        {
+          role: "user",
+          content:
+            `This is an email TEMPLATE, not a reply to one person. Purpose: ${input.purpose}\n\n` +
+            `It is sent automatically to many people, so it uses placeholders in curly braces that the system fills in per person: {first} (first name), {name} (full name), {gym} (the gym's name), {team} (the sign-off "${GYM.signOff}"), {address}. Keep the placeholders exactly as written, braces included; never replace them with a real name or make up new ones. Address the reader as {first}. End with {team} on its own line.\n\n` +
+            `Current subject: ${input.subject}\n\nCurrent body:\n${input.body}\n\n---\nThe staff member's instruction: ${input.instruction}\n\nRewrite the template to follow the instruction, keeping everything that still fits. Facts only from the facts sheet; no exclamation marks. Return the new subject and body.`,
+        },
+      ],
+    }),
+  });
+  if (!res.ok) {
+    const err = (await res.json().catch(() => ({}))) as { error?: { message?: string } };
+    throw new Error(err.error?.message || `Anthropic said ${res.status}`);
+  }
+  const json = (await res.json()) as { stop_reason?: string; content: { type: string; text?: string }[] };
+  if (json.stop_reason === "refusal") throw new Error("The AI declined to rewrite this");
+  const out = JSON.parse(json.content.find((c) => c.type === "text")?.text ?? "{}") as { subject?: string; body?: string };
+  return { subject: String(out.subject ?? "").trim(), body: String(out.body ?? "").trim() };
+}

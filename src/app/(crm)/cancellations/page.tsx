@@ -28,6 +28,49 @@ export default function CancellationsPage() {
   const [body, setBody] = useState("");
   const [confirming, setConfirming] = useState(false);
   const [note, setNote] = useState<string | null>(null);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [instruction, setInstruction] = useState("");
+  const [drafts, setDrafts] = useState<{ id: string; name: string; subject: string; body: string; savedAt: string; savedBy: string }[]>([]);
+  const [draftId, setDraftId] = useState<string>("");
+  const [draftName, setDraftName] = useState("");
+  useEffect(() => {
+    fetch("/api/winback", { cache: "no-store" }).then((r) => (r.ok ? r.json() : { drafts: [] })).then((j) => setDrafts(j.drafts ?? [])).catch(() => undefined);
+  }, []);
+  const api = async (payload: Record<string, unknown>) => {
+    const res = await fetch("/api/winback", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+    return { ok: res.ok, ...((await res.json().catch(() => ({}))) as Record<string, unknown>) } as { ok: boolean; error?: string; drafts?: typeof drafts; subject?: string; body?: string };
+  };
+  const loadDraft = (id: string) => {
+    setDraftId(id);
+    const d = drafts.find((x) => x.id === id);
+    if (d) { setSubject(d.subject); setBody(d.body); setDraftName(d.name); setConfirming(false); setNote(`Loaded “${d.name}”. It isn’t live until you save the wording or approve it.`); }
+  };
+  const saveDraft = async (asNew: boolean) => {
+    const name = draftName.trim();
+    if (!name) { setNote("Give the draft a name first."); return; }
+    setBusy("draft");
+    const r = await api({ action: "save", id: asNew ? undefined : draftId || undefined, name, subject, body });
+    setBusy(null);
+    if (!r.ok) { setNote(r.error ?? "Couldn’t save the draft"); return; }
+    setDrafts(r.drafts ?? []);
+    const saved = (r.drafts ?? []).find((d) => d.name === name && d.subject === subject && d.body === body);
+    if (saved) setDraftId(saved.id);
+    setNote(`Saved as “${name}”.`);
+  };
+  const deleteDraft = async () => {
+    if (!draftId || !confirm("Delete this saved draft?")) return;
+    const r = await api({ action: "delete", id: draftId });
+    if (r.ok) { setDrafts(r.drafts ?? []); setDraftId(""); setDraftName(""); setNote("Draft deleted."); }
+  };
+  const rewrite = async () => {
+    if (!instruction.trim()) return;
+    setBusy("rewrite");
+    const r = await api({ action: "rewrite", subject, body, instruction });
+    setBusy(null);
+    if (!r.ok || !r.body) { setNote(r.error ?? "Couldn’t rewrite"); return; }
+    setSubject(r.subject ?? subject); setBody(r.body); setInstruction(""); setConfirming(false);
+    setNote("Rewritten. Read it through, then save it as a draft or save the wording.");
+  };
   useEffect(() => {
     if (emailStep?.kind === "email") { setSubject(emailStep.subject); setBody(emailStep.body ?? ""); }
   }, [emailStep?.kind === "email" ? emailStep.subject : "", emailStep?.kind === "email" ? emailStep.body : ""]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -90,6 +133,21 @@ export default function CancellationsPage() {
             <span className={`chip ${automation.enabled ? "chip-red" : ""}`}>{automation.enabled ? "On" : "Off"}</span>
           </div>
           <div style={{ padding: "0 22px 22px", display: "flex", flexDirection: "column", gap: 12 }}>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "flex-end" }}>
+              <div style={{ flex: "1 1 220px" }}>
+                <label className="label" htmlFor="wb-draft">Saved drafts</label>
+                <select id="wb-draft" className="select" value={draftId} onChange={(e) => loadDraft(e.target.value)}>
+                  <option value="">{drafts.length ? "Pick a saved draft to load" : "No saved drafts yet"}</option>
+                  {drafts.map((d) => <option key={d.id} value={d.id}>{d.name} · {new Date(d.savedAt).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}</option>)}
+                </select>
+              </div>
+              <div style={{ flex: "1 1 220px" }}>
+                <label className="label" htmlFor="wb-name">Draft name</label>
+                <input id="wb-name" className="input" value={draftName} placeholder="e.g. Friendly short version" onChange={(e) => setDraftName(e.target.value)} />
+              </div>
+              <button className="btn btn-ghost" disabled={busy !== null || !draftName.trim()} onClick={() => saveDraft(!draftId || drafts.find((d) => d.id === draftId)?.name !== draftName.trim())}>{busy === "draft" ? "Saving" : draftId && drafts.find((d) => d.id === draftId)?.name === draftName.trim() ? "Update draft" : "Save as draft"}</button>
+              {draftId && <button className="btn btn-ghost" disabled={busy !== null} onClick={deleteDraft}>Delete draft</button>}
+            </div>
             <div>
               <label className="label" htmlFor="wb-subject">Subject</label>
               <input id="wb-subject" className="input" value={subject} onChange={(e) => { setSubject(e.target.value); setConfirming(false); }} />
@@ -98,6 +156,18 @@ export default function CancellationsPage() {
               <label className="label" htmlFor="wb-body">Message</label>
               <textarea id="wb-body" className="input enq-text" rows={12} value={body} onChange={(e) => { setBody(e.target.value); setConfirming(false); }} />
               <div className="small faint" style={{ marginTop: 6 }}>Goes from info@round1boxfit.co.uk {waitHours} hours after a notice is recorded. You can use {"{first} {name} {gym} {team}"}. An unsubscribe line is added at the bottom; anyone opted out is skipped. Replies come into Enquiries.</div>
+            </div>
+            <div>
+              <label className="label" htmlFor="wb-instruction">Ask the AI to change it</label>
+              <div style={{ display: "flex", gap: 8 }}>
+                <input
+                  id="wb-instruction" className="input" style={{ minWidth: 0 }} value={instruction} placeholder="e.g. Warmer, shorter, and offer a chat with a coach"
+                  onChange={(e) => setInstruction(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter" && instruction.trim() && busy === null) rewrite(); }}
+                />
+                <button className="btn btn-ghost" style={{ padding: "0 14px" }} disabled={busy !== null || !instruction.trim()} onClick={rewrite}>{busy === "rewrite" ? "Rewriting" : "Rewrite"}</button>
+              </div>
+              <div className="small faint" style={{ marginTop: 6 }}>The AI keeps the placeholders ({"{first}"} and so on) in place. The result lands in the boxes above; nothing changes until you save or approve.</div>
             </div>
             {note && <div className="small muted" aria-live="polite">{note}</div>}
             {!confirming ? (
