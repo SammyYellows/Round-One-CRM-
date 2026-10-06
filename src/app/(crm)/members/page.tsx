@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { waitingOnUs } from "@/lib/contactQuery";
-import { ago, dayTime } from "@/lib/format";
+import { ago, dayTime, shortDate } from "@/lib/format";
 import { useStore } from "@/lib/store";
 import { Contact, Membership } from "@/lib/types";
 
@@ -126,7 +126,7 @@ export default function MembersPage() {
                 <div className="strong">{c.name}</div>
                 <div className="faint num" style={{ fontSize: 12 }}>{c.phone || c.email}</div>
               </div>
-              <div className="muted small">{dayTime(c.createdAt).split(",")[0]} · {ago(c.createdAt, now)}</div>
+              <div className="muted small">{shortDate(c.createdAt)} · {ago(c.createdAt, now)}</div>
               <div className="muted">{TEAMUP_STATUS[c.teamup?.status ?? ""] ?? c.teamup?.status ?? "–"}</div>
               <div /><div />
               <div>{c.marketingOptOut ? <span className="chip" style={{ height: 20, fontSize: 10 }}>No marketing</span> : c.email ? "Email OK" : <span className="faint">No email</span>}</div>
@@ -149,8 +149,8 @@ export default function MembersPage() {
               </div>
               <div>{m.name}</div>
               <div className="muted">{m.category}</div>
-              <div className="muted small">{m.startedAt ? dayTime(m.startedAt).split(",")[0] : "–"}</div>
-              <div className="muted small">{m.endsAt ? `${dayTime(m.endsAt).split(",")[0]} (${ago(m.endsAt, now)})` : "–"}</div>
+              <div className="muted small">{m.startedAt ? shortDate(m.startedAt) : "–"}</div>
+              <div className="muted small">{m.endsAt ? `${shortDate(m.endsAt)} (${ago(m.endsAt, now)})` : "–"}</div>
               <div>
                 {STATUS_LABEL[m.status]}{m.cancelling && m.status !== "ended" ? " · gave notice" : ""}
                 {c.marketingOptOut && <span className="chip" style={{ height: 20, fontSize: 10, marginLeft: 6 }}>No marketing</span>}

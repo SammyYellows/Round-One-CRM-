@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { ago, dayTime } from "@/lib/format";
+import { ago, dayTime, shortDate } from "@/lib/format";
 import { useStore } from "@/lib/store";
 
 // Everyone who has given notice to cancel in TeamUp, when, when their
@@ -12,11 +12,11 @@ import { useStore } from "@/lib/store";
 
 const WIN_BACK = "win_back";
 type Window = "30" | "90" | "365" | "all";
-const day = (iso: string) => dayTime(iso).split(",")[0];
+const day = shortDate;
 
 export default function CancellationsPage() {
   const { s, now } = useStore();
-  const [window, setWindow] = useState<Window>("90");
+  const [window, setWindow] = useState<Window>("all");
 
   const automation = s.automations.find((a) => a.id === WIN_BACK);
 
@@ -31,7 +31,9 @@ export default function CancellationsPage() {
       if (e.type === "email.sent" && e.contactId && e.detail.startsWith("Sorry to see you go") && !emailAt.has(e.contactId)) emailAt.set(e.contactId, e.at);
     }
     return s.contacts
-      .filter((c) => c.membership && (c.membership.cancelling || noticeAt.has(c.id)))
+      // Serving notice now, or a notice the sync recorded. Memberships that
+      // were cancelled and had already ended before tracking began are history.
+      .filter((c) => c.membership && (noticeAt.has(c.id) || (c.membership.cancelling && c.membership.status !== "ended")))
       .map((c) => {
         const m = c.membership!;
         const run = s.runs.filter((r) => r.contactId === c.id && r.automationId === WIN_BACK).sort((a, b) => Date.parse(b.startedAt) - Date.parse(a.startedAt))[0];
@@ -46,7 +48,7 @@ export default function CancellationsPage() {
         else email = { label: automation?.enabled ? "Not sent" : "Not sent: automation off", tone: "none" };
         return { c, m, noticeAt: noticeAt.get(c.id), email };
       })
-      .filter((r) => window === "all" || !r.noticeAt || now - Date.parse(r.noticeAt) <= Number(window) * 86400e3)
+      .filter((r) => window === "all" || (r.noticeAt ? now - Date.parse(r.noticeAt) <= Number(window) * 86400e3 : false))
       .sort((a, b) => (b.noticeAt ? Date.parse(b.noticeAt) : 0) - (a.noticeAt ? Date.parse(a.noticeAt) : 0) || a.c.name.localeCompare(b.c.name));
   }, [s, now, window, automation]);
 
@@ -68,7 +70,7 @@ export default function CancellationsPage() {
             <option value="30">Gave notice in the last 30 days</option>
             <option value="90">Gave notice in the last 3 months</option>
             <option value="365">Gave notice in the last year</option>
-            <option value="all">Any time</option>
+            <option value="all">Any time (including notices given before tracking began)</option>
           </select>
           <span className="small muted" style={{ marginLeft: "auto" }}>
             {automation?.enabled ? "Emails go the day after notice is recorded." : "The win-back automation is switched off, so nothing is sent until it's turned on."}
@@ -95,7 +97,7 @@ export default function CancellationsPage() {
             <div className="small">{c.marketingOptOut ? "Opted out" : "OK"}</div>
           </Link>
         ))}
-        {rows.length === 0 && <div className="empty">Nobody has given notice in this period.</div>}
+        {rows.length === 0 && <div className="empty">Nobody has given notice in this period. Notices given before tracking began (6 Oct 2026) show under “Any time”.</div>}
       </section>
     </>
   );
