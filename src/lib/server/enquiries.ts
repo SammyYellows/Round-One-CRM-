@@ -115,14 +115,23 @@ export async function ingestReceived(resendId: string) {
  * Safety net, run by /api/cron: any received email Resend has that we don't
  * (a missed or failed webhook call) is pulled in. Newest 50 are checked.
  */
-export async function catchUpReceived() {
-  if (!process.env.RESEND_API_KEY) return { checked: 0, added: 0 };
+export async function catchUpReceived(maxPerRun = 5) {
+  if (!process.env.RESEND_API_KEY) return { checked: 0, added: 0, reprocessed: 0 };
+  let budget = maxPerRun; // each email costs an AI call; stay well inside the function's time
+  // First, anything a cut-off run left without a verdict.
+  const { data: stuck } = await db().from("enquiries").select("id").eq("kind", "unknown").eq("status", "new").is("error", null).order("received_at").limit(budget);
+  let reprocessed = 0;
+  for (const r of (stuck as { id: string }[] | null) ?? []) {
+    try { await processEnquiry(r.id); reprocessed++; budget--; } catch (e) { console.error("[enquiries] reprocess failed for", r.id, e instanceof Error ? e.message : e); }
+  }
+  if (budget <= 0) return { checked: 0, added: 0, reprocessed };
+  // Then anything Resend has that we don't.
   const ids = await listReceivedEmailIds(50);
-  if (!ids.length) return { checked: 0, added: 0 };
+  if (!ids.length) return { checked: 0, added: 0, reprocessed };
   const { data } = await db().from("enquiries").select("resend_id").in("resend_id", ids);
   const known = new Set(((data as { resend_id: string }[] | null) ?? []).map((r) => r.resend_id));
   let added = 0;
-  for (const id of ids.filter((x) => !known.has(x)).reverse()) {
+  for (const id of ids.filter((x) => !known.has(x)).reverse().slice(0, budget)) {
     try {
       const r = await ingestReceived(id);
       if ("id" in r) added++;
@@ -130,7 +139,7 @@ export async function catchUpReceived() {
       console.error("[enquiries] catch-up failed for", id, e instanceof Error ? e.message : e);
     }
   }
-  return { checked: ids.length, added };
+  return { checked: ids.length, added, reprocessed };
 }
 
 const stripHtml = (html: string | null) =>
