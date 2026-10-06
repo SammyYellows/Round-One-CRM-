@@ -77,6 +77,39 @@ export const TEMPLATES: TemplateDef[] = [
 
 // First draft by Claude (06/10/2026) for Sammy to edit. Facts used: Facility
 // access only and Classes only memberships exist; TeamUp allows holds.
+// Program member messages: first drafts by Claude (06/10/2026) for Sammy to
+// edit and approve on the Program members screen. Service messages, not
+// marketing (Sammy, 05/10). Facts used: the 28 Day Program is four weeks;
+// recurring memberships exist (Premium, Classes Only, Facility Access Only).
+const PROGRAM_CHECK_IN_EMAIL = {
+  subject: "Two weeks in, {first}: how’s it going?",
+  body: [
+    "Hi {first},",
+    "",
+    "You’re halfway through the 28 Day Program. This is usually the point where it starts to feel normal, or where life gets in the way.",
+    "",
+    "Either way, a quick check-in: how many sessions have you managed so far, and is anything getting in the way? Reply to this email and one of the coaches will come back to you.",
+    "",
+    "The second half is where the results show. See you in the gym.",
+    "",
+    "{team}",
+  ].join("\n"),
+};
+const PROGRAM_ENDING_EMAIL = {
+  subject: "Your 28 days are nearly up, {first}",
+  body: [
+    "Hi {first},",
+    "",
+    "Your 28 Day Program finishes in a week. Thank you for putting the work in.",
+    "",
+    "If you’d like to carry on, you can move straight onto a recurring membership so there’s no gap: Premium for full access plus classes, Classes Only, or Facility Access Only if you’d rather train on your own. No joining fee, and you can cancel any time with 30 days’ notice.",
+    "",
+    "Reply to this email or ask at the desk and we’ll set it up before your last session.",
+    "",
+    "{team}",
+  ].join("\n"),
+};
+
 const WIN_BACK_EMAIL = {
   subject: "Sorry to see you go, {first}",
   body: [
@@ -215,6 +248,21 @@ export const AUTOMATIONS: Automation[] = [
       { kind: "email", to: "contact", ...WELCOME_EMAIL },
       { kind: "whatsapp", template: "recurring_member" },
     ],
+  },
+  {
+    id: "program_check_in", name: "Program – two-week check-in", enabled: false, runs: 0,
+    summary: "Two weeks into the 28 Day Program (from TeamUp), asks how it’s going. Off until approved on the Program members screen.",
+    trigger: { type: "membership.started", category: "Program Memberships" },
+    steps: [
+      { kind: "wait", hours: 14 * 24 },
+      { kind: "email", to: "contact", ...PROGRAM_CHECK_IN_EMAIL },
+    ],
+  },
+  {
+    id: "program_ending", name: "Program – a week to go, move to recurring", enabled: false, runs: 0,
+    summary: "A week before the 28 Day Program ends (from TeamUp), offers a recurring membership. Off until approved on the Program members screen.",
+    trigger: { type: "membership.ending", daysBefore: 7, category: "Program Memberships" },
+    steps: [{ kind: "email", to: "contact", ...PROGRAM_ENDING_EMAIL }],
   },
   {
     id: "win_back", name: "Gave notice – win-back", enabled: false, runs: 0,
