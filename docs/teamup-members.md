@@ -182,6 +182,11 @@ email drafted by Claude, off until Sammy approves it. Marketing emails
 from automations now carry the unsubscribe footer and headers, like
 mailouts.
 
+**Sidebar badges (06/10):** Enquiries shows how many are waiting for a
+reply (asked every minute); Cancellations shows notices recorded in the
+last 7 days. The win-back email goes from info@ (like mailouts), so a
+reply lands in the inbox and comes into Enquiries with a draft.
+
 **Cancellations screen (06/10):** sidebar → Cancellations lists everyone who
 has given notice: membership, when the notice was recorded, when the
 membership ends, and the win-back email's state (sent on a date, goes at a

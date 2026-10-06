@@ -125,9 +125,11 @@ async function deliverEmails(before: State, after: State) {
       text = body;
     }
     if (!address || !text) continue; // nothing to send (e.g. no email address for this person)
+    // Marketing emails (e.g. the win-back) go from info@ like mailouts, so
+    // replies land in the inbox and flow into Enquiries; service emails stay on bookings@.
     const marketing = e.data!.marketing === "yes" && to === "contact" && contact;
     const res = marketing
-      ? await sendEmail(address, subject, text.trimEnd() + unsubscribeFooter(contact.id), { headers: unsubscribeHeaders(contact.id) })
+      ? await sendEmail(address, subject, text.trimEnd() + unsubscribeFooter(contact.id), { from: process.env.ENQUIRIES_FROM || "Round One <info@round1boxfit.co.uk>", headers: unsubscribeHeaders(contact.id) })
       : await sendEmail(address, subject, text);
     if (!res.ok) {
       console.error("[deliver]", subject, res.error);

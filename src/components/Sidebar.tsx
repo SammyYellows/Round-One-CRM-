@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
 import { useStore } from "@/lib/store";
 
 const NAV = [
@@ -21,7 +22,28 @@ const NAV = [
 
 export function Sidebar({ staff }: { staff?: { name: string } }) {
   const path = usePathname();
-  const { now, act, reset, live } = useStore();
+  const { s, now, act, reset, live } = useStore();
+
+  // Badges: enquiries waiting for a reply (asked every minute), and notices
+  // to cancel recorded in the last 7 days (from the timeline).
+  const [openEnquiries, setOpenEnquiries] = useState(0);
+  useEffect(() => {
+    if (!live) return;
+    let gone = false;
+    const ask = async () => {
+      const res = await fetch("/api/enquiries/count", { cache: "no-store" }).catch(() => null);
+      if (res?.ok && !gone) setOpenEnquiries(((await res.json()) as { open: number }).open);
+    };
+    ask();
+    const t = setInterval(ask, 60000);
+    const onFocus = () => ask();
+    window.addEventListener("focus", onFocus);
+    return () => { gone = true; clearInterval(t); window.removeEventListener("focus", onFocus); };
+  }, [live, path]);
+  const recentNotices = s.events.filter((e) => e.type === "stage.changed" && / gave notice on /.test(e.detail) && now - Date.parse(e.at) < 7 * 86400e3).length;
+  const badge = (href: string) => (href === "/enquiries" ? openEnquiries : href === "/cancellations" ? recentNotices : 0);
+  const badgeTitle = (href: string) => (href === "/enquiries" ? `${openEnquiries} waiting for a reply` : `${recentNotices} gave notice in the last 7 days`);
+
   const isOn = (href: string) => (href === "/" || href === "/pipeline" ? path === href : path.startsWith(href));
   const shift = (hours: number) => act("shiftClock", hours);
 
@@ -35,6 +57,7 @@ export function Sidebar({ staff }: { staff?: { name: string } }) {
         <Link key={n.href} href={n.href} className={`nav ${isOn(n.href) ? "on" : ""}`} aria-current={isOn(n.href) ? "page" : undefined}>
           <svg className="ico" viewBox="0 0 24 24" aria-hidden="true">{n.icon}</svg>
           {n.label}
+          {badge(n.href) > 0 && <span className="nav-badge" title={badgeTitle(n.href)} aria-label={badgeTitle(n.href)}>{badge(n.href)}</span>}
         </Link>
       ))}
       <div style={{ flex: 1 }} />

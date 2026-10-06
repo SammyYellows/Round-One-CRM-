@@ -325,3 +325,6 @@ a.crow:hover { background: var(--char); color: var(--white); }
 .mo-count { border: 1px solid var(--line); padding: 12px 14px; font-size: 14px; }
 .mo-confirm { border: 1px solid var(--red); padding: 16px 18px; display: flex; flex-direction: column; gap: 10px; }
 @media (max-width: 900px) { .mo { grid-template-columns: 1fr; } }
+
+/* ---- Sidebar badges ---- */
+.nav-badge { margin-left: auto; min-width: 22px; height: 20px; padding: 0 6px; display: inline-flex; align-items: center; justify-content: center; background: var(--red); color: var(--black); font-size: 11px; font-weight: 700; letter-spacing: 0; font-variant-numeric: tabular-nums; }
