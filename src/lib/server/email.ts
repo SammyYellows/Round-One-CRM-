@@ -41,6 +41,16 @@ export interface ReceivedEmail {
   createdAt: string;
 }
 
+/** The ids of the most recent received emails, newest first (for catching up on missed webhooks). */
+export async function listReceivedEmailIds(limit = 50): Promise<string[]> {
+  const key = process.env.RESEND_API_KEY;
+  if (!key) return [];
+  const res = await fetch(`https://api.resend.com/emails/receiving?limit=${limit}`, { headers: { Authorization: `Bearer ${key}` }, cache: "no-store" });
+  if (!res.ok) throw new Error(`Resend said ${res.status} listing received emails`);
+  const j = (await res.json()) as { data?: { id: string }[] };
+  return (j.data ?? []).map((e) => e.id);
+}
+
 export async function fetchReceivedEmail(id: string): Promise<ReceivedEmail> {
   const key = process.env.RESEND_API_KEY;
   if (!key) throw new Error("RESEND_API_KEY isn’t set");

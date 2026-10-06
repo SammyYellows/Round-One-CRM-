@@ -77,6 +77,15 @@ Resend and WhatsApp are, so the `@anthropic-ai/sdk` question went away.
   address, memberships, classes) and TeamUp.
 - Test with sending off, then one real enquiry from Sammy's own email.
 
+## Found in testing (06/10/2026)
+
+Emails reached Resend but never the CRM: the live `RESEND_API_KEY` was a
+send-only key, and reading a received email needs full access. Replaced in
+Vercel with a full-access key made for the server ("Round One CRM server
+(full access)"). Also added a safety net: every 5 minutes `/api/cron` asks
+Resend for its latest 50 received emails and pulls in any the webhook
+missed (`catchUpReceived`).
+
 ## Where we stopped (05/10/2026)
 
 **Built (PR #33):** `enquiries` table and migration (applied to

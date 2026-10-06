@@ -8,6 +8,7 @@ import { db } from "@/lib/server/supabase";
 import { loadAndTick } from "@/lib/server/state";
 import { syncTeamUp } from "@/lib/server/teamupSync";
 import { drainQueue, queuedCount } from "@/lib/server/mailouts";
+import { catchUpReceived } from "@/lib/server/enquiries";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -21,6 +22,8 @@ export async function GET(req: Request) {
 
   // Mailout emails still queued (within today's allowance) go out first.
   const mailout = (await queuedCount()) > 0 ? await drainQueue() : undefined;
+  // Any received email the webhook missed is pulled in.
+  const enquiries = await catchUpReceived().catch((e) => ({ error: e instanceof Error ? e.message : String(e) }));
 
   const { data, error } = await db()
     .from("runs")
@@ -29,8 +32,8 @@ export async function GET(req: Request) {
     .lte("resume_at", new Date().toISOString())
     .limit(1);
   if (error) throw new Error(`Checking for due runs: ${error.message}`);
-  if (!data?.length) return Response.json({ ok: true, due: false, mailout });
+  if (!data?.length) return Response.json({ ok: true, due: false, mailout, enquiries });
 
   await loadAndTick();
-  return Response.json({ ok: true, due: true, mailout });
+  return Response.json({ ok: true, due: true, mailout, enquiries });
 }
