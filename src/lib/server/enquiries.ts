@@ -20,6 +20,7 @@ export interface Enquiry {
   messageId: string | null;
   fromEmail: string;
   fromName: string | null;
+  replyTo: string | null; // where the reply goes when not the sender (form notifications); staff can change it
   toEmail: string | null;
   subject: string;
   text: string;
@@ -40,13 +41,13 @@ const str = (v: unknown) => (v == null ? null : String(v));
 
 const fromRow = (r: Row): Enquiry => ({
   id: r.id as string, resendId: r.resend_id as string, messageId: str(r.message_id), fromEmail: r.from_email as string,
-  fromName: str(r.from_name), toEmail: str(r.to_email), subject: (r.subject as string) ?? "", text: (r.text as string) ?? "",
+  fromName: str(r.from_name), replyTo: str(r.reply_to), toEmail: str(r.to_email), subject: (r.subject as string) ?? "", text: (r.text as string) ?? "",
   receivedAt: r.received_at as string, kind: (r.kind as EnquiryKind) ?? "unknown", summary: str(r.summary), draft: str(r.draft),
   status: r.status as EnquiryStatus, contactId: str(r.contact_id), replyText: str(r.reply_text), sentAt: str(r.sent_at),
   sentBy: str(r.sent_by), error: str(r.error),
 });
 
-const COLUMNS = "id, resend_id, message_id, from_email, from_name, to_email, subject, text, received_at, kind, summary, draft, status, contact_id, reply_text, sent_at, sent_by, error";
+const COLUMNS = "id, resend_id, message_id, from_email, from_name, reply_to, to_email, subject, text, received_at, kind, summary, draft, status, contact_id, reply_text, sent_at, sent_by, error";
 
 /** The address replies go out as. info@ so the conversation stays in the gym's inbox. */
 export const enquiriesFrom = () => process.env.ENQUIRIES_FROM || `${GYM.name} <info@round1boxfit.co.uk>`;
@@ -152,13 +153,15 @@ const stripHtml = (html: string | null) =>
 export async function processEnquiry(id: string) {
   const e = await getEnquiry(id);
   if (!e || e.status === "sent") return;
-  const { data: match } = await db().from("contacts").select("id, name, stage, trial_at, membership").ilike("email", e.fromEmail).limit(1).maybeSingle();
-  let contactId: string | null = e.contactId ?? (match?.id as string | undefined) ?? null;
-
+  let match: Row | null = null;
+  let contactId: string | null = e.contactId ?? null;
   let kind: EnquiryKind = "unknown";
   let summary = "";
   let draft = "";
+  let replyTo: string | null = e.replyTo;
   let error: string | null = null;
+  const findContact = async (email: string) => (await db().from("contacts").select("id, name, stage, trial_at, membership").ilike("email", email).limit(1).maybeSingle()).data as Row | null;
+  match = await findContact(e.fromEmail);
   if (aiConfigured()) {
     try {
       const facts = await getFacts();
@@ -172,6 +175,10 @@ export async function processEnquiry(id: string) {
       kind = out.kind;
       summary = out.summary;
       draft = out.draft;
+      if (out.replyTo && out.replyTo !== e.fromEmail) {
+        replyTo = out.replyTo;
+        match = (await findContact(out.replyTo)) ?? match; // the real person, not the form's no-reply address
+      }
     } catch (err) {
       error = err instanceof Error ? err.message : String(err);
       console.error("[enquiries] AI failed", error);
@@ -179,14 +186,16 @@ export async function processEnquiry(id: string) {
   }
 
   // An enquiry from someone new becomes a contact, so the thread has a home.
+  if (!contactId && match) contactId = match.id as string;
   if (kind !== "other" && !contactId) {
-    const name = e.fromName || e.fromEmail.split("@")[0];
-    contactId = await applyMany((s) => addContact(s, { name, phone: "", email: e.fromEmail, source: "email" }));
+    const address = replyTo ?? e.fromEmail;
+    const name = replyTo ? address.split("@")[0] : e.fromName || e.fromEmail.split("@")[0];
+    contactId = await applyMany((s) => addContact(s, { name, phone: "", email: address, source: "email" }));
   }
   if (kind !== "other" && contactId) await recordEvent("email.received", contactId, `Email: ${e.subject || "(no subject)"}`, { enquiryId: id });
 
   await update(id, {
-    kind, summary: summary || null, draft: draft || null, contact_id: contactId, error,
+    kind, summary: summary || null, draft: draft || null, contact_id: contactId, error, reply_to: replyTo,
     status: e.status === "dismissed" ? "dismissed" : draft ? "drafted" : "new",
   });
 
@@ -216,15 +225,27 @@ export async function sendReply(id: string, text: string, staffName: string) {
   if (!body) return { ok: false as const, error: "The reply is empty" };
   const subject = /^re:/i.test(e.subject) ? e.subject : `Re: ${e.subject || "Your message to Round One"}`;
   const headers = e.messageId ? { "In-Reply-To": e.messageId, References: e.messageId } : undefined;
-  const sent = await sendEmail(e.fromEmail, subject, body, { from: enquiriesFrom(), headers });
+  const to = (e.replyTo ?? e.fromEmail).trim().toLowerCase();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)) return { ok: false as const, error: "That send-to address doesn’t look right" };
+  const sent = await sendEmail(to, subject, body, { from: enquiriesFrom(), headers });
   if (!sent.ok) {
     await update(id, { error: sent.error });
     return { ok: false as const, error: sent.error };
   }
   const now = new Date().toISOString();
   await update(id, { status: "sent", reply_text: body, sent_at: now, sent_by: staffName, sent_id: sent.id ?? null, error: null, draft: body });
-  if (e.contactId) await recordEvent("email.replied", e.contactId, `Replied by email: ${subject}`, { enquiryId: id, by: staffName });
+  if (e.contactId) await recordEvent("email.replied", e.contactId, `Replied by email to ${to}: ${subject}`, { enquiryId: id, by: staffName });
   return { ok: true as const, dryRun: sent.dryRun };
+}
+
+/** Staff changed where the reply should go. */
+export async function setReplyTo(id: string, replyTo: string) {
+  const e = await getEnquiry(id);
+  if (!e || e.status === "sent") return false;
+  const v = replyTo.trim().toLowerCase();
+  if (v && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) return false;
+  await update(id, { reply_to: v && v !== e.fromEmail ? v : null });
+  return true;
 }
 
 export async function saveDraft(id: string, draft: string) {
