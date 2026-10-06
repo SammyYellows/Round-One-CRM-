@@ -43,6 +43,7 @@ export default function EnquiriesPage() {
   const [busy, setBusy] = useState<string | null>(null);
   const [note, setNote] = useState<string | null>(null);
   const [showFacts, setShowFacts] = useState(false);
+  const [instruction, setInstruction] = useState("");
   const [factsDraft, setFactsDraft] = useState("");
 
   const load = useCallback(async () => {
@@ -81,6 +82,21 @@ export default function EnquiriesPage() {
     await fetch(`/api/enquiries/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
     await load();
     setBusy(null);
+  }
+
+  async function rewrite() {
+    if (!current || !instruction.trim()) return;
+    setBusy("rewrite");
+    const res = await fetch(`/api/enquiries/${current.id}`, {
+      method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "rewrite", draft, instruction }),
+    });
+    const j = (await res.json()) as { ok?: boolean; draft?: string; error?: string };
+    setBusy(null);
+    if (!res.ok || !j.ok || !j.draft) { setNote(j.error ?? "Couldn’t rewrite"); return; }
+    setDraft(j.draft);
+    setInstruction("");
+    setNote("Rewritten. Read it through before sending.");
+    await load();
   }
 
   async function send() {
@@ -199,6 +215,19 @@ export default function EnquiriesPage() {
                   placeholder={current.kind === "other" ? "The AI read this as not an enquiry. Write a reply here if it needs one." : "No draft yet. Write the reply here, or press Draft again."}
                   onChange={(e) => { setDraft(e.target.value); setConfirming(false); }}
                 />
+                {current.status !== "sent" && setup.ai && (
+                  <div>
+                    <label className="label" htmlFor="enq-instruction">Ask the AI to change it</label>
+                    <div style={{ display: "flex", gap: 8 }}>
+                      <input
+                        id="enq-instruction" className="input" style={{ minWidth: 0 }} value={instruction} placeholder="e.g. Shorter, and mention the Saturday 2pm class"
+                        onChange={(e) => setInstruction(e.target.value)}
+                        onKeyDown={(e) => { if (e.key === "Enter" && instruction.trim() && busy === null) rewrite(); }}
+                      />
+                      <button className="btn btn-ghost" style={{ padding: "0 14px" }} disabled={busy !== null || !instruction.trim()} onClick={rewrite}>{busy === "rewrite" ? "Rewriting" : "Rewrite"}</button>
+                    </div>
+                  </div>
+                )}
                 {current.error && <div className="small" style={{ color: "var(--red)" }}>AI problem: {current.error}</div>}
                 {note && <div className="small muted" aria-live="polite">{note}</div>}
 
