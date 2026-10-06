@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { describeStep, firstName } from "@/lib/engine";
-import { ago, dayTime, time, toLocalInput } from "@/lib/format";
+import { ago, dayTime, shortDate, time, toLocalInput } from "@/lib/format";
 import { useStore } from "@/lib/store";
 import { LOST_REASONS, STAGES, Stage, apptStatusLabel, sourceLabel, stageLabel } from "@/lib/types";
 
@@ -155,8 +155,8 @@ export default function ContactPage() {
               <div className="strong">{c.membership.name}</div>
               <div className="small muted">
                 {c.membership.category} · {c.membership.status === "active" ? "Active" : c.membership.status === "on_hold" ? "On hold" : "Ended"}{c.membership.cancelling && c.membership.status !== "ended" ? " · gave notice" : ""}
-                {c.membership.startedAt ? ` · since ${dayTime(c.membership.startedAt).split(",")[0]}` : ""}
-                {c.membership.endsAt ? ` · ${c.membership.status === "ended" ? "ended" : "ends or renews"} ${dayTime(c.membership.endsAt).split(",")[0]}` : ""}
+                {c.membership.startedAt ? ` · since ${shortDate(c.membership.startedAt)}` : ""}
+                {c.membership.endsAt ? ` · ${c.membership.status === "ended" ? "ended" : "ends or renews"} ${shortDate(c.membership.endsAt)}` : ""}
               </div>
               <div className="small faint">Change it in TeamUp; synced {ago(c.membership.syncedAt, now)}.</div>
             </div>
@@ -166,7 +166,7 @@ export default function ContactPage() {
               <div className="label" style={{ margin: 0 }}>TeamUp</div>
               <div className="strong">Never had a membership</div>
               <div className="small muted">
-                Came in {c.teamup.createdAt ? dayTime(c.teamup.createdAt).split(",")[0] : "–"}
+                Came in {c.teamup.createdAt ? shortDate(c.teamup.createdAt) : "–"}
                 {c.teamup.status ? ` · TeamUp says ${c.teamup.status.replace(/_/g, " ")}` : ""}
               </div>
             </div>

@@ -57,11 +57,16 @@ const iso = (v: unknown) => {
  * because TeamUp's docs don't list them; see the raw copies in teamup_members
  * if something looks wrong.
  */
+// TeamUp keeps a membership row after the customer is deleted, with the name
+// "(Deleted Customer)" and no details. Nothing to contact; leave them out.
+const isDeletedPlaceholder = (name: string, email: string) => !email && /deleted customer/i.test(name);
+
 export function readMembership(row: Json, categories: Map<string, string>): MemberInput | null {
   const customer = obj(row.customer);
   const membership = obj(row.membership);
   const customerId = idOf(row.customer);
   if (!customerId) return null;
+  if (isDeletedPlaceholder(str(customer.name, customer.full_name, `${str(customer.first_name)} ${str(customer.last_name)}`), str(customer.email))) return null;
   const first = str(customer.first_name, customer.given_name);
   const last = str(customer.last_name, customer.family_name);
   const name = str(customer.name, customer.full_name, `${first} ${last}`.trim());
@@ -98,9 +103,11 @@ export function readCustomer(row: Json): CustomerInput | null {
   if (!customerId) return null;
   const first = str(row.first_name, row.given_name);
   const last = str(row.last_name, row.family_name);
+  const name = str(row.name, row.full_name, `${first} ${last}`.trim());
+  if (isDeletedPlaceholder(name, str(row.email, row.email_address))) return null;
   return {
     customerId,
-    name: str(row.name, row.full_name, `${first} ${last}`.trim()),
+    name,
     email: str(row.email, row.email_address).toLowerCase(),
     phone: str(row.phone_number, row.mobile_phone, row.mobile, row.phone),
     status: str(row.status) || undefined,
