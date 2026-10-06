@@ -182,6 +182,12 @@ email drafted by Claude, off until Sammy approves it. Marketing emails
 from automations now carry the unsubscribe footer and headers, like
 mailouts.
 
+**Cancellations screen (06/10):** sidebar → Cancellations lists everyone who
+has given notice: membership, when the notice was recorded, when the
+membership ends, and the win-back email's state (sent on a date, goes at a
+time, or why not: automation off, opted out, no email, notice given before
+tracking began). Filter by when notice was given.
+
 **Claude's next steps, in order:**
 1. ~~Run the first sync and check the mapping.~~ Done 05/10/2026: the
    baseline sync ran on the live site. 542 contacts added (source
