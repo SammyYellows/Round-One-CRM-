@@ -17,6 +17,10 @@ const day = shortDate;
 export default function CancellationsPage() {
   const { s, now, act } = useStore();
   const [window, setWindow] = useState<Window>("all");
+  const [includeEnded, setIncludeEnded] = useState(true);
+  const [page, setPage] = useState(1);
+  const PER_PAGE = 30;
+  useEffect(() => setPage(1), [window, includeEnded]);
 
   const automation = s.automations.find((a) => a.id === WIN_BACK);
   const emailIndex = automation?.steps.findIndex((st) => st.kind === "email") ?? -1;
@@ -90,9 +94,9 @@ export default function CancellationsPage() {
       if (e.type === "email.sent" && e.contactId && e.detail.startsWith("Sorry to see you go") && !emailAt.has(e.contactId)) emailAt.set(e.contactId, e.at);
     }
     return s.contacts
-      // Serving notice now, or a notice the sync recorded. Memberships that
-      // were cancelled and had already ended before tracking began are history.
-      .filter((c) => c.membership && (noticeAt.has(c.id) || (c.membership.cancelling && c.membership.status !== "ended")))
+      // Serving notice now, a notice the sync recorded, or (when included)
+      // cancellations that have already run out.
+      .filter((c) => c.membership && (noticeAt.has(c.id) || (c.membership.cancelling && (includeEnded || c.membership.status !== "ended"))))
       .map((c) => {
         const m = c.membership!;
         const run = s.runs.filter((r) => r.contactId === c.id && r.automationId === WIN_BACK).sort((a, b) => Date.parse(b.startedAt) - Date.parse(a.startedAt))[0];
@@ -108,8 +112,17 @@ export default function CancellationsPage() {
         return { c, m, noticeAt: noticeAt.get(c.id), email };
       })
       .filter((r) => window === "all" || (r.noticeAt ? now - Date.parse(r.noticeAt) <= Number(window) * 86400e3 : false))
-      .sort((a, b) => (b.noticeAt ? Date.parse(b.noticeAt) : 0) - (a.noticeAt ? Date.parse(a.noticeAt) : 0) || a.c.name.localeCompare(b.c.name));
-  }, [s, now, window, automation]);
+      // Recorded notices newest first, then people still serving notice (soonest to end first), then ended ones (most recent first).
+      .sort((a, b) => {
+        const grp = (r: typeof a) => (r.noticeAt ? 0 : r.m.status !== "ended" ? 1 : 2);
+        if (grp(a) !== grp(b)) return grp(a) - grp(b);
+        if (grp(a) === 0) return Date.parse(b.noticeAt!) - Date.parse(a.noticeAt!);
+        const ea = a.m.endsAt ? Date.parse(a.m.endsAt) : 0, eb = b.m.endsAt ? Date.parse(b.m.endsAt) : 0;
+        return grp(a) === 1 ? ea - eb : eb - ea;
+      });
+  }, [s, now, window, automation, includeEnded]);
+  const pages = Math.max(1, Math.ceil(rows.length / PER_PAGE));
+  const shown = rows.slice((page - 1) * PER_PAGE, page * PER_PAGE);
 
   const sent = rows.filter((r) => r.email.tone === "sent").length;
 
@@ -206,8 +219,9 @@ export default function CancellationsPage() {
             <option value="365">Gave notice in the last year</option>
             <option value="all">Any time (including notices given before tracking began)</option>
           </select>
-          <span className="small muted" style={{ marginLeft: "auto" }}>
-            {automation?.enabled ? "Emails go the day after notice is recorded." : "The win-back automation is switched off, so nothing is sent until it's turned on."}
+          <button className={`fchip fchip-sm ${includeEnded ? "on" : ""}`} aria-pressed={includeEnded} onClick={() => setIncludeEnded((v) => !v)}>Include memberships already ended</button>
+          <span className="small muted" style={{ marginLeft: "auto" }} aria-live="polite">
+            {rows.length} {rows.length === 1 ? "person" : "people"}{pages > 1 ? ` · page ${page} of ${pages}` : ""}
           </span>
         </div>
       </div>
@@ -216,7 +230,7 @@ export default function CancellationsPage() {
         <div className="crow thead" style={{ borderTop: 0 }}>
           <div>Name</div><div>Membership</div><div>Gave notice</div><div>Membership ends</div><div>Win-back email</div><div>Marketing</div>
         </div>
-        {rows.map(({ c, m, noticeAt, email }) => (
+        {shown.map(({ c, m, noticeAt, email }) => (
           <Link key={c.id} href={`/contacts/${c.id}`} className="crow">
             <div style={{ minWidth: 0 }}>
               <div className="strong">{c.name}</div>
@@ -232,6 +246,13 @@ export default function CancellationsPage() {
           </Link>
         ))}
         {rows.length === 0 && <div className="empty">Nobody has given notice in this period. Notices given before tracking began (6 Oct 2026) show under “Any time”.</div>}
+        {pages > 1 && (
+          <div className="row" style={{ justifyContent: "space-between" }}>
+            <button className="btn btn-ghost btn-sm" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>Previous</button>
+            <span className="small muted">{(page - 1) * PER_PAGE + 1}–{Math.min(page * PER_PAGE, rows.length)} of {rows.length}</span>
+            <button className="btn btn-ghost btn-sm" disabled={page >= pages} onClick={() => setPage((p) => p + 1)}>Next</button>
+          </div>
+        )}
       </section>
     </>
   );
