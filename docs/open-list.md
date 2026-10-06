@@ -19,8 +19,8 @@ this; Claude keeps it current. Last updated 06/10/2026, late evening.
 3b. **Win-back email the day after notice** (improvement list item 7).
    Built 06/10, **switched off; Sammy doesn't want it live yet.** Nothing
    turns it on except Sammy on the Automations screen.
-   Waiting on Sammy: when ready, edit the draft on Automations → "Gave
-   notice – win-back" and switch it on.
+   Waiting on Sammy: when ready, edit the wording on the Cancellations
+   screen and press "Approve and switch on".
 
 ## Testing
 

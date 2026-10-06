@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ago, dayTime, shortDate } from "@/lib/format";
 import { useStore } from "@/lib/store";
 
@@ -15,10 +15,26 @@ type Window = "30" | "90" | "365" | "all";
 const day = shortDate;
 
 export default function CancellationsPage() {
-  const { s, now } = useStore();
+  const { s, now, act } = useStore();
   const [window, setWindow] = useState<Window>("all");
 
   const automation = s.automations.find((a) => a.id === WIN_BACK);
+  const emailIndex = automation?.steps.findIndex((st) => st.kind === "email") ?? -1;
+  const emailStep = emailIndex >= 0 ? automation!.steps[emailIndex] : undefined;
+  const waitHours = automation?.steps.find((st) => st.kind === "wait")?.kind === "wait" ? (automation!.steps.find((st) => st.kind === "wait") as { hours: number }).hours : 24;
+
+  // The email's wording, edited and approved here.
+  const [subject, setSubject] = useState("");
+  const [body, setBody] = useState("");
+  const [confirming, setConfirming] = useState(false);
+  const [note, setNote] = useState<string | null>(null);
+  useEffect(() => {
+    if (emailStep?.kind === "email") { setSubject(emailStep.subject); setBody(emailStep.body ?? ""); }
+  }, [emailStep?.kind === "email" ? emailStep.subject : "", emailStep?.kind === "email" ? emailStep.body : ""]); // eslint-disable-line react-hooks/exhaustive-deps
+  const dirty = emailStep?.kind === "email" && (subject !== emailStep.subject || body !== (emailStep.body ?? ""));
+  const saveWording = () => { act("setEmailStep", WIN_BACK, emailIndex, subject, body); setNote("Wording saved."); };
+  const switchOn = () => { if (dirty) act("setEmailStep", WIN_BACK, emailIndex, subject, body); act("toggleAutomation", WIN_BACK); setConfirming(false); setNote("Switched on. From the next notice recorded, the email goes a day later."); };
+  const switchOff = () => { act("toggleAutomation", WIN_BACK); setNote("Switched off. Nothing more will be sent."); };
 
   const rows = useMemo(() => {
     // The notice is logged on the contact's timeline when the sync first sees it.
@@ -61,8 +77,56 @@ export default function CancellationsPage() {
           <div className="eyebrow">{rows.length} gave notice · {sent} win-back email{sent === 1 ? "" : "s"} sent · automation {automation?.enabled ? "on" : "off"}</div>
           <h1 className="h h1">Cancellations</h1>
         </div>
-        <Link className="btn btn-ghost" href="/automations">Win-back automation</Link>
+        <Link className="btn btn-ghost" href="/automations">All automations</Link>
       </header>
+
+      {automation && emailStep?.kind === "email" && (
+        <section className="card" style={{ marginBottom: 20 }}>
+          <div className="card-head">
+            <div>
+              <div className="eyebrow">{automation.enabled ? "On · goes the day after notice is recorded" : "Off · nothing is sent until you approve it"}</div>
+              <h2 className="h h3">The win-back email</h2>
+            </div>
+            <span className={`chip ${automation.enabled ? "chip-red" : ""}`}>{automation.enabled ? "On" : "Off"}</span>
+          </div>
+          <div style={{ padding: "0 22px 22px", display: "flex", flexDirection: "column", gap: 12 }}>
+            <div>
+              <label className="label" htmlFor="wb-subject">Subject</label>
+              <input id="wb-subject" className="input" value={subject} onChange={(e) => { setSubject(e.target.value); setConfirming(false); }} />
+            </div>
+            <div>
+              <label className="label" htmlFor="wb-body">Message</label>
+              <textarea id="wb-body" className="input enq-text" rows={12} value={body} onChange={(e) => { setBody(e.target.value); setConfirming(false); }} />
+              <div className="small faint" style={{ marginTop: 6 }}>Goes from info@round1boxfit.co.uk {waitHours} hours after a notice is recorded. You can use {"{first} {name} {gym} {team}"}. An unsubscribe line is added at the bottom; anyone opted out is skipped. Replies come into Enquiries.</div>
+            </div>
+            {note && <div className="small muted" aria-live="polite">{note}</div>}
+            {!confirming ? (
+              <div className="actions" style={{ gap: 10, flexWrap: "wrap" }}>
+                {automation.enabled ? (
+                  <>
+                    <button className="btn btn-ghost" disabled={!dirty} onClick={saveWording}>Save wording</button>
+                    <button className="btn btn-ghost" onClick={switchOff}>Switch off</button>
+                  </>
+                ) : (
+                  <>
+                    <button className="btn btn-red" disabled={!subject.trim() || !body.trim()} onClick={() => setConfirming(true)}>Approve and switch on</button>
+                    <button className="btn btn-ghost" disabled={!dirty} onClick={saveWording}>Save wording</button>
+                  </>
+                )}
+              </div>
+            ) : (
+              <div className="enq-confirm" role="alertdialog" aria-labelledby="wb-confirm-h">
+                <div id="wb-confirm-h" className="strong">Switch the win-back email on?</div>
+                <div className="small muted">From the next notice the sync records, this email goes to that person {waitHours} hours later, with the wording above. Nobody already serving notice gets it. You can switch it off here any time.</div>
+                <div className="actions" style={{ gap: 10 }}>
+                  <button className="btn btn-red" onClick={switchOn}>Yes, switch it on</button>
+                  <button className="btn btn-ghost" onClick={() => setConfirming(false)}>Cancel</button>
+                </div>
+              </div>
+            )}
+          </div>
+        </section>
+      )}
 
       <div className="filters" role="search">
         <div className="filters-row">
