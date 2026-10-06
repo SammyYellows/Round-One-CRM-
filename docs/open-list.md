@@ -9,9 +9,13 @@ this; Claude keeps it current. Last updated 06/10/2026, 23:15.
    TeamUp customers are in (304 active members, 238 ex-members, 675 who
    never joined under Members → Never joined). Program messages are
    service messages.
-   Program messages now live on the Program members screen (welcome on;
-   two-week check-in and week-to-go offer drafted, off).
-   Waiting on Sammy: edit and approve those two on that screen.
+   **Program schedule** (06/10): nine messages across the 28 days, each
+   WhatsApp plus email, on the Program members screen; only day 1 is on.
+   Waiting on Sammy: (a) the WhatsApp token, pasted in chat, so Claude can
+   submit the eight new templates to Meta's test account; (b) edit and
+   approve each message on the Program members screen; (c) mobile numbers
+   for Program members who didn't come through the form, added on their
+   contact page, or they get the email only.
 2. **Accountability programme** (`docs/accountability.md`). Plan only,
    parked. Both keys it needs are in Vercel.
    Waiting on Sammy: say go; the floor decision (cap at three or keep "at
