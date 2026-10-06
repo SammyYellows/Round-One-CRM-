@@ -173,6 +173,15 @@ export function stopRun(s: State, runId: string) {
   log(s, "automation.stopped", r.contactId, `${a?.name ?? "Automation"} stopped by staff`);
 }
 
+/** Staff edit the wording of an email step (e.g. the win-back) from a screen. */
+export function setEmailStep(s: State, automationId: string, stepIndex: number, subject: string, body: string) {
+  const a = s.automations.find((x) => x.id === automationId);
+  const step = a?.steps[stepIndex];
+  if (!a || !step || step.kind !== "email") return;
+  step.subject = subject.trim().slice(0, 200);
+  step.body = body.trim().slice(0, 20000);
+}
+
 export function toggleAutomation(s: State, id: string) {
   const a = s.automations.find((x) => x.id === id);
   if (a) a.enabled = !a.enabled;
