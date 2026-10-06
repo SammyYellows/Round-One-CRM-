@@ -89,3 +89,49 @@ export async function draftReply(input: DraftInput): Promise<DraftResult> {
   const kind = out.kind === "other" ? "other" : "enquiry";
   return { kind, summary: String(out.summary ?? "").trim(), draft: kind === "other" ? "" : String(out.draft ?? "").trim() };
 }
+
+/**
+ * Rewrites the current draft the way the staff member asks ("shorter",
+ * "mention the Saturday class", "firmer about the refund"). Same voice and
+ * facts rules; the email and the current draft are both in front of it.
+ */
+export async function rewriteDraft(input: DraftInput & { currentDraft: string; instruction: string }): Promise<string> {
+  const key = process.env.ANTHROPIC_API_KEY;
+  if (!key) throw new Error("ANTHROPIC_API_KEY isn’t set");
+  const body = input.text.length > 8000 ? input.text.slice(0, 8000) + "\n[trimmed]" : input.text;
+  const res = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: { "x-api-key": key, "anthropic-version": "2023-06-01", "content-type": "application/json" },
+    body: JSON.stringify({
+      model: MODEL,
+      max_tokens: 2048,
+      system: [
+        { type: "text", text: VOICE },
+        { type: "text", text: `FACTS SHEET\n\n${input.facts}`, cache_control: { type: "ephemeral" } },
+      ],
+      output_config: {
+        effort: "medium",
+        format: { type: "json_schema", schema: { type: "object", properties: { draft: { type: "string" } }, required: ["draft"], additionalProperties: false } },
+      },
+      messages: [
+        {
+          role: "user",
+          content:
+            `The email we're replying to:\nFrom: ${input.fromName ? `${input.fromName} <${input.fromEmail}>` : input.fromEmail}\nSubject: ${input.subject || "(no subject)"}\n\n${body || "(no text)"}` +
+            `\n\n---\nThe current draft reply:\n\n${input.currentDraft || "(empty)"}` +
+            `\n\n---\nThe staff member's instruction for the rewrite: ${input.instruction}` +
+            `\n\nRewrite the draft to follow that instruction. Keep everything else that still fits. Same rules as always: only facts from the facts sheet or the email, no exclamation marks, sign off with "${GYM.signOff}". Return the full new draft.`,
+        },
+      ],
+    }),
+  });
+  if (!res.ok) {
+    const err = (await res.json().catch(() => ({}))) as { error?: { message?: string } };
+    throw new Error(err.error?.message || `Anthropic said ${res.status}`);
+  }
+  const json = (await res.json()) as { stop_reason?: string; content: { type: string; text?: string }[] };
+  if (json.stop_reason === "refusal") throw new Error("The AI declined to rewrite this");
+  const text = json.content.find((c) => c.type === "text")?.text ?? "{}";
+  const out = JSON.parse(text) as { draft?: string };
+  return String(out.draft ?? "").trim();
+}

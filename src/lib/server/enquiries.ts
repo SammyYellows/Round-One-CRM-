@@ -5,7 +5,7 @@
 
 import { addContact } from "@/lib/engine";
 import { GYM } from "@/lib/gym";
-import { aiConfigured, draftReply } from "./ai";
+import { aiConfigured, draftReply, rewriteDraft } from "./ai";
 import { appUrl } from "./deliver";
 import { fetchReceivedEmail, listReceivedEmailIds, sendEmail } from "./email";
 import { applyMany } from "./state";
@@ -237,4 +237,22 @@ export async function setDismissed(id: string, dismissed: boolean) {
   const e = await getEnquiry(id);
   if (!e || e.status === "sent") return;
   await update(id, { status: dismissed ? "dismissed" : e.draft ? "drafted" : "new" });
+}
+
+/** Staff typed what they want changed; the AI rewrites the draft (saved, never sent). */
+export async function rewriteEnquiryDraft(id: string, currentDraft: string, instruction: string) {
+  const e = await getEnquiry(id);
+  if (!e || e.status === "sent") return { ok: false as const, error: "This one has already been sent" };
+  if (!aiConfigured()) return { ok: false as const, error: "The AI isn’t set up" };
+  if (!instruction.trim()) return { ok: false as const, error: "Say what you’d like changed" };
+  try {
+    const facts = await getFacts();
+    const draft = await rewriteDraft({ fromName: e.fromName ?? "", fromEmail: e.fromEmail, subject: e.subject, text: e.text, facts, currentDraft, instruction: instruction.slice(0, 1000) });
+    if (!draft) return { ok: false as const, error: "The AI came back empty" };
+    await update(id, { draft, status: e.status === "dismissed" ? "dismissed" : "drafted", error: null });
+    return { ok: true as const, draft };
+  } catch (err) {
+    const error = err instanceof Error ? err.message : String(err);
+    return { ok: false as const, error };
+  }
 }
