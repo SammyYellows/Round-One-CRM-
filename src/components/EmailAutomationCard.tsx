@@ -14,7 +14,10 @@ export function EmailAutomationCard({ automationId, title, purpose, when, startO
   const automation = s.automations.find((a) => a.id === automationId);
   const emailIndex = automation?.steps.findIndex((st) => st.kind === "email" && st.to === "contact") ?? -1;
   const emailStep = emailIndex >= 0 ? automation!.steps[emailIndex] : undefined;
-  const hasWhatsApp = automation?.steps.some((st) => st.kind === "whatsapp");
+  const waStep = automation?.steps.find((st) => st.kind === "whatsapp");
+  const waName = waStep?.kind === "whatsapp" ? waStep.template : null;
+  const waText = waName ? s.templates[waName] : null;
+  const hasWhatsApp = !!waName;
 
   const [open, setOpen] = useState(startOpen);
   const [subject, setSubject] = useState("");
@@ -117,9 +120,16 @@ export function EmailAutomationCard({ automationId, title, purpose, when, startO
             <label className="label" htmlFor={`${automationId}-body`}>Message</label>
             <textarea id={`${automationId}-body`} className="input enq-text" rows={12} value={body} onChange={(e) => { setBody(e.target.value); setConfirming(false); }} />
             <div className="small faint" style={{ marginTop: 6 }}>
-              {when}. You can use {"{first} {name} {gym} {team}"}.{hasWhatsApp ? " This automation also sends a WhatsApp template (approved by Meta; edited separately)." : ""}
+              {when}. You can use {"{first} {name} {gym} {team}"}.{hasWhatsApp ? " The WhatsApp version below goes at the same time." : ""}
             </div>
           </div>
+          {hasWhatsApp && (
+            <div>
+              <div className="label">WhatsApp version{waName ? ` · ${waName}` : ""}</div>
+              <div className="enq-mail" style={{ margin: 0, maxHeight: 200 }}>{waText ?? "Template text not loaded."}</div>
+              <div className="small faint" style={{ marginTop: 6 }}>Goes to people with a mobile number, through Meta. Templates need Meta’s approval and only reach the test phone until the real number moves over at go-live. To change the words, tell Claude: each change is re-submitted to Meta.</div>
+            </div>
+          )}
           <div>
             <label className="label" htmlFor={`${automationId}-instruction`}>Ask the AI to change it</label>
             <div style={{ display: "flex", gap: 8 }}>
