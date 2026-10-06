@@ -79,6 +79,7 @@ real list until the Resend Pro upgrade and the webhook events are done.
 | F2 | In TeamUp, set a test member (or yourself) to cancel; after the next nightly sync open them in the CRM | Membership line says "gave notice"; timeline has "gave notice on …" | |
 | F3 | With the automation on, the day after | They get "Sorry to see you go" from bookings@ with an unsubscribe line; the run shows on the contact | |
 | F4 | Tick "No marketing messages" on someone before the day is up | The email is skipped | |
+| F5 | Sidebar → Cancellations | Everyone serving notice, with notice date, end date and the email's state; the F2 person shows "Goes …" then "Sent …" | |
 
 ## D. Still parked, no test yet
 
