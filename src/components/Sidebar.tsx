@@ -24,14 +24,25 @@ export function Sidebar({ staff }: { staff?: { name: string } }) {
   const path = usePathname();
   const { s, now, act, reset, live } = useStore();
 
-  // Badges: enquiries waiting for a reply (asked every minute), and notices
-  // to cancel recorded in the last 7 days (from the timeline).
+  // Badges show what's new since the staff member last opened that screen;
+  // opening it clears the badge. "Last opened" lives in this browser only.
+  const seenKey = (href: string) => `round-one-crm:seen:${href}`;
+  const lastSeen = (href: string) => { try { return localStorage.getItem(seenKey(href)); } catch { return null; } };
+  const [seenTick, setSeenTick] = useState(0);
+  useEffect(() => {
+    if (path === "/enquiries" || path === "/cancellations") {
+      try { localStorage.setItem(seenKey(path), new Date(now).toISOString()); } catch { /* private mode */ }
+      setSeenTick((t) => t + 1);
+    }
+  }, [path, now]);
+
   const [openEnquiries, setOpenEnquiries] = useState(0);
   useEffect(() => {
     if (!live) return;
     let gone = false;
     const ask = async () => {
-      const res = await fetch("/api/enquiries/count", { cache: "no-store" }).catch(() => null);
+      const since = lastSeen("/enquiries");
+      const res = await fetch(`/api/enquiries/count${since ? `?since=${encodeURIComponent(since)}` : ""}`, { cache: "no-store" }).catch(() => null);
       if (res?.ok && !gone) setOpenEnquiries(((await res.json()) as { open: number }).open);
     };
     ask();
@@ -39,10 +50,11 @@ export function Sidebar({ staff }: { staff?: { name: string } }) {
     const onFocus = () => ask();
     window.addEventListener("focus", onFocus);
     return () => { gone = true; clearInterval(t); window.removeEventListener("focus", onFocus); };
-  }, [live, path]);
-  const recentNotices = s.events.filter((e) => e.type === "stage.changed" && / gave notice on /.test(e.detail) && now - Date.parse(e.at) < 7 * 86400e3).length;
-  const badge = (href: string) => (href === "/enquiries" ? openEnquiries : href === "/cancellations" ? recentNotices : 0);
-  const badgeTitle = (href: string) => (href === "/enquiries" ? `${openEnquiries} waiting for a reply` : `${recentNotices} gave notice in the last 7 days`);
+  }, [live, path, seenTick]); // eslint-disable-line react-hooks/exhaustive-deps
+  const noticesSince = lastSeen("/cancellations");
+  const recentNotices = s.events.filter((e) => e.type === "stage.changed" && / gave notice on /.test(e.detail) && (noticesSince ? Date.parse(e.at) > Date.parse(noticesSince) : now - Date.parse(e.at) < 7 * 86400e3)).length;
+  const badge = (href: string) => (path === href ? 0 : href === "/enquiries" ? openEnquiries : href === "/cancellations" ? recentNotices : 0);
+  const badgeTitle = (href: string) => (href === "/enquiries" ? `${openEnquiries} new since you last looked` : `${recentNotices} gave notice since you last looked`);
 
   const isOn = (href: string) => (href === "/" || href === "/pipeline" ? path === href : path.startsWith(href));
   const shift = (hours: number) => act("shiftClock", hours);
