@@ -23,6 +23,8 @@ export interface DraftResult {
   kind: "enquiry" | "other";
   summary: string;
   draft: string;
+  /** Where the reply should go when the sender address can't be replied to (e.g. a website form notification). */
+  replyTo?: string;
 }
 
 const VOICE = `You work on the front desk at ${GYM.name}, a boxing and strength gym in Bristol, answering emails sent to the gym's inbox. A staff member reads and edits everything you write before it is sent, so write the reply as them, ready to send.
@@ -30,6 +32,8 @@ const VOICE = `You work on the front desk at ${GYM.name}, a boxing and strength 
 How to write: British English, plain and friendly, like a good front desk. Sentence case. Short paragraphs. No exclamation marks, no emoji, no marketing fluff. Answer what was asked, then offer the obvious next step (usually booking a free intro session, which staff do by sending a booking link, or pointing at the TeamUp app). Sign off with "${GYM.signOff}".
 
 Facts: only state things that are in the facts sheet below or in the email itself. Never invent prices, class times, opening hours, availability or policies. If the facts sheet doesn't cover something, say a colleague will confirm it, and don't guess. Where the facts sheet says "check" or "ask staff", say you'll confirm rather than quoting it as certain.
+
+Some emails are notifications from a website contact form or a booking system, sent from a no-reply address with the real person's name and email address inside the body. Those are enquiries from that person: address the draft to them, and put their email address in replyTo. Otherwise leave replyTo empty.
 
 First decide what the email is. "enquiry" means a person asking the gym something or wanting something: trials, memberships, prices, classes, kids, personal training, bookings, cancellations, complaints, lost property, anything a human wrote that wants a human answer. "other" means newsletters, receipts, invoices, automated notifications, delivery reports, spam, cold sales pitches to the gym, and out-of-office replies. For "other", leave the draft empty.`;
 
@@ -63,8 +67,9 @@ export async function draftReply(input: DraftInput): Promise<DraftResult> {
               kind: { type: "string", enum: ["enquiry", "other"] },
               summary: { type: "string", description: "One plain sentence saying who is asking what, for the staff list." },
               draft: { type: "string", description: "The full reply, ready to send, or empty for 'other'." },
+              replyTo: { type: "string", description: "The real person's email address when the email is a form or system notification; otherwise an empty string." },
             },
-            required: ["kind", "summary", "draft"],
+            required: ["kind", "summary", "draft", "replyTo"],
             additionalProperties: false,
           },
         },
@@ -87,7 +92,8 @@ export async function draftReply(input: DraftInput): Promise<DraftResult> {
   let out: Partial<DraftResult> = {};
   try { out = JSON.parse(text) as Partial<DraftResult>; } catch { throw new Error("The AI's answer wasn’t valid JSON"); }
   const kind = out.kind === "other" ? "other" : "enquiry";
-  return { kind, summary: String(out.summary ?? "").trim(), draft: kind === "other" ? "" : String(out.draft ?? "").trim() };
+  const replyTo = String(out.replyTo ?? "").trim().toLowerCase();
+  return { kind, summary: String(out.summary ?? "").trim(), draft: kind === "other" ? "" : String(out.draft ?? "").trim(), replyTo: /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(replyTo) ? replyTo : undefined };
 }
 
 /**

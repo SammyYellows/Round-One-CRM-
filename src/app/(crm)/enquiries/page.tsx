@@ -12,6 +12,7 @@ interface Enquiry {
   id: string;
   fromEmail: string;
   fromName: string | null;
+  replyTo: string | null;
   subject: string;
   text: string;
   receivedAt: string;
@@ -44,6 +45,7 @@ export default function EnquiriesPage() {
   const [note, setNote] = useState<string | null>(null);
   const [showFacts, setShowFacts] = useState(false);
   const [instruction, setInstruction] = useState("");
+  const [sendTo, setSendTo] = useState("");
   const [factsDraft, setFactsDraft] = useState("");
 
   const load = useCallback(async () => {
@@ -66,6 +68,7 @@ export default function EnquiriesPage() {
   const current = useMemo(() => list?.find((e) => e.id === selected) ?? null, [list, selected]);
   useEffect(() => {
     setDraft(current?.status === "sent" ? current.replyText ?? "" : current?.draft ?? "");
+    setSendTo(current?.replyTo ?? current?.fromEmail ?? "");
     setConfirming(false);
     setNote(null);
   }, [current]);
@@ -99,9 +102,19 @@ export default function EnquiriesPage() {
     await load();
   }
 
+  const sendToChanged = !!current && current.status !== "sent" && sendTo.trim().toLowerCase() !== (current.replyTo ?? current.fromEmail);
+
+  async function saveSendTo() {
+    if (!current) return true;
+    const res = await fetch(`/api/enquiries/${current.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ replyTo: sendTo }) });
+    if (!res.ok) { setNote("That send-to address doesn’t look right"); return false; }
+    return true;
+  }
+
   async function send() {
     if (!current) return;
     setBusy("send");
+    if (sendToChanged && !(await saveSendTo())) { setBusy(null); setConfirming(false); return; }
     const res = await fetch(`/api/enquiries/${current.id}/send`, {
       method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text: draft, confirm: true }),
     });
@@ -209,6 +222,17 @@ export default function EnquiriesPage() {
               <div className="enq-mail">{current.text || "(no text)"}</div>
 
               <div style={{ padding: "0 22px 22px", display: "flex", flexDirection: "column", gap: 12 }}>
+                <div>
+                  <label className="label" htmlFor="enq-to">Send to</label>
+                  <input
+                    id="enq-to" className="input" type="email" value={sendTo} readOnly={current.status === "sent"}
+                    onChange={(e) => { setSendTo(e.target.value); setConfirming(false); }}
+                    onBlur={() => { if (sendToChanged) saveSendTo(); }}
+                  />
+                  {current.replyTo && current.replyTo !== current.fromEmail && (
+                    <div className="small faint" style={{ marginTop: 4 }}>Came in from {current.fromEmail}, which can’t be replied to; the person’s own address was picked out of the message.</div>
+                  )}
+                </div>
                 <label className="label" htmlFor="enq-draft">{current.status === "sent" ? `Reply sent ${current.sentAt ? ago(current.sentAt, now) : ""} by ${current.sentBy ?? "staff"}` : "Your reply"}</label>
                 <textarea
                   id="enq-draft" className="input enq-text" rows={14} value={draft} readOnly={current.status === "sent"}
@@ -233,7 +257,7 @@ export default function EnquiriesPage() {
 
                 {current.status !== "sent" && !confirming && (
                   <div className="actions" style={{ gap: 10, flexWrap: "wrap" }}>
-                    <button className="btn btn-red" disabled={!draft.trim() || busy !== null} onClick={() => setConfirming(true)}>Send reply</button>
+                    <button className="btn btn-red" disabled={!draft.trim() || !sendTo.trim() || busy !== null} onClick={() => setConfirming(true)}>Send reply</button>
                     {draftChanged && <button className="btn btn-ghost" disabled={busy !== null} onClick={() => patch(current.id, { draft }, "save")}>{busy === "save" ? "Saving" : "Save draft"}</button>}
                     <button className="btn btn-ghost" disabled={busy !== null || !setup.ai} onClick={() => patch(current.id, { action: "redraft" }, "redraft")}>{busy === "redraft" ? "Drafting" : "Draft again"}</button>
                     {current.status === "dismissed" ? (
@@ -246,7 +270,7 @@ export default function EnquiriesPage() {
 
                 {current.status !== "sent" && confirming && (
                   <div className="enq-confirm" role="alertdialog" aria-labelledby="enq-confirm-h">
-                    <div id="enq-confirm-h" className="strong">Send this reply to {current.fromEmail}?</div>
+                    <div id="enq-confirm-h" className="strong">Send this reply to {sendTo.trim() || current.fromEmail}?</div>
                     <div className="small muted">It goes from info@round1boxfit.co.uk, in the same email thread, exactly as written above.</div>
                     <div className="actions" style={{ gap: 10 }}>
                       <button className="btn btn-red" disabled={busy === "send"} onClick={send}>{busy === "send" ? "Sending" : "Yes, send it"}</button>
