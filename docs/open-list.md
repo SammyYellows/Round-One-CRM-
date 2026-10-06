@@ -9,7 +9,9 @@ this; Claude keeps it current. Last updated 06/10/2026, 23:15.
    TeamUp customers are in (304 active members, 238 ex-members, 675 who
    never joined under Members → Never joined). Program messages are
    service messages.
-   Waiting on Sammy: the Program message wording and when each goes.
+   Program messages now live on the Program members screen (welcome on;
+   two-week check-in and week-to-go offer drafted, off).
+   Waiting on Sammy: edit and approve those two on that screen.
 2. **Accountability programme** (`docs/accountability.md`). Plan only,
    parked. Both keys it needs are in Vercel.
    Waiting on Sammy: say go; the floor decision (cap at three or keep "at

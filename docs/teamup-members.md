@@ -193,6 +193,17 @@ membership ends, and the win-back email's state (sent on a date, goes at a
 time, or why not: automation off, opted out, no email, notice given before
 tracking began). Filter by when notice was given.
 
+**Program members screen (06/10):** sidebar → Program members. Everyone on
+the 28 Day Program now (day N of 28, start, end, which messages have gone)
+and the Program messages in order, each on an editable card with named
+drafts, an AI rewrite and Approve-and-switch-on: the welcome (the existing
+`sold_programme` automation, on), a two-week check-in (`program_check_in`,
+off, draft by Claude) and a week-to-go move-to-recurring offer
+(`program_ending`, off, draft by Claude). Both new ones are driven by the
+TeamUp sync (`membership.started` / `membership.ending` for the Program
+category) and are service messages. The accountability check-ins will
+live on this screen too when that programme is built.
+
 **Claude's next steps, in order:**
 1. ~~Run the first sync and check the mapping.~~ Done 05/10/2026: the
    baseline sync ran on the live site. 542 contacts added (source

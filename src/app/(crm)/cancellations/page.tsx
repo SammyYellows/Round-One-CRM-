@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import { EmailAutomationCard } from "@/components/EmailAutomationCard";
 import { ago, dayTime, shortDate } from "@/lib/format";
 import { useStore } from "@/lib/store";
 
@@ -15,7 +16,7 @@ type Window = "30" | "90" | "365" | "all";
 const day = shortDate;
 
 export default function CancellationsPage() {
-  const { s, now, act } = useStore();
+  const { s, now } = useStore();
   const [window, setWindow] = useState<Window>("all");
   const [includeEnded, setIncludeEnded] = useState(true);
   const [page, setPage] = useState(1);
@@ -23,66 +24,6 @@ export default function CancellationsPage() {
   useEffect(() => setPage(1), [window, includeEnded]);
 
   const automation = s.automations.find((a) => a.id === WIN_BACK);
-  const emailIndex = automation?.steps.findIndex((st) => st.kind === "email") ?? -1;
-  const emailStep = emailIndex >= 0 ? automation!.steps[emailIndex] : undefined;
-  const waitHours = automation?.steps.find((st) => st.kind === "wait")?.kind === "wait" ? (automation!.steps.find((st) => st.kind === "wait") as { hours: number }).hours : 24;
-
-  // The email's wording, edited and approved here.
-  const [subject, setSubject] = useState("");
-  const [body, setBody] = useState("");
-  const [confirming, setConfirming] = useState(false);
-  const [note, setNote] = useState<string | null>(null);
-  const [busy, setBusy] = useState<string | null>(null);
-  const [instruction, setInstruction] = useState("");
-  const [drafts, setDrafts] = useState<{ id: string; name: string; subject: string; body: string; savedAt: string; savedBy: string }[]>([]);
-  const [draftId, setDraftId] = useState<string>("");
-  const [draftName, setDraftName] = useState("");
-  useEffect(() => {
-    fetch("/api/winback", { cache: "no-store" }).then((r) => (r.ok ? r.json() : { drafts: [] })).then((j) => setDrafts(j.drafts ?? [])).catch(() => undefined);
-  }, []);
-  const api = async (payload: Record<string, unknown>) => {
-    const res = await fetch("/api/winback", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
-    return { ok: res.ok, ...((await res.json().catch(() => ({}))) as Record<string, unknown>) } as { ok: boolean; error?: string; drafts?: typeof drafts; subject?: string; body?: string };
-  };
-  const loadDraft = (id: string) => {
-    setDraftId(id);
-    const d = drafts.find((x) => x.id === id);
-    if (d) { setSubject(d.subject); setBody(d.body); setDraftName(d.name); setConfirming(false); setNote(`Loaded “${d.name}”. It isn’t live until you save the wording or approve it.`); }
-  };
-  const saveDraft = async (asNew: boolean) => {
-    const name = draftName.trim();
-    if (!name) { setNote("Give the draft a name first."); return; }
-    setBusy("draft");
-    const r = await api({ action: "save", id: asNew ? undefined : draftId || undefined, name, subject, body });
-    setBusy(null);
-    if (!r.ok) { setNote(r.error ?? "Couldn’t save the draft"); return; }
-    setDrafts(r.drafts ?? []);
-    const saved = (r.drafts ?? []).find((d) => d.name === name && d.subject === subject && d.body === body);
-    if (saved) setDraftId(saved.id);
-    setNote(`Saved as “${name}”.`);
-  };
-  const deleteDraft = async () => {
-    if (!draftId || !confirm("Delete this saved draft?")) return;
-    const r = await api({ action: "delete", id: draftId });
-    if (r.ok) { setDrafts(r.drafts ?? []); setDraftId(""); setDraftName(""); setNote("Draft deleted."); }
-  };
-  const rewrite = async () => {
-    if (!instruction.trim()) return;
-    setBusy("rewrite");
-    const r = await api({ action: "rewrite", subject, body, instruction });
-    setBusy(null);
-    if (!r.ok || !r.body) { setNote(r.error ?? "Couldn’t rewrite"); return; }
-    setSubject(r.subject ?? subject); setBody(r.body); setInstruction(""); setConfirming(false);
-    setNote("Rewritten. Read it through, then save it as a draft or save the wording.");
-  };
-  useEffect(() => {
-    if (emailStep?.kind === "email") { setSubject(emailStep.subject); setBody(emailStep.body ?? ""); }
-  }, [emailStep?.kind === "email" ? emailStep.subject : "", emailStep?.kind === "email" ? emailStep.body : ""]); // eslint-disable-line react-hooks/exhaustive-deps
-  const dirty = emailStep?.kind === "email" && (subject !== emailStep.subject || body !== (emailStep.body ?? ""));
-  const saveWording = () => { act("setEmailStep", WIN_BACK, emailIndex, subject, body); setNote("Wording saved."); };
-  const switchOn = () => { if (dirty) act("setEmailStep", WIN_BACK, emailIndex, subject, body); act("toggleAutomation", WIN_BACK); setConfirming(false); setNote("Switched on. From the next notice recorded, the email goes a day later."); };
-  const switchOff = () => { act("toggleAutomation", WIN_BACK); setNote("Switched off. Nothing more will be sent."); };
-
   const rows = useMemo(() => {
     // The notice is logged on the contact's timeline when the sync first sees it.
     const noticeAt = new Map<string, string>();
@@ -136,80 +77,7 @@ export default function CancellationsPage() {
         <Link className="btn btn-ghost" href="/automations">All automations</Link>
       </header>
 
-      {automation && emailStep?.kind === "email" && (
-        <section className="card" style={{ marginBottom: 20 }}>
-          <div className="card-head">
-            <div>
-              <div className="eyebrow">{automation.enabled ? "On · goes the day after notice is recorded" : "Off · nothing is sent until you approve it"}</div>
-              <h2 className="h h3">The win-back email</h2>
-            </div>
-            <span className={`chip ${automation.enabled ? "chip-red" : ""}`}>{automation.enabled ? "On" : "Off"}</span>
-          </div>
-          <div style={{ padding: "0 22px 22px", display: "flex", flexDirection: "column", gap: 12 }}>
-            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "flex-end" }}>
-              <div style={{ flex: "1 1 220px" }}>
-                <label className="label" htmlFor="wb-draft">Saved drafts</label>
-                <select id="wb-draft" className="select" value={draftId} onChange={(e) => loadDraft(e.target.value)}>
-                  <option value="">{drafts.length ? "Pick a saved draft to load" : "No saved drafts yet"}</option>
-                  {drafts.map((d) => <option key={d.id} value={d.id}>{d.name} · {new Date(d.savedAt).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}</option>)}
-                </select>
-              </div>
-              <div style={{ flex: "1 1 220px" }}>
-                <label className="label" htmlFor="wb-name">Draft name</label>
-                <input id="wb-name" className="input" value={draftName} placeholder="e.g. Friendly short version" onChange={(e) => setDraftName(e.target.value)} />
-              </div>
-              <button className="btn btn-ghost" disabled={busy !== null || !draftName.trim()} onClick={() => saveDraft(!draftId || drafts.find((d) => d.id === draftId)?.name !== draftName.trim())}>{busy === "draft" ? "Saving" : draftId && drafts.find((d) => d.id === draftId)?.name === draftName.trim() ? "Update draft" : "Save as draft"}</button>
-              {draftId && <button className="btn btn-ghost" disabled={busy !== null} onClick={deleteDraft}>Delete draft</button>}
-            </div>
-            <div>
-              <label className="label" htmlFor="wb-subject">Subject</label>
-              <input id="wb-subject" className="input" value={subject} onChange={(e) => { setSubject(e.target.value); setConfirming(false); }} />
-            </div>
-            <div>
-              <label className="label" htmlFor="wb-body">Message</label>
-              <textarea id="wb-body" className="input enq-text" rows={12} value={body} onChange={(e) => { setBody(e.target.value); setConfirming(false); }} />
-              <div className="small faint" style={{ marginTop: 6 }}>Goes from info@round1boxfit.co.uk {waitHours} hours after a notice is recorded. You can use {"{first} {name} {gym} {team}"}. An unsubscribe line is added at the bottom; anyone opted out is skipped. Replies come into Enquiries.</div>
-            </div>
-            <div>
-              <label className="label" htmlFor="wb-instruction">Ask the AI to change it</label>
-              <div style={{ display: "flex", gap: 8 }}>
-                <input
-                  id="wb-instruction" className="input" style={{ minWidth: 0 }} value={instruction} placeholder="e.g. Warmer, shorter, and offer a chat with a coach"
-                  onChange={(e) => setInstruction(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === "Enter" && instruction.trim() && busy === null) rewrite(); }}
-                />
-                <button className="btn btn-ghost" style={{ padding: "0 14px" }} disabled={busy !== null || !instruction.trim()} onClick={rewrite}>{busy === "rewrite" ? "Rewriting" : "Rewrite"}</button>
-              </div>
-              <div className="small faint" style={{ marginTop: 6 }}>The AI keeps the placeholders ({"{first}"} and so on) in place. The result lands in the boxes above; nothing changes until you save or approve.</div>
-            </div>
-            {note && <div className="small muted" aria-live="polite">{note}</div>}
-            {!confirming ? (
-              <div className="actions" style={{ gap: 10, flexWrap: "wrap" }}>
-                {automation.enabled ? (
-                  <>
-                    <button className="btn btn-ghost" disabled={!dirty} onClick={saveWording}>Save wording</button>
-                    <button className="btn btn-ghost" onClick={switchOff}>Switch off</button>
-                  </>
-                ) : (
-                  <>
-                    <button className="btn btn-red" disabled={!subject.trim() || !body.trim()} onClick={() => setConfirming(true)}>Approve and switch on</button>
-                    <button className="btn btn-ghost" disabled={!dirty} onClick={saveWording}>Save wording</button>
-                  </>
-                )}
-              </div>
-            ) : (
-              <div className="enq-confirm" role="alertdialog" aria-labelledby="wb-confirm-h">
-                <div id="wb-confirm-h" className="strong">Switch the win-back email on?</div>
-                <div className="small muted">From the next notice the sync records, this email goes to that person {waitHours} hours later, with the wording above. Nobody already serving notice gets it. You can switch it off here any time.</div>
-                <div className="actions" style={{ gap: 10 }}>
-                  <button className="btn btn-red" onClick={switchOn}>Yes, switch it on</button>
-                  <button className="btn btn-ghost" onClick={() => setConfirming(false)}>Cancel</button>
-                </div>
-              </div>
-            )}
-          </div>
-        </section>
-      )}
+      <EmailAutomationCard automationId={WIN_BACK} title="The win-back email" purpose="the day after a member gives notice to cancel, to see if anything would change their mind (win-back)" when="Goes from info@ the day after a notice is recorded; replies come into Enquiries" />
 
       <div className="filters" role="search">
         <div className="filters-row">
