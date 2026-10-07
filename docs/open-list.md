@@ -3,6 +3,33 @@
 Everything in progress and what each item is waiting on. Sammy picks from
 this; Claude keeps it current. Last updated 06/10/2026, 23:15.
 
+## Switched off, waiting for Sammy's approval
+
+Each is built and drafted, and does nothing until Sammy presses "Approve
+and switch on" on its card. Claude prompts Sammy about these when the
+list comes up, until each is on or dropped.
+
+| What | Where to approve | Fires when |
+|---|---|---|
+| Program day 1 welcome (from TeamUp) | Program members | A Program membership starts in TeamUp |
+| Program day 3: get your sessions in the diary | Program members | Day 3 |
+| Program day 7: one week done | Program members | Day 7 |
+| Program day 10: the dip | Program members | Day 10 |
+| Program day 14: two-week check-in | Program members | Day 15 |
+| Program day 17: the second half | Program members | Day 17 |
+| Program day 21: a week to go, move to recurring | Program members | 7 days before the Program ends |
+| Program day 24: finish strong | Program members | Day 24 |
+| Program day 28: you did it | Program members | Day 28 |
+| Payment failed – update your details | Failed payments | TeamUp logs the third failed attempt |
+
+Also needed before the Program WhatsApps can send: the eight new templates
+submitted to Meta (Sammy pastes the WhatsApp token; Claude runs
+`npm run wa:templates`).
+
+**On** (Sammy's call, 07/10): the win-back email after notice to cancel.
+**Off and not TeamUp-driven any more:** the GymGrow welcomes fire only
+when staff mark a sale on the pipeline.
+
 ## Work streams
 
 1. **TeamUp members** (`docs/teamup-members.md`). Sync live: all 1,264
