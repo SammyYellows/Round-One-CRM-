@@ -17,7 +17,9 @@ export const uid = () => {
 };
 export const nowMs = (s: State) => Date.now() + s.clockOffset;
 export const nowIso = (s: State) => new Date(nowMs(s)).toISOString();
-export const firstName = (c: Contact) => c.name.split(" ")[0];
+// TeamUp sometimes has no name, so the contact's name is their email address;
+// never greet someone as "steph_tl17@hotmail.com".
+export const firstName = (c: Contact) => (c.name.includes("@") ? "" : c.name.split(" ")[0]);
 
 function log(s: State, type: EventType, contactId: string | undefined, detail: string, data?: Record<string, string>) {
   const ev: CrmEvent = { id: uid(), type, contactId, detail, at: nowIso(s), ...(data ? { data } : {}) };
