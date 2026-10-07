@@ -7,8 +7,15 @@ both using Claude Code on the same repo. Read `README.md` for how to run it.
 
 **This CRM is where Round One's selling and marketing is managed** (Sammy,
 27/09/2026). Today it takes someone from first enquiry (ad, form, walk-in,
-referral) to a booked and attended free trial and the sale ("Sold –
-Programme" or "Sold – Recurring membership"). Marketing to members and
+referral) to a booked and attended intro meeting and the sale ("Sold –
+Programme" or "Sold – Recurring membership"). **The "trial" is the 28 Day
+Program** (Sammy, 07/10): £79 paid upfront; finish it and move onto a
+recurring membership and the £79 is refunded against that membership, so
+the first 28 days end up free. "Sold – Programme" means they bought it;
+Sammy then sets them up in TeamUp, and the sync matches them to the CRM
+contact **on email**. People who sign up straight in TeamUp (website,
+walk-in, word of mouth) never pass through the pipeline; `viaOf(contact)`
+tells the two routes apart and TeamUp-driven triggers can carry `via`. Marketing to members and
 ex-members (e.g. email campaigns, with people picked from TeamUp) belongs
 here too: see `docs/improvement-list.md`.
 

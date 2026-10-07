@@ -135,7 +135,7 @@ const PROGRAM_ENDING_EMAIL = {
     "",
     "Your 28 Day Program finishes in a week. Thank you for putting the work in.",
     "",
-    "If you’d like to carry on, you can move straight onto a recurring membership so there’s no gap: Premium for full access plus classes, Classes Only, or Facility Access Only if you’d rather train on your own. No joining fee, and you can cancel any time with 30 days’ notice.",
+    "If you’d like to carry on, you can move straight onto a recurring membership so there’s no gap: Premium for full access plus classes, Classes Only, or Facility Access Only if you’d rather train on your own. And because you finished the Program, the £79 you paid for it comes back off your membership, so your first 28 days end up free. No joining fee, and you can cancel any time with 30 days’ notice.",
     "",
     "Reply to this email or ask at the desk and we’ll set it up before your last session.",
     "",
@@ -320,7 +320,7 @@ export const AUTOMATIONS: Automation[] = [
   {
     id: "program_day_1", name: "Program – day 1 welcome (from TeamUp)", enabled: false, runs: 0,
     summary: "When a Program membership starts in TeamUp, the welcome email and WhatsApp. Off until approved on the Program members screen.",
-    trigger: { type: "membership.started", category: "Program Memberships" },
+    trigger: { type: "membership.started", category: "Program Memberships", via: "teamup" },
     steps: [
       { kind: "email", to: "contact", ...WELCOME_EMAIL },
       { kind: "whatsapp", template: "intro_programme_1" },
@@ -329,7 +329,7 @@ export const AUTOMATIONS: Automation[] = [
   {
     id: "program_check_in", name: "Program – two-week check-in", enabled: false, runs: 0,
     summary: "Two weeks into the 28 Day Program (from TeamUp), asks how it’s going. Off until approved on the Program members screen.",
-    trigger: { type: "membership.started", category: "Program Memberships" },
+    trigger: { type: "membership.started", category: "Program Memberships", via: "crm" },
     steps: [
       { kind: "wait", hours: 14 * 24 },
       { kind: "email", to: "contact", ...PROGRAM_CHECK_IN_EMAIL },
@@ -339,13 +339,13 @@ export const AUTOMATIONS: Automation[] = [
   {
     id: "program_ending", name: "Program – a week to go, move to recurring", enabled: false, runs: 0,
     summary: "A week before the 28 Day Program ends (from TeamUp), offers a recurring membership. Off until approved on the Program members screen.",
-    trigger: { type: "membership.ending", daysBefore: 7, category: "Program Memberships" },
+    trigger: { type: "membership.ending", daysBefore: 7, category: "Program Memberships", via: "crm" },
     steps: [{ kind: "email", to: "contact", ...PROGRAM_ENDING_EMAIL }],
   },
   {
     id: "program_day_3", name: "Program – day 3: get your sessions in the diary", enabled: false, runs: 0,
     summary: "Day 3 of the 28 Day Program (from TeamUp). Off until approved on the Program members screen.",
-    trigger: { type: "membership.started", category: "Program Memberships" },
+    trigger: { type: "membership.started", category: "Program Memberships", via: "crm" },
     steps: [
       { kind: "wait", hours: 48 },
       { kind: "email", to: "contact", ...PROGRAM_DAY_3_EMAIL },
@@ -356,7 +356,7 @@ export const AUTOMATIONS: Automation[] = [
   {
     id: "program_day_7", name: "Program – one week done", enabled: false, runs: 0,
     summary: "Day 7 of the 28 Day Program (from TeamUp). Off until approved on the Program members screen.",
-    trigger: { type: "membership.started", category: "Program Memberships" },
+    trigger: { type: "membership.started", category: "Program Memberships", via: "crm" },
     steps: [
       { kind: "wait", hours: 144 },
       { kind: "email", to: "contact", ...PROGRAM_DAY_7_EMAIL },
@@ -366,7 +366,7 @@ export const AUTOMATIONS: Automation[] = [
   {
     id: "program_day_10", name: "Program – day 10: the dip", enabled: false, runs: 0,
     summary: "Day 10 of the 28 Day Program (from TeamUp). Off until approved on the Program members screen.",
-    trigger: { type: "membership.started", category: "Program Memberships" },
+    trigger: { type: "membership.started", category: "Program Memberships", via: "crm" },
     steps: [
       { kind: "wait", hours: 216 },
       { kind: "email", to: "contact", ...PROGRAM_DAY_10_EMAIL },
@@ -376,7 +376,7 @@ export const AUTOMATIONS: Automation[] = [
   {
     id: "program_day_17", name: "Program – day 17: second half", enabled: false, runs: 0,
     summary: "Day 17 of the 28 Day Program (from TeamUp). Off until approved on the Program members screen.",
-    trigger: { type: "membership.started", category: "Program Memberships" },
+    trigger: { type: "membership.started", category: "Program Memberships", via: "crm" },
     steps: [
       { kind: "wait", hours: 384 },
       { kind: "email", to: "contact", ...PROGRAM_DAY_17_EMAIL },
@@ -386,7 +386,7 @@ export const AUTOMATIONS: Automation[] = [
   {
     id: "program_day_24", name: "Program – day 24: finishing strong", enabled: false, runs: 0,
     summary: "Day 24 of the 28 Day Program (from TeamUp). Off until approved on the Program members screen.",
-    trigger: { type: "membership.started", category: "Program Memberships" },
+    trigger: { type: "membership.started", category: "Program Memberships", via: "crm" },
     steps: [
       { kind: "wait", hours: 552 },
       { kind: "email", to: "contact", ...PROGRAM_DAY_24_EMAIL },
@@ -396,7 +396,7 @@ export const AUTOMATIONS: Automation[] = [
   {
     id: "program_day_28", name: "Program – day 28: you did it", enabled: false, runs: 0,
     summary: "Day 28 of the 28 Day Program (from TeamUp). Off until approved on the Program members screen.",
-    trigger: { type: "membership.started", category: "Program Memberships" },
+    trigger: { type: "membership.started", category: "Program Memberships", via: "crm" },
     steps: [
       { kind: "wait", hours: 648 },
       { kind: "email", to: "contact", ...PROGRAM_DAY_28_EMAIL },
