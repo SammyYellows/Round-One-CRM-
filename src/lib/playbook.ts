@@ -318,6 +318,15 @@ export const AUTOMATIONS: Automation[] = [
     ],
   },
   {
+    id: "program_day_1", name: "Program – day 1 welcome (from TeamUp)", enabled: false, runs: 0,
+    summary: "When a Program membership starts in TeamUp, the welcome email and WhatsApp. Off until approved on the Program members screen.",
+    trigger: { type: "membership.started", category: "Program Memberships" },
+    steps: [
+      { kind: "email", to: "contact", ...WELCOME_EMAIL },
+      { kind: "whatsapp", template: "intro_programme_1" },
+    ],
+  },
+  {
     id: "program_check_in", name: "Program – two-week check-in", enabled: false, runs: 0,
     summary: "Two weeks into the 28 Day Program (from TeamUp), asks how it’s going. Off until approved on the Program members screen.",
     trigger: { type: "membership.started", category: "Program Memberships" },

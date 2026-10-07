@@ -12,7 +12,7 @@ import { useStore } from "@/lib/store";
 
 const PROGRAM = /program/i;
 const MESSAGES: { id: string; day: number; title: string; purpose: string; when: string }[] = [
-  { id: "sold_programme", day: 1, title: "Day 1: welcome", purpose: "welcoming someone who has just bought the 28 Day Program", when: "Goes when someone is marked Sold – Programme, or starts a Program membership in TeamUp" },
+  { id: "program_day_1", day: 1, title: "Day 1: welcome", purpose: "welcoming someone who has just bought the 28 Day Program", when: "Goes when a Program membership starts in TeamUp" },
   { id: "program_day_3", day: 3, title: "Day 3: get your sessions in the diary", purpose: "day 3 of the 28 Day Program, getting them to book the week's sessions", when: "Goes on day 3 of a Program membership from TeamUp" },
   { id: "program_day_7", day: 7, title: "Day 7: one week done", purpose: "end of week one of the 28 Day Program, asking what was hardest", when: "Goes on day 7 of a Program membership from TeamUp" },
   { id: "program_day_10", day: 10, title: "Day 10: the dip", purpose: "day 10 of the 28 Day Program, when motivation dips", when: "Goes on day 10 of a Program membership from TeamUp" },
@@ -33,7 +33,7 @@ export default function ProgramPage() {
   );
   const finished = s.contacts.filter((c) => c.membership && PROGRAM.test(c.membership.category) && c.membership.status === "ended").length;
   const sentTo = (contactId: string) => {
-    const done = s.runs.filter((r) => r.contactId === contactId && r.status === "done" && (MESSAGES.some((m) => m.id === r.automationId) || r.automationId === "did_not_convert"));
+    const done = s.runs.filter((r) => r.contactId === contactId && r.status === "done" && (MESSAGES.some((m) => m.id === r.automationId) || r.automationId === "sold_programme" || r.automationId === "did_not_convert"));
     return done.map((r) => s.automations.find((a) => a.id === r.automationId)?.name.replace(/^Program – |^Intro Programme – /, "").replace(/:.*$/, "") ?? r.automationId);
   };
   const dayOf = (startedAt?: string) => (startedAt ? Math.max(1, Math.min(28, Math.floor((now - Date.parse(startedAt)) / 86400e3) + 1)) : null);

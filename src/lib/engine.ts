@@ -673,8 +673,12 @@ export function importMembers(s: State, inputs: MemberInput[], opts: { baseline?
       if (opts.baseline) {
         if (c.stage !== soldStage) c.stage = soldStage; // no events, no automations: it's history
       } else if (isNew) {
+        // A sale TeamUp tells us about moves the stage quietly: the pipeline's
+        // "Sold" automations (the GymGrow welcomes) are for sales staff mark
+        // here. TeamUp-driven messages hang off membership.started instead,
+        // each approved on the Program members screen (Sammy, 07/10/2026).
         log(s, "stage.changed", c.id, `${c.name} started ${m.membershipName} (TeamUp)`);
-        if (c.stage !== soldStage) setStage(s, c.id, soldStage);
+        if (c.stage !== soldStage) c.stage = soldStage;
         if (recent) {
           fire(s, { type: "membership.started", contactId: c.id, category: m.category });
           started++;

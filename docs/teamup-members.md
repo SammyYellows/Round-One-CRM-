@@ -226,6 +226,16 @@ what they owe and the email's state, badge like Cancellations, and the
 until approved. The contact page's membership line shows attempts and the
 amount owed.
 
+**Nothing fires from TeamUp until approved (Sammy, 07/10):** a sale the
+sync learns about now moves the stage quietly instead of calling
+`setStage`, so the pipeline's GymGrow welcomes ("Intro Programme –
+welcome", "Recurring member – welcome") only fire when staff mark a sale.
+TeamUp-driven messages all hang off `membership.started` /
+`membership.ending` / `membership.cancelling` / `payment.failed`, each on
+an approvable card; the day-1 Program welcome from TeamUp is now its own
+automation (`program_day_1`, off). Earlier that evening the sync had sent
+three real welcomes (two Program, one Middleweight) before this change.
+
 **Claude's next steps, in order:**
 1. ~~Run the first sync and check the mapping.~~ Done 05/10/2026: the
    baseline sync ran on the live site. 542 contacts added (source
