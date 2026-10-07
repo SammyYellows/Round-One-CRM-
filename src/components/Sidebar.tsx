@@ -37,14 +37,14 @@ export function Sidebar({ staff }: { staff?: { name: string } }) {
     }
   }, [path, now]);
 
-  const [openEnquiries, setOpenEnquiries] = useState(0);
+  const [enq, setEnq] = useState({ open: 0, fresh: 0 });
   useEffect(() => {
     if (!live) return;
     let gone = false;
     const ask = async () => {
       const since = lastSeen("/enquiries");
       const res = await fetch(`/api/enquiries/count${since ? `?since=${encodeURIComponent(since)}` : ""}`, { cache: "no-store" }).catch(() => null);
-      if (res?.ok && !gone) setOpenEnquiries(((await res.json()) as { open: number }).open);
+      if (res?.ok && !gone) { const j = (await res.json()) as { open: number; new: number }; setEnq({ open: j.open, fresh: j.new }); }
     };
     ask();
     const t = setInterval(ask, 60000);
@@ -52,10 +52,15 @@ export function Sidebar({ staff }: { staff?: { name: string } }) {
     window.addEventListener("focus", onFocus);
     return () => { gone = true; clearInterval(t); window.removeEventListener("focus", onFocus); };
   }, [live, path, seenTick]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Cancellations: notices recorded in the last 7 days; "new" = since last looked.
   const noticesSince = lastSeen("/cancellations");
-  const recentNotices = s.events.filter((e) => e.type === "stage.changed" && / gave notice on /.test(e.detail) && (noticesSince ? Date.parse(e.at) > Date.parse(noticesSince) : now - Date.parse(e.at) < 7 * 86400e3)).length;
-  const badge = (href: string) => (path === href ? 0 : href === "/enquiries" ? openEnquiries : href === "/cancellations" ? recentNotices : 0);
-  const badgeTitle = (href: string) => (href === "/enquiries" ? `${openEnquiries} new since you last looked` : `${recentNotices} gave notice since you last looked`);
+  const notices = s.events.filter((e) => e.type === "stage.changed" && / gave notice on /.test(e.detail) && now - Date.parse(e.at) < 7 * 86400e3);
+  const freshNotices = notices.filter((e) => !noticesSince || Date.parse(e.at) > Date.parse(noticesSince)).length;
+  // A red number for what's new since you last looked; a quiet grey mark when older items are still waiting.
+  const marks = (href: string): { fresh: number; waiting: number; what: string } =>
+    href === "/enquiries" ? { fresh: enq.fresh, waiting: enq.open, what: "waiting for a reply" }
+    : href === "/cancellations" ? { fresh: freshNotices, waiting: notices.length, what: "gave notice in the last 7 days" }
+    : { fresh: 0, waiting: 0, what: "" };
 
   const isOn = (href: string) => (href === "/" || href === "/pipeline" ? path === href : path.startsWith(href));
   const shift = (hours: number) => act("shiftClock", hours);
@@ -70,7 +75,13 @@ export function Sidebar({ staff }: { staff?: { name: string } }) {
         <Link key={n.href} href={n.href} className={`nav ${isOn(n.href) ? "on" : ""}`} aria-current={isOn(n.href) ? "page" : undefined}>
           <svg className="ico" viewBox="0 0 24 24" aria-hidden="true">{n.icon}</svg>
           {n.label}
-          {badge(n.href) > 0 && <span className="nav-badge" title={badgeTitle(n.href)} aria-label={badgeTitle(n.href)}>{badge(n.href)}</span>}
+          {(() => {
+            const m = marks(n.href);
+            if (path === n.href || m.waiting === 0) return null;
+            return m.fresh > 0
+              ? <span className="nav-badge" title={`${m.fresh} new since you last looked · ${m.waiting} ${m.what}`} aria-label={`${m.fresh} new since you last looked, ${m.waiting} ${m.what}`}>{m.fresh}</span>
+              : <span className="nav-badge quiet" title={`${m.waiting} ${m.what}`} aria-label={`${m.waiting} ${m.what}`}>{m.waiting}</span>;
+          })()}
         </Link>
       ))}
       <div style={{ flex: 1 }} />
