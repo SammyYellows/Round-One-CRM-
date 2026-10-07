@@ -4,7 +4,7 @@
 // routes and the automation part moves to a job runner (Inngest / Trigger.dev).
 
 import {
-  Appointment, Automation, Availability, Membership, Contact, CrmEvent, EventType, Form, Run, Source, Stage, State, Step, apptStatusLabel, stageLabel, PAYMENT_FAILED_AT } from "./types";
+  Appointment, Automation, Availability, Membership, Contact, CrmEvent, EventType, Form, Run, Source, Stage, State, Step, apptStatusLabel, stageLabel, PAYMENT_FAILED_AT, viaOf } from "./types";
 import { GYM } from "./gym";
 import { samePhone } from "./phone";
 import { ukTime } from "./time";
@@ -72,9 +72,13 @@ type Fired =
 
 const sameCategory = (want: string | undefined, got: string) => !want || want.trim().toLowerCase() === got.trim().toLowerCase();
 
-function matches(a: Automation, ev: Fired) {
+function matches(s: State, a: Automation, ev: Fired) {
   const t = a.trigger;
   if (t.type !== ev.type) return false;
+  if ("via" in t && t.via) {
+    const c = s.contacts.find((x) => x.id === ev.contactId);
+    if (!c || viaOf(c) !== t.via) return false;
+  }
   if (t.type === "form.submitted" && ev.type === "form.submitted") return t.formId === ev.formId;
   if (t.type === "stage.changed" && ev.type === "stage.changed") return t.to === ev.stage;
   if (t.type === "tag.added" && ev.type === "tag.added") return t.tag === ev.tag;
@@ -90,7 +94,7 @@ function matches(a: Automation, ev: Fired) {
 
 function fire(s: State, ev: Fired) {
   for (const a of s.automations) {
-    if (!a.enabled || !matches(a, ev)) continue;
+    if (!a.enabled || !matches(s, a, ev)) continue;
     a.runs += 1;
     const run: Run = { id: uid(), automationId: a.id, contactId: ev.contactId, stepIndex: 0, status: "running", startedAt: nowIso(s) };
     s.runs.unshift(run);
@@ -212,11 +216,12 @@ export function describeTrigger(a: Automation, forms: Form[]) {
   if (t.type === "appointment.status") return `Free trial marked ${apptStatusLabel(t.status).toLowerCase()}`;
   if (t.type === "appointment.moved") return "Free trial moved to a new time";
   const cat = (c?: string) => (c ? ` (${c})` : "");
-  if (t.type === "membership.started") return `Membership starts${cat(t.category)}`;
-  if (t.type === "membership.ending") return `Membership ends in ${t.daysBefore} day${t.daysBefore === 1 ? "" : "s"}${cat(t.category)}`;
-  if (t.type === "membership.cancelling") return `Gives notice to cancel${cat(t.category)}`;
-  if (t.type === "payment.failed") return `Payment fails ${PAYMENT_FAILED_AT} times${cat(t.category)}`;
-  if (t.type === "membership.ended") return `Membership ends${cat(t.category)}`;
+  const via = "via" in t && t.via ? (t.via === "crm" ? " · came through the CRM" : " · signed up in TeamUp") : "";
+  if (t.type === "membership.started") return `Membership starts${cat(t.category)}${via}`;
+  if (t.type === "membership.ending") return `Membership ends in ${t.daysBefore} day${t.daysBefore === 1 ? "" : "s"}${cat(t.category)}${via}`;
+  if (t.type === "membership.cancelling") return `Gives notice to cancel${cat(t.category)}${via}`;
+  if (t.type === "payment.failed") return `Payment fails ${PAYMENT_FAILED_AT} times${cat(t.category)}${via}`;
+  if (t.type === "membership.ended") return `Membership ends${cat(t.category)}${via}`;
   return `Tagged “${t.tag}”`;
 }
 

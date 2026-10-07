@@ -160,11 +160,22 @@ export type Trigger =
   | { type: "appointment.moved" }
   // TeamUp memberships (see docs/teamup-members.md). `category` limits the
   // trigger to one membership category; leave it out for all.
-  | { type: "membership.started"; category?: string }
-  | { type: "membership.ending"; daysBefore: number; category?: string }
-  | { type: "membership.cancelling"; category?: string } // they've given notice; it still runs until endsAt
-  | { type: "payment.failed"; category?: string } // TeamUp has logged 3 failed payment attempts (PAYMENT_FAILED_AT)
-  | { type: "membership.ended"; category?: string };
+  | { type: "membership.started"; category?: string; via?: Via }
+  | { type: "membership.ending"; daysBefore: number; category?: string; via?: Via }
+  | { type: "membership.cancelling"; category?: string; via?: Via } // they've given notice; it still runs until endsAt
+  | { type: "payment.failed"; category?: string; via?: Via } // TeamUp has logged 3 failed payment attempts (PAYMENT_FAILED_AT)
+  | { type: "membership.ended"; category?: string; via?: Via };
+
+/**
+ * How someone reached us (Sammy, 07/10/2026). "crm": through the
+ * questionnaire or any CRM route first, then set up in TeamUp when they
+ * bought the Program (matched on email). "teamup": signed up straight in
+ * TeamUp (website, walk-in, word of mouth). A trigger with `via` only fires
+ * for that route.
+ */
+export type Via = "crm" | "teamup";
+export const viaOf = (c: { source: Source }): Via => (c.source === "teamup" ? "teamup" : "crm");
+export const viaLabel = (v: Via) => (v === "crm" ? "Came through the CRM" : "Signed up in TeamUp");
 
 export type Step =
   | { kind: "whatsapp"; template: string }

@@ -22,6 +22,9 @@ list comes up, until each is on or dropped.
 | Program day 28: you did it | Program members | Day 28 |
 | Payment failed – update your details | Failed payments | TeamUp logs the third failed attempt |
 
+Program route 2 (signed up straight in TeamUp): Sammy to describe the
+schedule; only the day-1 welcome exists so far.
+
 Also needed before the Program WhatsApps can send: the eight new templates
 submitted to Meta (Sammy pastes the WhatsApp token; Claude runs
 `npm run wa:templates`).
