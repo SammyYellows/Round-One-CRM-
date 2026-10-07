@@ -121,16 +121,40 @@ export async function fetchCustomers(): Promise<CustomerInput[]> {
   return rows.map(readCustomer).filter((c): c is CustomerInput => !!c);
 }
 
+/**
+ * Failed payments, from two places in TeamUp: each payment subscription's
+ * retry_count (attempts that failed), keyed by subscription id, which a
+ * customer_membership row points at; and open invoices, keyed by payer.
+ */
+export async function fetchPaymentInfo(): Promise<{ retries: Map<string, number>; owed: Map<string, { count: number; total: number; since?: string }> }> {
+  const [subs, invoices] = await Promise.all([list("/payment_subscriptions"), list("/invoices", { status: "open" })]);
+  const retries = new Map(subs.map((x) => [idOf(x.id), Number(x.retry_count ?? 0) || 0]));
+  const owed = new Map<string, { count: number; total: number; since?: string }>();
+  for (const inv of invoices) {
+    const payer = idOf(inv.payer);
+    if (!payer) continue;
+    const cur = owed.get(payer) ?? { count: 0, total: 0 };
+    cur.count++;
+    cur.total += Number(obj(inv.total_amount_due).decimal ?? 0) || 0;
+    const due = iso(inv.due_date);
+    if (due && (!cur.since || due < cur.since)) cur.since = due;
+    owed.set(payer, cur);
+  }
+  return { retries, owed };
+}
+
 /** Everyone with a membership in TeamUp, plus the raw rows for the audit copy. */
 export async function fetchMembers(): Promise<{ members: MemberInput[]; raw: { id: string; customer_id: string; raw: Json }[] }> {
   const cats = await list("/membership_categories");
   const categories = new Map(cats.map((c) => [idOf(c.id), String(c.name ?? "")]));
-  const rows = await list("/customer_memberships", { expand: "customer,membership" });
+  const [rows, payments] = await Promise.all([list("/customer_memberships", { expand: "customer,membership" }), fetchPaymentInfo()]);
   const members: MemberInput[] = [];
   const raw: { id: string; customer_id: string; raw: Json }[] = [];
   for (const row of rows) {
     const m = readMembership(row, categories);
     if (!m) continue;
+    m.paymentRetries = payments.retries.get(idOf(row.payment_subscription)) ?? 0;
+    m.owed = payments.owed.get(m.customerId);
     members.push(m);
     raw.push({ id: idOf(row.id) || `${m.customerId}-${m.membershipName}`, customer_id: m.customerId, raw: row });
   }

@@ -4,8 +4,7 @@
 // routes and the automation part moves to a job runner (Inngest / Trigger.dev).
 
 import {
-  Appointment, Automation, Availability, Membership, Contact, CrmEvent, EventType, Form, Run, Source, Stage, State, Step, apptStatusLabel, stageLabel,
-} from "./types";
+  Appointment, Automation, Availability, Membership, Contact, CrmEvent, EventType, Form, Run, Source, Stage, State, Step, apptStatusLabel, stageLabel, PAYMENT_FAILED_AT } from "./types";
 import { GYM } from "./gym";
 import { samePhone } from "./phone";
 import { ukTime } from "./time";
@@ -66,6 +65,7 @@ type Fired =
   | { type: "membership.started"; contactId: string; category: string }
   | { type: "membership.ending"; contactId: string; category: string; daysBefore: number }
   | { type: "membership.cancelling"; contactId: string; category: string }
+  | { type: "payment.failed"; contactId: string; category: string }
   | { type: "membership.ended"; contactId: string; category: string };
 
 const sameCategory = (want: string | undefined, got: string) => !want || want.trim().toLowerCase() === got.trim().toLowerCase();
@@ -81,6 +81,7 @@ function matches(a: Automation, ev: Fired) {
   if (t.type === "membership.started" && ev.type === "membership.started") return sameCategory(t.category, ev.category);
   if (t.type === "membership.ended" && ev.type === "membership.ended") return sameCategory(t.category, ev.category);
   if (t.type === "membership.cancelling" && ev.type === "membership.cancelling") return sameCategory(t.category, ev.category);
+  if (t.type === "payment.failed" && ev.type === "payment.failed") return sameCategory(t.category, ev.category);
   if (t.type === "membership.ending" && ev.type === "membership.ending") return t.daysBefore === ev.daysBefore && sameCategory(t.category, ev.category);
   return false;
 }
@@ -212,6 +213,7 @@ export function describeTrigger(a: Automation, forms: Form[]) {
   if (t.type === "membership.started") return `Membership starts${cat(t.category)}`;
   if (t.type === "membership.ending") return `Membership ends in ${t.daysBefore} day${t.daysBefore === 1 ? "" : "s"}${cat(t.category)}`;
   if (t.type === "membership.cancelling") return `Gives notice to cancel${cat(t.category)}`;
+  if (t.type === "payment.failed") return `Payment fails ${PAYMENT_FAILED_AT} times${cat(t.category)}`;
   if (t.type === "membership.ended") return `Membership ends${cat(t.category)}`;
   return `Tagged “${t.tag}”`;
 }
@@ -554,6 +556,8 @@ export interface MemberInput {
   startedAt?: string;
   endsAt?: string;
   cancelling?: boolean; // TeamUp's is_set_for_cancellation
+  paymentRetries?: number; // failed attempts on the payment subscription
+  owed?: { count: number; total: number; since?: string }; // open invoices for the customer
   createdAt?: string; // when the customer first appeared in TeamUp
 }
 
@@ -643,9 +647,17 @@ export function importMembers(s: State, inputs: MemberInput[], opts: { baseline?
     const prev = c.membership;
     c.membership = {
       customerId: m.customerId, id: m.id, name: m.membershipName, category: m.category, status: m.status,
-      startedAt: m.startedAt, endsAt: m.endsAt, cancelling: !!m.cancelling, lastAttendedAt: prev?.lastAttendedAt, syncedAt: nowIso(s),
+      startedAt: m.startedAt, endsAt: m.endsAt, cancelling: !!m.cancelling, paymentRetries: m.paymentRetries ?? 0, owed: m.owed,
+      lastAttendedAt: prev?.lastAttendedAt, syncedAt: nowIso(s),
       noticesSent: prev?.id === m.id ? prev.noticesSent : undefined,
     };
+    // Failed payments: the attempt count reached the threshold since the last
+    // sync (on a membership we had already recorded below it).
+    const retries = m.paymentRetries ?? 0;
+    if (m.status !== "ended" && retries >= PAYMENT_FAILED_AT && prev?.id === m.id && prev.paymentRetries !== undefined && prev.paymentRetries < PAYMENT_FAILED_AT && !opts.baseline) {
+      log(s, "stage.changed", c.id, `${c.name}: ${retries} failed payment attempts on ${m.membershipName} (TeamUp)`);
+      fire(s, { type: "payment.failed", contactId: c.id, category: m.category });
+    }
     // Notice given since the last sync (on a membership we already knew and
     // had recorded as not cancelling): the win-back moment.
     if (m.status !== "ended" && m.cancelling && prev?.id === m.id && prev.cancelling === false && !opts.baseline) {
