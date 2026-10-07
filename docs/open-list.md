@@ -1,7 +1,7 @@
 # Open list
 
 Everything in progress and what each item is waiting on. Sammy picks from
-this; Claude keeps it current. Last updated 06/10/2026, 23:15.
+this; Claude keeps it current. Last updated 07/10/2026.
 
 ## Switched off, waiting for Sammy's approval
 
@@ -22,8 +22,15 @@ list comes up, until each is on or dropped.
 | Program day 28: you did it | Program members | Day 28 |
 | Payment failed – update your details | Failed payments | TeamUp logs the third failed attempt |
 
-Program route 2 (signed up straight in TeamUp): Sammy to describe the
-schedule; only the day-1 welcome exists so far.
+**Task: Program route 2 schedule** (people who sign up straight in
+TeamUp, never through the questionnaire). Built so far: only the day-1
+welcome. Waiting on Sammy (07/10, chose "something else"): the days after
+the TeamUp start date, a line on what each message says, and the channel
+(email is the only one that works for them until mobile numbers are
+added, since TeamUp gives none). Also say whether direct sign-ups who buy
+a recurring membership rather than the Program get the same messages.
+Claude then drafts each in Round One's voice as its own switched-off card
+on Program members.
 
 Also needed before the Program WhatsApps can send: the eight new templates
 submitted to Meta (Sammy pastes the WhatsApp token; Claude runs
