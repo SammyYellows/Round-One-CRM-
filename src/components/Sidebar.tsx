@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useStore } from "@/lib/store";
+import { PAYMENT_FAILED_AT } from "@/lib/types";
 
 const NAV = [
   { href: "/", label: "Today", icon: <path d="M3 11 12 4l9 7v9H3z" /> },
@@ -16,6 +17,7 @@ const NAV = [
   { href: "/program", label: "Program members", icon: <><path d="M4 20V10M10 20V4M16 20v-8M22 20H2" /></> },
   { href: "/members", label: "Members", icon: <><circle cx="9" cy="8" r="3.5" /><circle cx="17" cy="9" r="2.5" /><path d="M3 20c1-3.5 3.5-5.5 6-5.5s5 2 6 5.5M15 19c.5-2 2-3.5 4-3.5s2.5 1 2 3.5" /></> },
   { href: "/cancellations", label: "Cancellations", icon: <><circle cx="12" cy="12" r="9" /><path d="m9 9 6 6M15 9l-6 6" /></> },
+  { href: "/payments", label: "Failed payments", icon: <><rect x="2" y="6" width="20" height="13" /><path d="M2 10h20M6 15h4" /></> },
   { href: "/automations", label: "Automations", icon: <path d="M13 2 4 14h7l-1 8 9-12h-7z" /> },
   { href: "/forms", label: "Forms", icon: <><rect x="5" y="3" width="14" height="18" /><path d="M9 8h6M9 12h6M9 16h4" /></> },
   { href: "/ads", label: "Meta ads", icon: <path d="M5 20V11M11 20V5M17 20v-6M3 21h18" /> },
@@ -31,7 +33,7 @@ export function Sidebar({ staff }: { staff?: { name: string } }) {
   const lastSeen = (href: string) => { try { return localStorage.getItem(seenKey(href)); } catch { return null; } };
   const [seenTick, setSeenTick] = useState(0);
   useEffect(() => {
-    if (path === "/enquiries" || path === "/cancellations") {
+    if (path === "/enquiries" || path === "/cancellations" || path === "/payments") {
       try { localStorage.setItem(seenKey(path), new Date(now).toISOString()); } catch { /* private mode */ }
       setSeenTick((t) => t + 1);
     }
@@ -56,10 +58,16 @@ export function Sidebar({ staff }: { staff?: { name: string } }) {
   const noticesSince = lastSeen("/cancellations");
   const notices = s.events.filter((e) => e.type === "stage.changed" && / gave notice on /.test(e.detail) && now - Date.parse(e.at) < 7 * 86400e3);
   const freshNotices = notices.filter((e) => !noticesSince || Date.parse(e.at) > Date.parse(noticesSince)).length;
+  // Failed payments: people at the threshold now; "new" = flagged since last looked.
+  const paySince = lastSeen("/payments");
+  const failing = s.contacts.filter((c) => c.membership && c.membership.status !== "ended" && (c.membership.paymentRetries ?? 0) >= PAYMENT_FAILED_AT);
+  const flaggedIds = new Set(s.events.filter((e) => e.type === "stage.changed" && / failed payment attempts on /.test(e.detail) && (!paySince || Date.parse(e.at) > Date.parse(paySince))).map((e) => e.contactId));
+  const freshFailing = failing.filter((c) => flaggedIds.has(c.id)).length;
   // A red number for what's new since you last looked; a quiet grey mark when older items are still waiting.
   const marks = (href: string): { fresh: number; waiting: number; what: string } =>
     href === "/enquiries" ? { fresh: enq.fresh, waiting: enq.open, what: "waiting for a reply" }
     : href === "/cancellations" ? { fresh: freshNotices, waiting: notices.length, what: "gave notice in the last 7 days" }
+    : href === "/payments" ? { fresh: freshFailing, waiting: failing.length, what: `with ${PAYMENT_FAILED_AT}+ failed payment attempts` }
     : { fresh: 0, waiting: 0, what: "" };
 
   const isOn = (href: string) => (href === "/" || href === "/pipeline" ? path === href : path.startsWith(href));

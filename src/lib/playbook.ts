@@ -171,6 +171,13 @@ const PROGRAM_DAY_28_EMAIL = {
   body: "Hi {first},\n\n28 days. Done. Thank you for trusting us with it, and well done for seeing it through.\n\nWhatever you’ve decided about carrying on, we’d genuinely like to know how you found it. Reply with the one thing that was best and the one thing we could do better.\n\nAnd if you’re staying, see you next week.\n\n{team}",
 };
 
+// Failed payments (Sammy, 07/10/2026): after three failed attempts logged
+// in TeamUp. Service message. Off until approved on the Failed payments screen.
+const PAYMENT_FAILED_EMAIL = {
+  subject: "Your payment didn’t go through, {first}",
+  body: "Hi {first},\n\nYour membership payment has failed a few times now, so we wanted to check in before it causes a problem with your membership.\n\nUsually it’s an expired card or a change of bank. You can update your payment details in the TeamUp app, or reply to this email and we’ll sort it with you.\n\nIf something’s changed and you’d rather talk it through, just reply. We’d rather know than guess.\n\n{team}",
+};
+
 const WIN_BACK_EMAIL = {
   subject: "Sorry to see you go, {first}",
   body: [
@@ -386,6 +393,12 @@ export const AUTOMATIONS: Automation[] = [
       { kind: "email", to: "contact", ...PROGRAM_DAY_28_EMAIL },
       { kind: "whatsapp", template: "program_day_28" },
     ],
+  },
+  {
+    id: "payment_failed", name: "Payment failed – update your details", enabled: false, runs: 0,
+    summary: "When TeamUp has logged three failed payment attempts, asks them to update their payment details. Off until approved on the Failed payments screen.",
+    trigger: { type: "payment.failed" },
+    steps: [{ kind: "email", to: "contact", ...PAYMENT_FAILED_EMAIL }],
   },
   {
     id: "win_back", name: "Gave notice – win-back", enabled: false, runs: 0,

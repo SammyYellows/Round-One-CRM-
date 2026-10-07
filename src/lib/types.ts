@@ -80,6 +80,9 @@ export interface Contact {
 }
 
 /** A customer's membership as TeamUp reports it. TeamUp stays the source of truth. */
+/** Failed attempts before someone counts as a failed payment (Sammy, 07/10/2026). */
+export const PAYMENT_FAILED_AT = 3;
+
 export interface TeamUpCustomer {
   customerId: string;
   status?: string; // TeamUp's own label: prospect, at_risk, converted, churned, lost…
@@ -96,6 +99,8 @@ export interface Membership {
   startedAt?: string;
   endsAt?: string; // expiry or next renewal, when TeamUp gives one
   cancelling?: boolean; // notice given in TeamUp; the membership runs out at endsAt
+  paymentRetries?: number; // failed payment attempts TeamUp has logged on the subscription
+  owed?: { count: number; total: number; since?: string }; // open invoices in TeamUp
   lastAttendedAt?: string;
   syncedAt: string;
   // Keys of "ending soon" notices already sent, e.g. "ending:7:2026-10-31".
@@ -158,6 +163,7 @@ export type Trigger =
   | { type: "membership.started"; category?: string }
   | { type: "membership.ending"; daysBefore: number; category?: string }
   | { type: "membership.cancelling"; category?: string } // they've given notice; it still runs until endsAt
+  | { type: "payment.failed"; category?: string } // TeamUp has logged 3 failed payment attempts (PAYMENT_FAILED_AT)
   | { type: "membership.ended"; category?: string };
 
 export type Step =

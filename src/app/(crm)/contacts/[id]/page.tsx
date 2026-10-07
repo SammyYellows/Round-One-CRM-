@@ -154,7 +154,7 @@ export default function ContactPage() {
               <div className="label" style={{ margin: 0 }}>Membership (TeamUp)</div>
               <div className="strong">{c.membership.name}</div>
               <div className="small muted">
-                {c.membership.category} · {c.membership.status === "active" ? "Active" : c.membership.status === "on_hold" ? "On hold" : "Ended"}{c.membership.cancelling && c.membership.status !== "ended" ? " · gave notice" : ""}
+                {c.membership.category} · {c.membership.status === "active" ? "Active" : c.membership.status === "on_hold" ? "On hold" : "Ended"}{c.membership.cancelling && c.membership.status !== "ended" ? " · gave notice" : ""}{(c.membership.paymentRetries ?? 0) > 0 ? ` · ${c.membership.paymentRetries} failed payment attempt${c.membership.paymentRetries === 1 ? "" : "s"}` : ""}{c.membership.owed ? ` · owes ${c.membership.owed.total.toFixed(2).replace(/^/, "£")}` : ""}
                 {c.membership.startedAt ? ` · since ${shortDate(c.membership.startedAt)}` : ""}
                 {c.membership.endsAt ? ` · ${c.membership.status === "ended" ? "ended" : "ends or renews"} ${shortDate(c.membership.endsAt)}` : ""}
               </div>

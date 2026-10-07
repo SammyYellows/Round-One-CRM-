@@ -214,6 +214,18 @@ re-approving on the real account. WhatsApp only reaches people who have a
 mobile in the CRM (TeamUp gives none), so most Program members get the
 email only until numbers are added.
 
+**Failed payments (07/10):** the sync reads TeamUp's payment subscriptions
+(`retry_count` = failed attempts, linked from each customer membership's
+`payment_subscription`) and open invoices (by payer), into
+`membership.paymentRetries` and `membership.owed`. At three attempts
+(`PAYMENT_FAILED_AT`) it logs "N failed payment attempts" on the timeline
+and fires `payment.failed`; the first sync after this change only records
+the counts. Sidebar → Failed payments lists everyone at three or more with
+what they owe and the email's state, badge like Cancellations, and the
+"Payment failed – update your details" automation on an editable card, off
+until approved. The contact page's membership line shows attempts and the
+amount owed.
+
 **Claude's next steps, in order:**
 1. ~~Run the first sync and check the mapping.~~ Done 05/10/2026: the
    baseline sync ran on the live site. 542 contacts added (source
