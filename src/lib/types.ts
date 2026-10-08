@@ -96,6 +96,11 @@ export interface Accountability {
   frequency: "slipping" | "pulse" | "daily" | "weekly";
   slot: string; // check-in slot, e.g. "Sunday 6pm"
   coachNotes?: string;
+  // This week's and last week's sessions, from TeamUp attendances (refreshed
+  // nightly and just before their check-in). Weeks run Monday to Sunday, UK.
+  attendance?: { weekStart: string; thisWeek: number; lastWeek: number; sessions: string[]; syncedAt: string };
+  lastCheckinAt?: string; // when the last weekly check-in was sent
+  checkins?: { week: string; at: string; feel: string; blocker?: string; play: string }[]; // their answers, newest first
 }
 
 /** A customer's membership as TeamUp reports it. TeamUp stays the source of truth. */
@@ -159,6 +164,8 @@ export type EventType =
   | "automation.changed" // staff changed an automation's wording or switched it on or off
   | "accountability.joined" // they filled in the commitment form
   | "accountability.left" // staff ended it, or they asked to stop
+  | "accountability.checkin" // the weekly check-in went out
+  | "accountability.checkin_received" // they answered it
   | "appointment.booked"
   | "appointment.updated";
 
@@ -188,7 +195,9 @@ export type Trigger =
   | { type: "payment.failed"; category?: string; via?: Via } // TeamUp has logged 3 failed payment attempts (PAYMENT_FAILED_AT)
   | { type: "membership.ended"; category?: string; via?: Via }
   // Someone joined the accountability programme (docs/accountability.md).
-  | { type: "accountability.joined" };
+  | { type: "accountability.joined" }
+  // Their weekly check-in time has come (this week's attendance is in the placeholders).
+  | { type: "accountability.checkin" };
 
 /**
  * How someone reached us (Sammy, 07/10/2026). "crm": through the

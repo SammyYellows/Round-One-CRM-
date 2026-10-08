@@ -27,6 +27,9 @@ async function get(path: string, params: Record<string, string> = {}, attempt = 
   return (await res.json()) as Json;
 }
 
+/** One GET, for callers that page themselves (attendance.ts). Takes a path or a full "next" URL. */
+export const fetchJson = (path: string, params: Record<string, string> = {}) => get(path, params);
+
 /** Every page of a list endpoint (100 per page). */
 async function list(path: string, params: Record<string, string> = {}): Promise<Json[]> {
   const out: Json[] = [];

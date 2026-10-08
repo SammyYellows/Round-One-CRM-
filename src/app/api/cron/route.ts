@@ -10,6 +10,7 @@ import { syncTeamUp } from "@/lib/server/teamupSync";
 import { drainQueue, queuedCount } from "@/lib/server/mailouts";
 import { catchUpReceived } from "@/lib/server/enquiries";
 import { runDueReports } from "@/lib/server/reports";
+import { accountabilityTick } from "@/lib/server/accountability";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -27,6 +28,8 @@ export async function GET(req: Request) {
   const enquiries = await catchUpReceived().catch((e) => ({ error: e instanceof Error ? e.message : String(e) }));
   // The managers' reports, when their time has come (Reports → Settings).
   const reports = await runDueReports().catch((e) => ({ error: e instanceof Error ? e.message : String(e) }));
+  // Accountability check-ins whose slot time has come (docs/accountability.md).
+  const accountability = await accountabilityTick().catch((e) => ({ error: e instanceof Error ? e.message : String(e) }));
 
   const { data, error } = await db()
     .from("runs")
@@ -35,8 +38,8 @@ export async function GET(req: Request) {
     .lte("resume_at", new Date().toISOString())
     .limit(1);
   if (error) throw new Error(`Checking for due runs: ${error.message}`);
-  if (!data?.length) return Response.json({ ok: true, due: false, mailout, enquiries, reports });
+  if (!data?.length) return Response.json({ ok: true, due: false, mailout, enquiries, reports, accountability });
 
   await loadAndTick();
-  return Response.json({ ok: true, due: true, mailout, enquiries, reports });
+  return Response.json({ ok: true, due: true, mailout, enquiries, reports, accountability });
 }

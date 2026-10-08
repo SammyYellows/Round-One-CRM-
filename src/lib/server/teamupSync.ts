@@ -6,6 +6,7 @@ import { checkMembershipsEnding, importCustomers, importMembers } from "@/lib/en
 import { fetchCustomerMembers, fetchCustomers, fetchMembers, teamupConfigured } from "./teamup";
 import { applyMany } from "./state";
 import { db } from "./supabase";
+import { refreshAttendance } from "./accountability";
 
 export async function syncTeamUp() {
   if (!teamupConfigured()) return { ok: false, skipped: "TeamUp isn’t configured (TEAMUP_M2M_TOKEN, TEAMUP_PROVIDER_ID)" };
@@ -25,8 +26,10 @@ export async function syncTeamUp() {
       const { error } = await db().from("teamup_members").upsert(raw.map((r) => ({ ...r, synced_at: startedAt })));
       if (error) console.error("[teamup] raw copy", error.message);
     }
-    await db().from("settings").upsert({ id: "teamup_sync", value: { lastRun: startedAt, ok: true, ...result }, updated_at: startedAt });
-    return { ok: true, ...result };
+    // This week's sessions for everyone on the accountability programme.
+    const attendance = await refreshAttendance().catch((e) => ({ error: e instanceof Error ? e.message : String(e) }));
+    await db().from("settings").upsert({ id: "teamup_sync", value: { lastRun: startedAt, ok: true, ...result, attendance }, updated_at: startedAt });
+    return { ok: true, ...result, attendance };
   } catch (e) {
     const error = e instanceof Error ? e.message : String(e);
     console.error("[teamup] sync failed", error);

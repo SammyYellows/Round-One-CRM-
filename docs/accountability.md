@@ -1,6 +1,6 @@
 # Accountability programme, built in the CRM
 
-Status: **step 1 built 08/10/2026** (Sammy: go, floor capped at three, Claude drafts the wording). Steps 2–6 to come. Sammy decided to build it in
+Status: **steps 1–3 built 08/10/2026** (Sammy: go, floor capped at three, Claude drafts the wording). Steps 2–6 to come. Sammy decided to build it in
 the CRM rather than on Make, Tally and Google Sheets. The design decisions in
 `docs/accountability-handover.md` stand; this maps them onto the CRM.
 
@@ -91,9 +91,35 @@ Built in step 1 (PR on 08/10):
 - Tested 08/10 through the real route with Sammy's test customer ("sammy
   test" is on the programme as the example; End it when done).
 
-Next: step 2 (attendance from TeamUp: `/attendances` exists, 7,236 rows,
-with `customer`, `event`, `status` attended/registered; event dates come
-from `/events`), then the weekly check-in sender (step 3).
+Built in steps 2 and 3 (same night):
+- **Attendance** (`src/lib/server/attendance.ts`): TeamUp's `/attendances`
+  takes `customer=` and `expand=event` (it ignores date filters, so the
+  cut-off is applied in code). `recordAttendance` in the engine counts
+  this week and last (Monday to Sunday, UK) into
+  `accountability.attendance`. A session counts if its status is
+  `attended`, or `registered` for a class that has already happened (many
+  gyms never tick people in). Refreshed nightly by the TeamUp sync, by the
+  Refresh button on the Accountability screen, and just before a check-in.
+- **Weekly check-in** (`src/lib/server/accountability.ts`,
+  `accountabilityTick` from `/api/cron` every 5 minutes): `dueCheckins`
+  finds members whose slot time this week has passed and who haven't had
+  one this week, with an **active membership** (lapsed means silence);
+  `sendCheckins` logs `accountability.checkin` and fires the trigger. The
+  email automation `accountability_checkin` ("Your week, {first}") uses
+  `{paceLine}`, one line on their week against their floor in their chosen
+  tone, and `{checkinLink}`. **Off until approved** on the Accountability
+  screen.
+- **Check-in form** `/f/check-in?c=<id>` (three questions). `recordCheckin`
+  stores the answers on the contact (`accountability.checkins`), logs
+  `accountability.checkin_received`, and makes a staff task when they want
+  a word with a coach or had a struggled / write-off week.
+- Slots are read from the text ("Sunday 6pm", "Monday 8am"…): change the
+  options on the form and they just work.
+
+Next: step 4 (Claude reads the check-in answers against their commitment
+and suggests a reply for staff to approve), step 5 (mid-week nudge by
+frequency preference, and the silence signal: no check-in and no
+attendance two weeks running), step 6 (Kisi).
 
 ## Where we stopped (05/10/2026)
 
