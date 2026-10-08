@@ -99,7 +99,8 @@ export default function PaymentsPage() {
             <div className="muted small">{m.owed ? `${m.owed.count} · ${gbp(m.owed.total, 2)}${m.owed.since ? ` · since ${shortDate(m.owed.since)}` : ""}` : "–"}</div>
             <div className="muted small">{flaggedAt ? `${shortDate(flaggedAt)} · ${ago(flaggedAt, now)}` : "Before 7 Oct 2026"}</div>
             <div><span className={`chip ${email.tone === "sent" ? "chip-red" : email.tone === "waiting" ? "chip-light" : ""}`} style={{ height: 22, fontSize: 10, whiteSpace: "normal", textAlign: "left" }}>{email.label}</span>
-            {live && m.status !== "ended" && (
+            {/* Hidden (Sammy, 08/10): a hold pauses billing; he wants a block that keeps billing. Back once TeamUp's block is found. */}
+            {false && live && m.status !== "ended" && (
               <div style={{ gridColumn: "1 / -1", display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
                 {holding === c.id ? (
                   <div className="enq-confirm" style={{ flex: 1 }}>
