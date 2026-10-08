@@ -17,7 +17,7 @@ export async function POST(req: Request, { params }: { params: { slug: string } 
   const { data: form } = await db().from("forms").select("id, questions").eq("slug", params.slug).maybeSingle();
   if (!form) return Response.json({ error: "Form not found" }, { status: 404 });
 
-  const body = (await req.json().catch(() => null)) as { answers?: unknown; utm?: unknown; token?: unknown; hp?: unknown } | null;
+  const body = (await req.json().catch(() => null)) as { answers?: unknown; utm?: unknown; token?: unknown; hp?: unknown; contactId?: unknown } | null;
   if (!body || typeof body.answers !== "object" || body.answers === null) return Response.json({ error: "Bad request" }, { status: 400 });
 
   // The hidden trap field: only bots fill it in. Pretend it worked.
@@ -49,7 +49,8 @@ export async function POST(req: Request, { params }: { params: { slug: string } 
     // The contact's id makes the link to their booking page, shown on the
     // form's end screen. If their number matched an existing contact, it's theirs.
     // Events are newest first, so the first form.submitted is this one.
-    const after = await applyAction("submitForm", [form.id as string, answers, utm, uid()]);
+    const known = text(body.contactId, 40) || undefined; // from a personalised link (?c=…)
+    const after = await applyAction("submitForm", [form.id as string, answers, utm, uid(), known]);
     const contactId = after.events.find((e) => e.type === "form.submitted")?.contactId;
     return Response.json({ ok: true, contactId });
   } catch (e) {

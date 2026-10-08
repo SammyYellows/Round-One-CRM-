@@ -13,6 +13,7 @@ const TYPES: { id: QuestionType; label: string }[] = [
   { id: "phone", label: "Phone" },
   { id: "email", label: "Email" },
   { id: "choice", label: "Choice" },
+  { id: "multi", label: "Tick boxes" },
   { id: "scale", label: "Scale 1–10" },
 ];
 
@@ -75,13 +76,23 @@ export default function FormsPage() {
               <span className="h" style={{ fontSize: 20, color: "var(--red)", paddingTop: 10 }}>{i + 1}</span>
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                 <input className="input" aria-label={`Question ${i + 1}`} value={q.text} onChange={(e) => setQ(i, { text: e.target.value })} />
-                {q.type === "choice" && (
+                {(q.type === "choice" || q.type === "multi") && (
                   <input
                     className="input"
                     aria-label={`Options for question ${i + 1}, separated by commas`}
                     value={(q.options ?? []).join(", ")}
                     onChange={(e) => setQ(i, { options: e.target.value.split(",").map((o) => o.trim()).filter(Boolean) })}
                   />
+                )}
+                {q.type === "multi" && (
+                  <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }} className="small muted">
+                    <label style={{ display: "flex", gap: 6, alignItems: "center" }}>Tick up to <input className="input" style={{ width: 64, height: 36 }} type="number" min={1} max={10} value={q.max ?? 1} onChange={(e) => setQ(i, { max: Math.max(1, Number(e.target.value) || 1) })} /></label>
+                    <label style={{ display: "flex", gap: 6, alignItems: "center" }}><input type="checkbox" checked={!!q.other} onChange={(e) => setQ(i, { other: e.target.checked })} /> With an “Other” box</label>
+                    <label style={{ display: "flex", gap: 6, alignItems: "center" }}><input type="checkbox" checked={!!q.optional} onChange={(e) => setQ(i, { optional: e.target.checked })} /> Optional</label>
+                  </div>
+                )}
+                {(q.type === "long" || q.type === "text") && (
+                  <label className="small muted" style={{ display: "flex", gap: 6, alignItems: "center" }}><input type="checkbox" checked={!!q.optional} onChange={(e) => setQ(i, { optional: e.target.checked })} /> Optional</label>
                 )}
                 {q.type === "scale" && (
                   <div style={{ display: "flex", gap: 8 }}>

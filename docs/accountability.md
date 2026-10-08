@@ -1,6 +1,6 @@
 # Accountability programme, built in the CRM
 
-Status: **planned (05/10/2026), not started.** Sammy decided to build it in
+Status: **step 1 built 08/10/2026** (Sammy: go, floor capped at three, Claude drafts the wording). Steps 2–6 to come. Sammy decided to build it in
 the CRM rather than on Make, Tally and Google Sheets. The design decisions in
 `docs/accountability-handover.md` stand; this maps them onto the CRM.
 
@@ -66,6 +66,34 @@ the CRM rather than on Make, Tally and Google Sheets. The design decisions in
   recommendation) or keep "at least four" (Sammy added it).
 - The confirmation and check-in email wording, or OK for Claude to draft
   from the handover's tone for Sammy to edit.
+
+## Where we are (08/10/2026)
+
+Built in step 1 (PR on 08/10):
+- `/f/accountability`, the commitment form, reached from a personalised
+  link `/f/accountability?c=<contact id>` (copied from the Accountability
+  screen or the contact page). Nine questions as in the handover, with the
+  nudge-frequency question added, the typo gone, floor capped at three.
+  New question type `multi` (tick boxes, up to `max`, with an Other box)
+  and `optional` on questions.
+- `contact.accountability` (`Accountability` in `types.ts`): floor, stretch,
+  goals, why, derailers, style, frequency, slot, coach notes, joined/left.
+  Filled by `joinAccountability` in the engine from the form's answers
+  (question ids `a_floor`, `a_stretch`…); `leaveAccountability` ends it.
+  Events `accountability.joined` / `accountability.left`; trigger
+  `accountability.joined`.
+- Placeholders `{floor} {stretch} {why} {slot} {goal}` for messages.
+- Automation `accountability_welcome` ("Locked in, {first}"), **off until
+  approved** on the Accountability screen, where it has the usual card.
+- Accountability screen (sidebar): who's on it and what they committed to,
+  End button, invite-link search over active members, the welcome card.
+  Contact page shows the commitment and the invite link.
+- Tested 08/10 through the real route with Sammy's test customer ("sammy
+  test" is on the programme as the example; End it when done).
+
+Next: step 2 (attendance from TeamUp: `/attendances` exists, 7,236 rows,
+with `customer`, `event`, `status` attended/registered; event dates come
+from `/events`), then the weekly check-in sender (step 3).
 
 ## Where we stopped (05/10/2026)
 

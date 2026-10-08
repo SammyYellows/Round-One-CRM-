@@ -4,7 +4,7 @@
 // routes and the automation part moves to a job runner (Inngest / Trigger.dev).
 
 import {
-  Appointment, Automation, Availability, Membership, Contact, CrmEvent, EventType, Form, Run, Source, Stage, State, Step, apptStatusLabel, stageLabel, PAYMENT_FAILED_AT, viaOf } from "./types";
+  Accountability, Appointment, Automation, Availability, Membership, Contact, CrmEvent, EventType, Form, Run, Source, Stage, State, Step, apptStatusLabel, stageLabel, PAYMENT_FAILED_AT, viaOf } from "./types";
 import { GYM } from "./gym";
 import { samePhone } from "./phone";
 import { ukTime } from "./time";
@@ -44,8 +44,16 @@ export function placeholders(c: Contact): Record<string, string> {
     address: GYM.address,
     gym: GYM.name,
     team: GYM.signOff,
+    // Accountability programme (docs/accountability.md)
+    floor: c.accountability ? times(c.accountability.floor) : "your floor",
+    stretch: c.accountability ? times(c.accountability.stretch) : "your stretch",
+    why: c.accountability?.why || "what you told us",
+    slot: c.accountability?.slot || "your check-in time",
+    goal: c.accountability?.goals.join(" and ") || "your goal",
   };
 }
+
+const times = (n: number) => (n === 1 ? "once" : n === 2 ? "twice" : `${n} times`);
 
 /** Fills in {first}, {date} etc. Unknown ones (like {bookLink}) are left for the server. */
 export function fill(text: string, c: Contact) {
@@ -68,7 +76,8 @@ type Fired =
   | { type: "membership.ending"; contactId: string; category: string; daysBefore: number }
   | { type: "membership.cancelling"; contactId: string; category: string }
   | { type: "payment.failed"; contactId: string; category: string }
-  | { type: "membership.ended"; contactId: string; category: string };
+  | { type: "membership.ended"; contactId: string; category: string }
+  | { type: "accountability.joined"; contactId: string };
 
 const sameCategory = (want: string | undefined, got: string) => !want || want.trim().toLowerCase() === got.trim().toLowerCase();
 
@@ -89,6 +98,7 @@ function matches(s: State, a: Automation, ev: Fired) {
   if (t.type === "membership.cancelling" && ev.type === "membership.cancelling") return sameCategory(t.category, ev.category);
   if (t.type === "payment.failed" && ev.type === "payment.failed") return sameCategory(t.category, ev.category);
   if (t.type === "membership.ending" && ev.type === "membership.ending") return t.daysBefore === ev.daysBefore && sameCategory(t.category, ev.category);
+  if (t.type === "accountability.joined" && ev.type === "accountability.joined") return true;
   return false;
 }
 
@@ -225,6 +235,7 @@ export function describeTrigger(a: Automation, forms: Form[]) {
   if (t.type === "membership.cancelling") return `Gives notice to cancel${cat(t.category)}${via}`;
   if (t.type === "payment.failed") return `Payment fails ${PAYMENT_FAILED_AT} times${cat(t.category)}${via}`;
   if (t.type === "membership.ended") return `Membership ends${cat(t.category)}${via}`;
+  if (t.type === "accountability.joined") return "Joins the accountability programme";
   return `Tagged “${t.tag}”`;
 }
 
@@ -487,7 +498,7 @@ export function readAttribution(search: string): Attribution {
   return { source: get("utm_source"), campaign: get("utm_campaign"), adset: get("utm_term"), ad: get("utm_content"), adId: get("ad_id"), fbclid: get("fbclid") };
 }
 
-export function submitForm(s: State, formId: string, answers: Record<string, string>, utm: Attribution, newId = uid()) {
+export function submitForm(s: State, formId: string, answers: Record<string, string>, utm: Attribution, newId = uid(), contactId?: string) {
   const form = s.forms.find((f) => f.id === formId);
   if (!form) return;
   const byField = (field: string) => {
@@ -504,8 +515,10 @@ export function submitForm(s: State, formId: string, answers: Record<string, str
   const source: Source = fromMeta ? "meta_ad" : "website";
   const qa = form.questions.filter((q) => !q.field).map((q) => ({ question: q.text, answer: answers[q.id] ?? "" }));
 
-  // Match an existing contact on phone number before creating a new one.
-  let c = phone ? s.contacts.find((x) => samePhone(x.phone, phone)) : undefined;
+  // A personalised link names the contact (the accountability form has no
+  // contact questions); otherwise match on phone number before creating one.
+  let c = (contactId ? s.contacts.find((x) => x.id === contactId) : undefined) ?? (phone ? s.contacts.find((x) => samePhone(x.phone, phone)) : undefined);
+  if (contactId && !c) return;
   if (c) {
     // Same number, filled in again: take the newer details (a corrected
     // name or email), but keep their stage and any booking.
@@ -532,7 +545,54 @@ export function submitForm(s: State, formId: string, answers: Record<string, str
   form.responses += 1;
   log(s, "form.submitted", c.id, `${c.name} · ${form.name}`);
   fire(s, { type: "form.submitted", contactId: c.id, formId });
+  if (form.slug === "accountability") joinAccountability(s, c, form, answers);
   return c.id;
+}
+
+// ---- Accountability programme (docs/accountability.md) ---------------------
+
+const leadingNumber = (s: string) => {
+  const w = s.trim().toLowerCase();
+  if (w.startsWith("once")) return 1;
+  if (w.startsWith("twice")) return 2;
+  if (w.startsWith("three")) return 3;
+  if (w.startsWith("four")) return 4;
+  if (w.startsWith("five")) return 5;
+  const n = parseInt(w, 10);
+  return Number.isFinite(n) ? n : 0;
+};
+const pickStyle = (s: string): Accountability["style"] => (/straight/i.test(s) ? "straight" : /fact/i.test(s) ? "facts" : "encourage");
+const pickFrequency = (s: string): Accountability["frequency"] => (/daily|posted/i.test(s) ? "daily" : /pulse|regular/i.test(s) ? "pulse" : /weekly|just the weekly/i.test(s) ? "weekly" : "slipping");
+const splitList = (s: string) => s.split(",").map((x) => x.trim()).filter(Boolean);
+
+/** Turns the commitment form's answers into the member's commitment. Answers are read by question id (a_floor, a_stretch…). */
+export function joinAccountability(s: State, c: Contact, form: Form, answers: Record<string, string>) {
+  const get = (id: string) => (answers[id] ?? "").trim();
+  const floor = Math.min(3, Math.max(1, leadingNumber(get("a_floor")) || 1));
+  const stretch = Math.max(floor, Math.min(5, leadingNumber(get("a_stretch")) || floor));
+  const prev = c.accountability;
+  c.accountability = {
+    active: true,
+    joinedAt: prev?.active ? prev.joinedAt : nowIso(s),
+    floor, stretch,
+    goals: splitList(get("a_goal")),
+    why: get("a_why").slice(0, 1000),
+    derailers: splitList(get("a_derail")),
+    style: pickStyle(get("a_style")),
+    frequency: pickFrequency(get("a_freq")),
+    slot: get("a_slot") || form.questions.find((q) => q.id === "a_slot")?.options?.[0] || "",
+    coachNotes: get("a_notes").slice(0, 2000) || undefined,
+  };
+  log(s, "accountability.joined", c.id, `${c.name} committed to ${times(floor)} a week (stretch ${times(stretch)}), check-in ${c.accountability.slot}`);
+  if (!prev?.active) fire(s, { type: "accountability.joined", contactId: c.id });
+}
+
+/** Staff end someone's place on the programme (or they asked to stop). */
+export function leaveAccountability(s: State, contactId: string, reason = "") {
+  const c = s.contacts.find((x) => x.id === contactId);
+  if (!c?.accountability?.active) return;
+  c.accountability = { ...c.accountability, active: false, leftAt: nowIso(s) };
+  log(s, "accountability.left", c.id, `${c.name} left the accountability programme${reason ? `: ${reason}` : ""}`);
 }
 
 export function completeTask(s: State, taskId: string) {
