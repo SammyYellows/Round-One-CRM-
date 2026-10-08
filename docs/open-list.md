@@ -22,6 +22,18 @@ list comes up, until each is on or dropped.
 | Program day 28: you did it | Program members | Day 28 |
 | Payment failed – update your details | Failed payments | TeamUp logs the third failed attempt |
 
+**Bug to fix: failed payments missed (found 08/10, Romel Rodriques).**
+TeamUp's invoices have a `retry_failed` status the sync doesn't read (it
+only counts `open`), and a person with more than one active membership
+is checked on their newest one only. Romel's 5 Oct £34.99 is retry_failed
+with 5 attempts on an older membership, so he never flagged. Live count:
+105 retry_failed invoices across 54 people. Fix: worst retry count across
+all of a person's memberships, and retry_failed invoices counted as owed.
+Waiting on Sammy's go (he also asked whether to show all memberships on
+the contact page). Separately, Romel has three active Full Facility
+Access memberships billed on the 5th, 15th and 23rd: Sammy to check in
+TeamUp.
+
 **Task: Program route 2 schedule** (people who sign up straight in
 TeamUp, never through the questionnaire). Built so far: only the day-1
 welcome. Waiting on Sammy (07/10, chose "something else"): the days after
