@@ -100,7 +100,22 @@ export interface Accountability {
   // nightly and just before their check-in). Weeks run Monday to Sunday, UK.
   attendance?: { weekStart: string; thisWeek: number; lastWeek: number; sessions: string[]; syncedAt: string };
   lastCheckinAt?: string; // when the last weekly check-in was sent
-  checkins?: { week: string; at: string; feel: string; blocker?: string; play: string }[]; // their answers, newest first
+  checkins?: Checkin[]; // their answers, newest first
+  lastNudgeAt?: string; // the last mid-week nudge
+  lastSilenceTaskAt?: string; // the last "gone quiet" task for the coaches
+}
+
+/** One answered weekly check-in, with Claude's read of it and the reply staff approved. */
+export interface Checkin {
+  week: string; // YYYY-MM-DD of the day they answered
+  at: string;
+  feel: string;
+  blocker?: string;
+  play: string;
+  // Claude's read, filled on the server after the answer lands (docs/accountability.md step 4).
+  ai?: { status: "on_track" | "slipping" | "struggling" | "wants_coach"; sentiment: "up" | "flat" | "down"; flagCoach: boolean; reply: string; adjust: "keep" | "lower" | "raise" | "talk"; note: string };
+  repliedAt?: string; // staff approved and sent a reply
+  dismissedAt?: string; // staff chose not to reply
 }
 
 /** A customer's membership as TeamUp reports it. TeamUp stays the source of truth. */
@@ -167,6 +182,9 @@ export type EventType =
   | "membership.held" // staff put a membership on hold in TeamUp from the CRM
   | "accountability.checkin" // the weekly check-in went out
   | "accountability.checkin_received" // they answered it
+  | "accountability.replied" // staff approved Claude's suggested reply and it went
+  | "accountability.nudge" // the mid-week nudge went out
+  | "accountability.silent" // no check-in and no sessions two weeks running: coaches told
   | "appointment.booked"
   | "appointment.updated";
 
@@ -198,7 +216,9 @@ export type Trigger =
   // Someone joined the accountability programme (docs/accountability.md).
   | { type: "accountability.joined" }
   // Their weekly check-in time has come (this week's attendance is in the placeholders).
-  | { type: "accountability.checkin" };
+  | { type: "accountability.checkin" }
+  // Mid-week, and their frequency preference and pace say a nudge is warranted.
+  | { type: "accountability.nudge" };
 
 /**
  * How someone reached us (Sammy, 07/10/2026). "crm": through the

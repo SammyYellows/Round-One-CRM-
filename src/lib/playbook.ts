@@ -240,7 +240,22 @@ Thirty seconds, straight answers beat nice ones: {checkinLink}
 {team}`,
 };
 
+const ACCOUNTABILITY_NUDGE = {
+  subject: "Midweek, {first}",
+  body: `{first},
+
+{paceLine}
+
+{team}`,
+};
+
 export const AUTOMATIONS: Automation[] = [
+  {
+    id: "accountability_nudge", name: "Accountability – mid-week nudge", enabled: false, runs: 0,
+    summary: "Thursday afternoon for members who asked for a pulse or are under their floor (daily for those who asked for daily): one line on where they are, in their tone. Off until Sammy approves the wording.",
+    trigger: { type: "accountability.nudge" },
+    steps: [{ kind: "email", to: "contact", ...ACCOUNTABILITY_NUDGE }],
+  },
   {
     id: "accountability_checkin", name: "Accountability – weekly check-in", enabled: false, runs: 0,
     summary: "At the member's chosen time each week: how their week went against their floor, in their tone, with the 30-second check-in. Off until Sammy approves the wording.",

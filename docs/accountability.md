@@ -1,6 +1,6 @@
 # Accountability programme, built in the CRM
 
-Status: **steps 1–3 built 08/10/2026** (Sammy: go, floor capped at three, Claude drafts the wording). Steps 2–6 to come. Sammy decided to build it in
+Status: **steps 1–5 built 08/10/2026**; step 6 (Kisi) later (Sammy: go, floor capped at three, Claude drafts the wording). Steps 2–6 to come. Sammy decided to build it in
 the CRM rather than on Make, Tally and Google Sheets. The design decisions in
 `docs/accountability-handover.md` stand; this maps them onto the CRM.
 
@@ -116,10 +116,39 @@ Built in steps 2 and 3 (same night):
 - Slots are read from the text ("Sunday 6pm", "Monday 8am"…): change the
   options on the form and they just work.
 
-Next: step 4 (Claude reads the check-in answers against their commitment
-and suggests a reply for staff to approve), step 5 (mid-week nudge by
-frequency preference, and the silence signal: no check-in and no
-attendance two weeks running), step 6 (Kisi).
+Built in steps 4 and 5 (same night):
+- **Claude reads each check-in** (`readCheckin` in `ai.ts`, called by the
+  submit route via `readLatestCheckin` right after the answer is saved):
+  against their floor, stretch, why, style, this and last week's sessions
+  and their last three check-ins, it returns status (on track / slipping /
+  struggling / wants a coach), sentiment, a coach flag, a suggested reply in
+  their tone (80 words max), a target suggestion (keep / lower / raise /
+  talk) and a one-line note for staff. Stored on the check-in
+  (`Checkin.ai`). Without `ANTHROPIC_API_KEY` the read is skipped and staff
+  write the reply themselves.
+- **Staff approve** on the Accountability screen: "Check-ins to reply to"
+  shows each answer, Claude's read and note, and an editable reply with
+  Send behind a confirm (`replyToCheckin`: an `email.sent` event from
+  bookings@, subject "Re: your week, {first}") or "No reply needed"
+  (`dismissCheckin`). Nothing goes out by itself.
+- **Mid-week nudge** (`dueNudges` / `sendNudges`, from `/api/cron` via
+  `accountabilityTick`): from 17:00 UK. "Only if I'm slipping": Thursday,
+  only when under the floor. "A regular pulse": every Thursday. "Keep me
+  posted daily": once a day, Tuesday to Sunday. "Just the weekly
+  check-in": never. Active membership only; once a day at most. Trigger
+  `accountability.nudge`; automation `accountability_nudge` ("Midweek,
+  {first}", `{paceLine}`), **off until approved**.
+- **Silence signal** (`flagSilence`, same tick): on the programme a
+  fortnight or more, no sessions this week or last, no check-in answered
+  in two weeks → one task for the coaches quoting their why, at most once a
+  fortnight per member. Event `accountability.silent`.
+
+Tested 08/10 through the real route ("sammy test": Struggled, wants a
+coach → check-in stored, coach task made; the Claude read runs only where
+the key is set, i.e. on Vercel).
+
+Next: step 6, Kisi door events merged into attendance (needs the Kisi API
+key from the owner account), and WhatsApp versions once the number moves.
 
 ## Where we stopped (05/10/2026)
 
