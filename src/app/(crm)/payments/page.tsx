@@ -16,8 +16,18 @@ const AUTOMATION = "payment_failed";
 type Window = "30" | "90" | "all";
 
 export default function PaymentsPage() {
-  const { s, now } = useStore();
+  const { s, now, live } = useStore();
   const [window, setWindow] = useState<Window>("all");
+  const [holding, setHolding] = useState<string | null>(null); // contact id with the confirm open
+  const [busy, setBusy] = useState<string | null>(null);
+  const [notes, setNotes] = useState<Record<string, string>>({});
+  const hold = async (contactId: string) => {
+    setBusy(contactId);
+    const r = await fetch("/api/teamup/hold", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ contactId, confirm: true }) });
+    const j = await r.json().catch(() => ({}));
+    setBusy(null); setHolding(null);
+    setNotes((n) => ({ ...n, [contactId]: r.ok ? "On hold in TeamUp from today. Door access stops with it. Lift it in TeamUp when they’ve paid." : j.error ?? "TeamUp didn’t accept the hold" }));
+  };
   const [page, setPage] = useState(1);
   const PER_PAGE = 30;
   useEffect(() => setPage(1), [window]);
@@ -88,7 +98,24 @@ export default function PaymentsPage() {
             <div className="num">{m.paymentRetries}</div>
             <div className="muted small">{m.owed ? `${m.owed.count} · ${gbp(m.owed.total, 2)}${m.owed.since ? ` · since ${shortDate(m.owed.since)}` : ""}` : "–"}</div>
             <div className="muted small">{flaggedAt ? `${shortDate(flaggedAt)} · ${ago(flaggedAt, now)}` : "Before 7 Oct 2026"}</div>
-            <div><span className={`chip ${email.tone === "sent" ? "chip-red" : email.tone === "waiting" ? "chip-light" : ""}`} style={{ height: 22, fontSize: 10, whiteSpace: "normal", textAlign: "left" }}>{email.label}</span></div>
+            <div><span className={`chip ${email.tone === "sent" ? "chip-red" : email.tone === "waiting" ? "chip-light" : ""}`} style={{ height: 22, fontSize: 10, whiteSpace: "normal", textAlign: "left" }}>{email.label}</span>
+            {live && m.status !== "ended" && (
+              <div style={{ gridColumn: "1 / -1", display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+                {holding === c.id ? (
+                  <div className="enq-confirm" style={{ flex: 1 }}>
+                    <div className="strong">Put {c.name}’s {m.name} on hold in TeamUp from today?</div>
+                    <div className="small muted">Their door access stops with it and billing pauses. This is a change in TeamUp, where you’d lift it once they’ve paid.</div>
+                    <div className="actions" style={{ gap: 8 }}>
+                      <button className="btn btn-red btn-sm" disabled={busy === c.id} onClick={() => hold(c.id)}>{busy === c.id ? "Holding" : "Yes, put on hold"}</button>
+                      <button className="btn btn-ghost btn-sm" onClick={() => setHolding(null)}>Cancel</button>
+                    </div>
+                  </div>
+                ) : (
+                  <button className="link-btn faint" onClick={() => setHolding(c.id)}>Put on hold in TeamUp</button>
+                )}
+                {notes[c.id] && <span className="small muted">{notes[c.id]}</span>}
+              </div>
+            )}</div>
           </Link>
         ))}
         {rows.length === 0 && <div className="empty">Nobody has {PAYMENT_FAILED_AT} or more failed attempts right now.</div>}

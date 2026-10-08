@@ -27,6 +27,24 @@ async function get(path: string, params: Record<string, string> = {}, attempt = 
   return (await res.json()) as Json;
 }
 
+/**
+ * The CRM's one write into TeamUp so far (improvement item 15, Sammy
+ * 08/10/2026: "both"): put a membership on hold from today, open-ended,
+ * which also cuts their Kisi door access. Always behind a confirm on the
+ * screen; TeamUp stays the place to take the hold off again.
+ */
+export async function holdMembership(customerMembershipId: string, startDate: string): Promise<{ id: string }> {
+  const res = await fetch(`${BASE}/customer_membership_holds`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${process.env.TEAMUP_M2M_TOKEN}`, "Teamup-Provider-ID": process.env.TEAMUP_PROVIDER_ID ?? "", Accept: "application/json", "Content-Type": "application/json" },
+    body: JSON.stringify({ customer_membership: Number(customerMembershipId), start_date: startDate, end_date: null, prorate_usage: true }),
+    cache: "no-store",
+  });
+  const json = (await res.json().catch(() => ({}))) as Record<string, unknown>;
+  if (!res.ok) throw new Error(`TeamUp ${res.status}: ${JSON.stringify(json).slice(0, 300)}`);
+  return { id: String(json.id ?? "") };
+}
+
 /** One GET, for callers that page themselves (attendance.ts). Takes a path or a full "next" URL. */
 export const fetchJson = (path: string, params: Record<string, string> = {}) => get(path, params);
 

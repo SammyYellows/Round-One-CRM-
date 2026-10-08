@@ -8,6 +8,7 @@ import { applyAction } from "@/lib/server/state";
 import { checkFormToken, clientIp, overLimit } from "@/lib/server/spam";
 import { db } from "@/lib/server/supabase";
 import type { Question } from "@/lib/types";
+import { checkEmail } from "@/lib/emailCheck";
 
 export const dynamic = "force-dynamic";
 
@@ -40,6 +41,13 @@ export async function POST(req: Request, { params }: { params: { slug: string } 
     if (v) utm[k] = v;
   }
 
+  // The email address has to pass the same check as the form applied, tidied the same way.
+  const emailQ = (form.questions as Question[]).find((q) => q.field === "email");
+  if (emailQ && answers[emailQ.id] !== undefined) {
+    const check = checkEmail(answers[emailQ.id]);
+    if (!check.ok) return Response.json({ error: check.reason ?? "That doesn’t look like an email address." }, { status: 400 });
+    answers[emailQ.id] = check.value;
+  }
   const phoneQ = (form.questions as Question[]).find((q) => q.field === "phone");
   if (await overLimit(clientIp(req), phoneQ ? answers[phoneQ.id] ?? "" : "")) {
     return Response.json({ error: "We’ve had a lot of tries from you in the last hour. Please try again later, or message us on WhatsApp." }, { status: 429 });

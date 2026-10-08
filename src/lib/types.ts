@@ -164,6 +164,7 @@ export type EventType =
   | "automation.changed" // staff changed an automation's wording or switched it on or off
   | "accountability.joined" // they filled in the commitment form
   | "accountability.left" // staff ended it, or they asked to stop
+  | "membership.held" // staff put a membership on hold in TeamUp from the CRM
   | "accountability.checkin" // the weekly check-in went out
   | "accountability.checkin_received" // they answered it
   | "appointment.booked"
