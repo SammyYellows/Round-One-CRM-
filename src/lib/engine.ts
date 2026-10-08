@@ -504,8 +504,12 @@ export function submitForm(s: State, formId: string, answers: Record<string, str
   // Match an existing contact on phone number before creating a new one.
   let c = phone ? s.contacts.find((x) => samePhone(x.phone, phone)) : undefined;
   if (c) {
+    // Same number, filled in again: take the newer details (a corrected
+    // name or email), but keep their stage and any booking.
     c.answers = qa;
+    if (name !== "Unknown") c.name = name;
     if (first) c.firstName = first;
+    if (email) c.email = email;
   } else {
     // Match the ad by id first, then by name within the campaign.
     const ad = s.campaigns
