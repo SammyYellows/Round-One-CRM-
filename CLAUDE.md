@@ -133,9 +133,11 @@ In place so far:
 
 - **Accountability programme** (`docs/accountability.md`). Opt-in: a member
   gets a personalised link to `/f/accountability`; their commitment lands
-  on `contact.accountability`; `accountability.joined` fires the welcome
-  (off until approved). Screen: Accountability. Attendance and check-ins
-  are next.
+  on `contact.accountability`; `accountability.joined` fires the welcome.
+  Attendance comes from TeamUp (`attendance.ts`); `/api/cron` sends the
+  weekly check-in at their slot (`accountabilityTick`), only while their
+  membership is active; answers to `/f/check-in` land on the contact.
+  Both emails are off until approved. Screen: Accountability.
 - **Reports** (`src/lib/server/growth.ts`, `reports.ts`): weekly members
   and monthly growth PDFs (made in-house, `reports` bucket) to the
   managers' WhatsApp numbers on a schedule from `/api/cron`, off until

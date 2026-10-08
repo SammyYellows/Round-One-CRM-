@@ -229,7 +229,24 @@ If anything changes, reply to this email or tell a coach.
 {team}`,
 };
 
+const ACCOUNTABILITY_CHECKIN = {
+  subject: "Your week, {first}",
+  body: `Hi {first},
+
+{paceLine}
+
+Thirty seconds, straight answers beat nice ones: {checkinLink}
+
+{team}`,
+};
+
 export const AUTOMATIONS: Automation[] = [
+  {
+    id: "accountability_checkin", name: "Accountability – weekly check-in", enabled: false, runs: 0,
+    summary: "At the member's chosen time each week: how their week went against their floor, in their tone, with the 30-second check-in. Off until Sammy approves the wording.",
+    trigger: { type: "accountability.checkin" },
+    steps: [{ kind: "email", to: "contact", ...ACCOUNTABILITY_CHECKIN }],
+  },
   {
     id: "accountability_welcome", name: "Accountability – locked in", enabled: false, runs: 0,
     summary: "When a member fills in the commitment form, confirms what they committed to. Off until Sammy approves the wording.",
@@ -474,6 +491,18 @@ export const ACCOUNTABILITY_FORM: Form = {
     { id: "a_freq", type: "choice", text: "During the week, how much do you want us on you?", options: ["Only if I’m slipping", "A regular mid-week pulse", "Keep me posted daily", "Just the weekly check-in"] },
     { id: "a_slot", type: "choice", text: "When should your weekly check-in land?", options: ["Sunday 6pm", "Monday 8am", "Wednesday 7pm", "Friday 5pm"] },
     { id: "a_notes", type: "long", text: "Anything the coaches should know?", help: "Optional.", optional: true },
+  ],
+};
+
+/** The weekly check-in (docs/accountability.md), from the link in the check-in email. */
+export const CHECKIN_FORM: Form = {
+  id: "check-in", slug: "check-in", name: "Weekly check-in", responses: 0,
+  thanksTitle: "Noted",
+  thanks: "We’ll factor it in. See you in the gym.",
+  questions: [
+    { id: "ci_feel", type: "choice", text: "How did this week actually feel?", options: ["Strong", "Solid", "Scrappy, but I showed up", "Struggled", "Write-off"] },
+    { id: "ci_blocker", type: "long", text: "If it wasn’t the plan, what got in the way?", help: "Optional.", optional: true },
+    { id: "ci_play", type: "choice", text: "Next week, what’s the play?", options: ["On track", "Lower the target for a bit", "Raise it, too easy", "I want a word with a coach"] },
   ],
 };
 

@@ -7,7 +7,7 @@ import {
   Accountability, Appointment, Automation, Availability, Membership, Contact, CrmEvent, EventType, Form, Run, Source, Stage, State, Step, apptStatusLabel, stageLabel, PAYMENT_FAILED_AT, viaOf } from "./types";
 import { GYM } from "./gym";
 import { samePhone } from "./phone";
-import { ukTime } from "./time";
+import { ukParts, ukTime, ukWeekStart } from "./time";
 
 // Random ids. Contact ids also make the private link to someone's booking
 // page (/book/<id>), so they come from a proper random source.
@@ -50,10 +50,24 @@ export function placeholders(c: Contact): Record<string, string> {
     why: c.accountability?.why || "what you told us",
     slot: c.accountability?.slot || "your check-in time",
     goal: c.accountability?.goals.join(" and ") || "your goal",
+    attended: c.accountability ? sessions(c.accountability.attendance?.thisWeek ?? 0) : "your sessions",
+    paceLine: c.accountability ? paceLine(c.accountability) : "",
   };
 }
 
 const times = (n: number) => (n === 1 ? "once" : n === 2 ? "twice" : `${n} times`);
+const sessions = (n: number) => (n === 1 ? "1 session" : `${n} sessions`);
+
+/** One line on where they are against their floor this week, in the tone they picked. */
+export function paceLine(a: Accountability) {
+  const n = a.attendance?.thisWeek ?? 0;
+  const gap = a.floor - n;
+  if (n >= a.stretch) return a.style === "facts" ? `${sessions(n)} this week. Stretch target met.` : a.style === "straight" ? `${sessions(n)} this week. That’s your stretch. No notes.` : `${sessions(n)} this week. That’s your stretch target, which is a brilliant week.`;
+  if (gap <= 0) return a.style === "facts" ? `${sessions(n)} this week. Floor met.` : a.style === "straight" ? `${sessions(n)} this week. Floor done. Push for the stretch.` : `${sessions(n)} this week. Floor done, nicely. The stretch is there if you want it.`;
+  if (a.style === "facts") return `${sessions(n)} this week. Floor is ${times(a.floor)}. Short by ${gap}.`;
+  if (a.style === "straight") return `${sessions(n)} this week against a floor of ${times(a.floor)}. You said: “${a.why}”. ${gap === 1 ? "One more" : `${gap} more`} gets it done.`;
+  return `${sessions(n)} this week, and your floor is ${times(a.floor)}. You told us why this matters: “${a.why}”. There’s still room to get ${gap === 1 ? "one more" : `${gap} more`} in.`;
+}
 
 /** Fills in {first}, {date} etc. Unknown ones (like {bookLink}) are left for the server. */
 export function fill(text: string, c: Contact) {
@@ -77,7 +91,8 @@ type Fired =
   | { type: "membership.cancelling"; contactId: string; category: string }
   | { type: "payment.failed"; contactId: string; category: string }
   | { type: "membership.ended"; contactId: string; category: string }
-  | { type: "accountability.joined"; contactId: string };
+  | { type: "accountability.joined"; contactId: string }
+  | { type: "accountability.checkin"; contactId: string };
 
 const sameCategory = (want: string | undefined, got: string) => !want || want.trim().toLowerCase() === got.trim().toLowerCase();
 
@@ -99,6 +114,7 @@ function matches(s: State, a: Automation, ev: Fired) {
   if (t.type === "payment.failed" && ev.type === "payment.failed") return sameCategory(t.category, ev.category);
   if (t.type === "membership.ending" && ev.type === "membership.ending") return t.daysBefore === ev.daysBefore && sameCategory(t.category, ev.category);
   if (t.type === "accountability.joined" && ev.type === "accountability.joined") return true;
+  if (t.type === "accountability.checkin" && ev.type === "accountability.checkin") return true;
   return false;
 }
 
@@ -236,6 +252,7 @@ export function describeTrigger(a: Automation, forms: Form[]) {
   if (t.type === "payment.failed") return `Payment fails ${PAYMENT_FAILED_AT} times${cat(t.category)}${via}`;
   if (t.type === "membership.ended") return `Membership ends${cat(t.category)}${via}`;
   if (t.type === "accountability.joined") return "Joins the accountability programme";
+  if (t.type === "accountability.checkin") return "Their weekly check-in time comes round";
   return `Tagged “${t.tag}”`;
 }
 
@@ -546,6 +563,7 @@ export function submitForm(s: State, formId: string, answers: Record<string, str
   log(s, "form.submitted", c.id, `${c.name} · ${form.name}`);
   fire(s, { type: "form.submitted", contactId: c.id, formId });
   if (form.slug === "accountability") joinAccountability(s, c, form, answers);
+  if (form.slug === "check-in") recordCheckin(s, c, answers);
   return c.id;
 }
 
@@ -585,6 +603,76 @@ export function joinAccountability(s: State, c: Contact, form: Form, answers: Re
   };
   log(s, "accountability.joined", c.id, `${c.name} committed to ${times(floor)} a week (stretch ${times(stretch)}), check-in ${c.accountability.slot}`);
   if (!prev?.active) fire(s, { type: "accountability.joined", contactId: c.id });
+}
+
+/** TeamUp's attendances for one member, counted into this week and last (Monday to Sunday, UK). Quiet: no events. */
+export function recordAttendance(s: State, contactId: string, attended: { at: string; status: string }[]) {
+  const c = s.contacts.find((x) => x.id === contactId);
+  if (!c?.accountability) return;
+  const now = nowMs(s);
+  const thisStart = ukWeekStart(now).getTime();
+  const lastStart = ukTime(thisStart, -7, 0, 0).getTime();
+  // Attended, or booked for a class that has already happened (many gyms never tick people in).
+  const counts = attended.filter((a) => (a.status === "attended" || a.status === "registered") && Date.parse(a.at) <= now);
+  const sessionsThisWeek = counts.filter((a) => Date.parse(a.at) >= thisStart).map((a) => a.at).sort();
+  const lastWeek = counts.filter((a) => Date.parse(a.at) >= lastStart && Date.parse(a.at) < thisStart).length;
+  c.accountability = { ...c.accountability, attendance: { weekStart: new Date(thisStart).toISOString(), thisWeek: sessionsThisWeek.length, lastWeek, sessions: sessionsThisWeek, syncedAt: nowIso(s) } };
+}
+
+const SLOT = /^(sunday|monday|tuesday|wednesday|thursday|friday|saturday)\s+(\d{1,2})(?::(\d{2}))?\s*(am|pm)?$/i;
+const DAYS = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
+
+/** When this week's check-in falls for a slot like "Sunday 6pm", as a time; null if the slot can't be read. */
+export function slotTimeThisWeek(slot: string, nowMsValue: number): number | null {
+  const m = SLOT.exec(slot.trim());
+  if (!m) return null;
+  const day = DAYS.indexOf(m[1].toLowerCase());
+  let hour = Number(m[2]) % 12;
+  if ((m[4] ?? "").toLowerCase() === "pm") hour += 12;
+  if (!m[4] && Number(m[2]) > 12) hour = Number(m[2]);
+  const minute = Number(m[3] ?? 0);
+  const monday = ukWeekStart(nowMsValue).getTime();
+  const offset = (day + 6) % 7; // days after Monday
+  return ukTime(monday, offset, hour, minute).getTime();
+}
+
+/** Members whose weekly check-in is due now and hasn't gone this week. */
+export function dueCheckins(s: State): Contact[] {
+  const now = nowMs(s);
+  return s.contacts.filter((c) => {
+    const a = c.accountability;
+    if (!a?.active || c.membership?.status !== "active") return false; // lapsed means silence
+    const at = slotTimeThisWeek(a.slot, now);
+    if (at === null || now < at) return false;
+    return !a.lastCheckinAt || Date.parse(a.lastCheckinAt) < at;
+  });
+}
+
+/** Sends this week's check-in to everyone due: an event, and the check-in automation if it's on. */
+export function sendCheckins(s: State) {
+  let n = 0;
+  for (const c of dueCheckins(s)) {
+    const a = c.accountability!;
+    c.accountability = { ...a, lastCheckinAt: nowIso(s) };
+    log(s, "accountability.checkin", c.id, `Weekly check-in for ${c.name}: ${sessions(a.attendance?.thisWeek ?? 0)} against a floor of ${times(a.floor)}`, { week: ukParts(nowMs(s)).date });
+    fire(s, { type: "accountability.checkin", contactId: c.id });
+    n++;
+  }
+  return n;
+}
+
+/** Their answers to the weekly check-in form (/f/check-in). "I want a word with a coach" makes a task. */
+export function recordCheckin(s: State, c: Contact, answers: Record<string, string>) {
+  if (!c.accountability) return;
+  const get = (id: string) => (answers[id] ?? "").trim();
+  const entry = { week: ukParts(nowMs(s)).date, at: nowIso(s), feel: get("ci_feel"), blocker: get("ci_blocker") || undefined, play: get("ci_play") };
+  c.accountability = { ...c.accountability, checkins: [entry, ...(c.accountability.checkins ?? [])].slice(0, 52) };
+  log(s, "accountability.checkin_received", c.id, `${c.name} checked in: ${entry.feel || "no answer"}${entry.play ? ` · ${entry.play}` : ""}${entry.blocker ? ` · “${entry.blocker.slice(0, 80)}”` : ""}`);
+  if (/coach/i.test(entry.play) || /write-off|struggled/i.test(entry.feel)) {
+    const text = /coach/i.test(entry.play) ? `${firstName(c) || c.name} wants a word with a coach (weekly check-in)` : `${firstName(c) || c.name} had a ${entry.feel.toLowerCase()} week${entry.blocker ? `: “${entry.blocker.slice(0, 120)}”` : ""}`;
+    s.tasks.unshift({ id: uid(), contactId: c.id, text, done: false, at: nowIso(s) });
+    log(s, "task.created", c.id, text);
+  }
 }
 
 /** Staff end someone's place on the programme (or they asked to stop). */

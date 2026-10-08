@@ -75,10 +75,12 @@ when staff mark a sale on the pipeline.
 2. **Accountability programme** (`docs/accountability.md`). Sammy said go
    on 08/10 (floor capped at three, Claude drafts). Step 1 built the same
    night: commitment form on a personalised link, the commitment on the
-   contact, the Accountability screen, the welcome email (off). Next:
-   attendance from TeamUp, then the weekly check-in.
-   Waiting on Sammy: approve the welcome email on the Accountability
-   screen; send one real member their link when ready.
+   contact, the Accountability screen, the welcome email (off); then
+   attendance from TeamUp and the weekly check-in email (off) with the
+   check-in form. Next: Claude reads the answers and suggests a reply,
+   the mid-week nudge, the silence signal.
+   Waiting on Sammy: approve the welcome and check-in emails on the
+   Accountability screen; send one real member their link when ready.
 3. **Photo background on the questionnaire** (improvement list item 1).
    Waiting on Sammy: a photo from Round One.
 3b. **Win-back email the day after notice** (improvement list item 7).

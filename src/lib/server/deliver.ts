@@ -16,6 +16,9 @@ export const appUrl = () => (process.env.APP_URL || "https://round-one-crm.verce
 /** The contact's private booking page. */
 export const bookLink = (contactId: string) => `${appUrl()}/book/${contactId}`;
 
+/** The member's weekly check-in form (accountability programme). */
+export const checkinLink = (contactId: string) => `${appUrl()}/f/check-in?c=${contactId}`;
+
 /** The contact's unsubscribe page, on every marketing email. */
 export const unsubscribeLink = (contactId: string) => `${appUrl()}/u/${contactId}`;
 export const unsubscribeFooter = (contactId: string) =>
@@ -113,7 +116,7 @@ async function deliverEmails(before: State, after: State) {
   for (const e of emails) {
     const { to, subject } = e.data!;
     if (e.data!.marketing === "yes" && after.contacts.find((x) => x.id === e.contactId)?.marketingOptOut) continue; // opted out
-    const body = e.data!.body?.replaceAll("{bookLink}", bookLink(e.contactId ?? ""));
+    const body = e.data!.body?.replaceAll("{bookLink}", bookLink(e.contactId ?? "")).replaceAll("{checkinLink}", checkinLink(e.contactId ?? ""));
     const contact = after.contacts.find((x) => x.id === e.contactId);
     let address: string | undefined;
     let text: string | undefined;
