@@ -19,7 +19,7 @@ export const nowMs = (s: State) => Date.now() + s.clockOffset;
 export const nowIso = (s: State) => new Date(nowMs(s)).toISOString();
 // TeamUp sometimes has no name, so the contact's name is their email address;
 // never greet someone as "steph_tl17@hotmail.com".
-export const firstName = (c: Contact) => (c.name.includes("@") ? "" : c.name.split(" ")[0]);
+export const firstName = (c: Contact) => c.firstName || (c.name.includes("@") ? "" : c.name.split(" ")[0]);
 
 function log(s: State, type: EventType, contactId: string | undefined, detail: string, data?: Record<string, string>) {
   const ev: CrmEvent = { id: uid(), type, contactId, detail, at: nowIso(s), ...(data ? { data } : {}) };
@@ -491,7 +491,10 @@ export function submitForm(s: State, formId: string, answers: Record<string, str
     const q = form.questions.find((x) => x.field === field);
     return q ? (answers[q.id] ?? "").trim() : "";
   };
-  const name = byField("name") || "Unknown";
+  const nameQ = form.questions.find((x) => x.field === "name");
+  const first = nameQ?.type === "name" ? (answers[`${nameQ.id}.first`] ?? "").trim().replace(/\s+/g, " ") : "";
+  const last = nameQ?.type === "name" ? (answers[`${nameQ.id}.last`] ?? "").trim().replace(/\s+/g, " ") : "";
+  const name = [first, last].filter(Boolean).join(" ") || byField("name") || "Unknown";
   const phone = byField("phone");
   const email = byField("email");
   const fromMeta = !!utm.fbclid || /facebook|instagram|meta/i.test(utm.source ?? "");
@@ -502,13 +505,14 @@ export function submitForm(s: State, formId: string, answers: Record<string, str
   let c = phone ? s.contacts.find((x) => samePhone(x.phone, phone)) : undefined;
   if (c) {
     c.answers = qa;
+    if (first) c.firstName = first;
   } else {
     // Match the ad by id first, then by name within the campaign.
     const ad = s.campaigns
       .flatMap((k) => k.ads.map((a) => ({ ...a, utm: k.utm })))
       .find((a) => (utm.adId && a.id === utm.adId) || (a.name === utm.ad && (!utm.campaign || a.utm === utm.campaign)));
     c = {
-      id: newId, name, phone, email, source,
+      id: newId, name, ...(first ? { firstName: first } : {}), phone, email, source,
       campaign: ad?.utm ?? utm.campaign,
       adset: ad?.adset ?? utm.adset,
       ad: ad?.name ?? utm.ad,

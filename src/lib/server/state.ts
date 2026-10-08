@@ -26,6 +26,7 @@ const opt = <T,>(v: unknown) => (v === null || v === undefined ? undefined : (v 
 const contactFrom = (r: Row): Contact => ({
   id: r.id as string,
   name: r.name as string,
+  ...(r.first_name ? { firstName: r.first_name as string } : {}),
   phone: r.phone as string,
   email: r.email as string,
   source: r.source as Contact["source"],
@@ -45,7 +46,7 @@ const contactFrom = (r: Row): Contact => ({
   ...(r.teamup ? { teamup: r.teamup as Contact["teamup"] } : {}),
 });
 const contactTo = (c: Contact): Row => ({
-  id: c.id, name: c.name, phone: c.phone, email: c.email, source: c.source,
+  id: c.id, name: c.name, first_name: c.firstName ?? null, phone: c.phone, email: c.email, source: c.source,
   campaign: c.campaign ?? null, adset: c.adset ?? null, ad: c.ad ?? null, ad_id: c.adId ?? null,
   stage: c.stage, lost_reason: c.lostReason ?? null, tags: c.tags, answers: c.answers,
   trial_at: c.trialAt ?? null, created_at: c.createdAt,
