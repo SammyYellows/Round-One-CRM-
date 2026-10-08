@@ -5,7 +5,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { uid } from "@/lib/engine";
 import { isSameDay, time, toLocalInput } from "@/lib/format";
 import { useStore } from "@/lib/store";
-import { APPT_STATUSES, Appointment, ApptStatus, Availability, apptStatusLabel } from "@/lib/types";
+import { APPT_STATUSES, Appointment, ApptStatus, Availability, apptStatusLabel, stageLabel } from "@/lib/types";
 
 const START_HOUR = 6;
 const END_HOUR = 22;
@@ -208,9 +208,12 @@ export default function CalendarPage() {
                   )}
                   <div className={`alist-row ${a.status === "cancelled" ? "struck" : ""}`}>
                     <div className="num">{time(a.start)}–{time(a.end)}</div>
-                    <button className="link-btn" style={{ textAlign: "left", fontSize: 14 }} onClick={() => setPanel({ kind: "appt", id: a.id })}>
-                      {contact(a.contactId)?.name}
-                    </button>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 2, minWidth: 0 }}>
+                      <button className="link-btn" style={{ textAlign: "left", fontSize: 14 }} onClick={() => setPanel({ kind: "appt", id: a.id })}>
+                        {contact(a.contactId)?.name}
+                      </button>
+                      {contact(a.contactId) && <Link href={`/contacts/${a.contactId}`} className="small faint">Open contact ›</Link>}
+                    </div>
                     <div><span className={`sw sw-${cal(a.calendarId)?.style}`} /> {cal(a.calendarId)?.name}</div>
                     <div className="muted">{staff(a.staffId)?.name}</div>
                     <select className="select" style={{ height: 36 }} aria-label="Status" value={a.status} onChange={(e) => act("setAppointmentStatus", a.id, e.target.value as ApptStatus)}>
@@ -436,16 +439,25 @@ function ApptPanel({ id, onClose }: { id: string; onClose: () => void }) {
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
           <span className="eyebrow"><span className={`sw sw-${k?.style}`} /> {k?.name}</span>
-          <h2 className="h h2">{c?.name}</h2>
+          {c
+            ? <Link href={`/contacts/${c.id}`} className="h h2 contact-link" title="Open their contact page">{c.name} ›</Link>
+            : <h2 className="h h2">Unknown contact</h2>}
         </div>
         <button className="icon-btn" aria-label="Close" onClick={onClose}>✕</button>
       </div>
       <div className="small" style={{ lineHeight: 1.6 }}>
         {new Date(a.start).toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" })}, {time(a.start)}–{time(a.end)}
-        <br />
-        <span className="muted">{c?.phone}</span>
       </div>
-      {c && <Link href={`/contacts/${c.id}`} className="btn btn-ghost btn-sm">Open contact</Link>}
+      {c && (
+        <div className="contact-box">
+          <div className="small" style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+            {c.phone ? <a className="muted" href={`tel:${c.phone.replace(/\s+/g, "")}`}>{c.phone}</a> : <span className="faint">No mobile</span>}
+            {c.email ? <a className="muted" href={`mailto:${c.email}`} style={{ overflowWrap: "anywhere" }}>{c.email}</a> : <span className="faint">No email</span>}
+            <span className="faint">{stageLabel(c.stage)}{c.ad ? ` · from ad “${c.ad}”` : ""}</span>
+          </div>
+          <Link href={`/contacts/${c.id}`} className="btn btn-red" style={{ width: "100%", justifyContent: "center" }}>Open contact</Link>
+        </div>
+      )}
 
       <div>
         <div className="label">Status</div>

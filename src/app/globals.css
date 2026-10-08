@@ -248,6 +248,9 @@ a.crow:hover { background: var(--char); color: var(--white); }
 .sw-cancelled { background: transparent; box-shadow: inset 0 0 0 1px var(--muted); }
 .legend { display: flex; gap: 18px; flex-wrap: wrap; padding: 12px 16px; border-top: 1px solid var(--line); font-size: 12px; color: var(--muted); }
 .panel { background: var(--card); padding: 20px 22px; display: flex; flex-direction: column; gap: 14px; position: sticky; top: 24px; }
+.contact-link { color: var(--white); text-decoration: none; }
+.contact-link:hover { color: var(--red); }
+.contact-box { display: flex; flex-direction: column; gap: 10px; padding: 12px; border: 1px solid var(--line); }
 .statusbtns { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
 .sbtn { height: 40px; border: 1px solid var(--line); background: transparent; color: var(--white); font-size: 12px; font-weight: 600; cursor: pointer; }
 .sbtn:hover:not(:disabled) { border-color: var(--white); }
