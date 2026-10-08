@@ -57,8 +57,11 @@ when staff mark a sale on the pipeline.
 - **Reports: the other managers' numbers.** Set to 07855284151 only for
   now; add the rest in Reports → Settings before switching the schedules
   on. Also the `management_report` template needs Meta's approval.
-- **Kisi API key** (owner account) so failed-payment blocking can shut the
-  door directly as well as the TeamUp hold (improvement item 15).
+- **Blocking after failed payments** (improvement item 15): Sammy wants a
+  block in TeamUp that keeps billing going, not a hold. Waiting on Sammy:
+  where in TeamUp he blocks someone today (which screen or setting), so
+  Claude can find the API for it. Fallback: Kisi directly, needs the Kisi
+  API key from the owner account.
 - **Summary on the contact of what they said in replies** (improvement item
   16): Sammy wants reminding; not started.
 - **Two-way TeamUp actions** (item 9): Sammy wants reminding; the hold
