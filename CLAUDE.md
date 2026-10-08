@@ -131,6 +131,16 @@ In place so far:
   `emailBounced`; both are skipped next time. Delivery events come back
   through `/api/webhooks/resend`.
 
+- **Accountability programme** (`docs/accountability.md`). Opt-in: a member
+  gets a personalised link to `/f/accountability`; their commitment lands
+  on `contact.accountability`; `accountability.joined` fires the welcome
+  (off until approved). Screen: Accountability. Attendance and check-ins
+  are next.
+- **Reports** (`src/lib/server/growth.ts`, `reports.ts`): weekly members
+  and monthly growth PDFs (made in-house, `reports` bucket) to the
+  managers' WhatsApp numbers on a schedule from `/api/cron`, off until
+  switched on in Reports → Settings.
+
 Still to come: Meta Marketing API sync.
 
 ## How the code is laid out

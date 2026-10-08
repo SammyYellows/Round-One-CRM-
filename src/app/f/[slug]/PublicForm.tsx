@@ -28,7 +28,9 @@ export function PublicForm({ form, token }: { form: Form; token: string }) {
   const [note, setNote] = useState<string>();
   const trap = useRef<HTMLInputElement>(null);
   const onSubmit = async (answers: Record<string, string>) => {
-    const body = JSON.stringify({ answers, utm: readAttribution(window.location.search), token, hp: trap.current?.value ?? "" });
+    // A personalised link (?c=<contact id>) says who this is, e.g. the accountability commitment form sent to a member.
+    const contactId = new URLSearchParams(window.location.search).get("c") ?? undefined;
+    const body = JSON.stringify({ answers, utm: readAttribution(window.location.search), token, hp: trap.current?.value ?? "", contactId });
     const send = () => fetch(`/api/forms/${form.slug}/submit`, { method: "POST", headers: { "Content-Type": "application/json" }, body });
     let res: Response | null = null;
     for (let attempt = 0; attempt < 3; attempt++) {
@@ -41,7 +43,7 @@ export function PublicForm({ form, token }: { form: Form; token: string }) {
     }
     const json = res ? ((await res.json().catch(() => null)) as { contactId?: string; error?: string } | null) : null;
     if (!res?.ok) setNote(json?.error && json.error !== "too_fast" ? json.error : "We couldn’t save your answers. Please check your connection and try again.");
-    else if (json?.contactId) setBookHref(`/book/${json.contactId}`);
+    else if (json?.contactId && form.bookButton) setBookHref(`/book/${json.contactId}`);
   };
   return (
     <Frame form={form} onSubmit={onSubmit} bookHref={bookHref} note={note}>

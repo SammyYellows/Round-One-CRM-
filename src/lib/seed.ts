@@ -1,7 +1,7 @@
 // Sample data so the prototype feels real. None of these people or ads exist.
 // Times are relative to when the data was created, so it always looks fresh.
 
-import { AUTOMATIONS, TEMPLATES, TRIAL_AVAILABILITY, TRIAL_FORM } from "./playbook";
+import { AUTOMATIONS, TEMPLATES, TRIAL_AVAILABILITY, ACCOUNTABILITY_FORM, TRIAL_FORM } from "./playbook";
 import { Appointment, Campaign, Contact, Form, Message, Source, Stage, State, Task } from "./types";
 
 // Meta ads, down to the individual ad. Campaign totals are the sum of these.
@@ -61,7 +61,7 @@ const ROWS: Row[] = [
   ["ruth", "Ruth Brooks", "lost", "meta_ad", 350, "ad_102"],
 ];
 
-const FORMS: Form[] = [{ ...TRIAL_FORM, responses: 94 }];
+const FORMS: Form[] = [{ ...TRIAL_FORM, responses: 94 }, ACCOUNTABILITY_FORM];
 
 export const dayKey = (ms: number) => {
   const d = new Date(ms);

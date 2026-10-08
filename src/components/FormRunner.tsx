@@ -35,9 +35,16 @@ export function FormRunner({
 
   useEffect(() => setError(""), [step]);
 
+  const multiValue = (id: string) => {
+    const picked = (answers[`${id}.picked`] ?? "").split("\n").filter(Boolean);
+    const other = (answers[`${id}.other`] ?? "").trim();
+    return [...picked.filter((o) => o !== "Other"), ...(picked.includes("Other") && other ? [other] : [])].join(", ");
+  };
   const valid = (value: string) => {
     if (!q) return true;
     if (q.type === "name") return !!(answers[`${q.id}.first`] ?? "").trim() && !!(answers[`${q.id}.last`] ?? "").trim();
+    if (q.type === "multi") return q.optional || !!multiValue(q.id);
+    if (q.optional && !value.trim()) return true;
     if (!value.trim()) return false;
     if (q.type === "email") return /\S+@\S+\.\S+/.test(value);
     if (q.type === "phone") return value.replace(/\D/g, "").length >= 10;
@@ -46,12 +53,14 @@ export function FormRunner({
 
   const next = (value = answers[q?.id] ?? "") => {
     if (!valid(value)) {
-      setError(q.type === "email" ? "That doesn’t look like an email address." : q.type === "phone" ? "Please enter a full mobile number." : q.type === "name" ? "Please give us both your first and last name." : "Please answer this one to carry on.");
+      setError(q.type === "email" ? "That doesn’t look like an email address." : q.type === "phone" ? "Please enter a full mobile number." : q.type === "name" ? "Please give us both your first and last name." : q.type === "multi" ? "Tick at least one to carry on." : "Please answer this one to carry on.");
       return;
     }
     const nextAnswers = q.type === "name"
       ? { ...answers, [q.id]: `${(answers[`${q.id}.first`] ?? "").trim()} ${(answers[`${q.id}.last`] ?? "").trim()}`.trim() }
-      : { ...answers, [q.id]: value };
+      : q.type === "multi"
+        ? { ...answers, [q.id]: multiValue(q.id) }
+        : { ...answers, [q.id]: value };
     setAnswers(nextAnswers);
     if (step === Q.length - 1) onSubmit?.(nextAnswers);
     setStep(step + 1);
@@ -141,6 +150,32 @@ export function FormRunner({
                     onChange={(e) => setAnswers({ ...answers, [`${q.id}.last`]: e.target.value })}
                   />
                 </label>
+              </div>
+            ) : q.type === "multi" ? (
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }} role="group" aria-label={q.text}>
+                {[...(q.options ?? []), ...(q.other ? ["Other"] : [])].map((o, j) => {
+                  const picked = (answers[`${q.id}.picked`] ?? "").split("\n").filter(Boolean);
+                  const on = picked.includes(o);
+                  const max = q.max ?? 1;
+                  return (
+                    <button
+                      type="button"
+                      key={o}
+                      className={`opt ${on ? "on" : ""}`}
+                      aria-pressed={on}
+                      onClick={() => {
+                        const next = on ? picked.filter((x) => x !== o) : max === 1 ? [o] : picked.length >= max ? picked : [...picked, o];
+                        setAnswers({ ...answers, [`${q.id}.picked`]: next.join("\n") });
+                      }}
+                    >
+                      <span className="key">{on ? "✓" : String.fromCharCode(65 + j)}</span>{o}
+                    </button>
+                  );
+                })}
+                {q.other && (answers[`${q.id}.picked`] ?? "").split("\n").includes("Other") && (
+                  <input className="pin" autoFocus placeholder="Tell us" value={answers[`${q.id}.other`] ?? ""} onChange={(e) => setAnswers({ ...answers, [`${q.id}.other`]: e.target.value })} />
+                )}
+                {(q.max ?? 1) > 1 && <div className="help" style={{ fontSize: 13 }}>Tick up to {q.max}.</div>}
               </div>
             ) : q.type === "long" ? (
               <textarea

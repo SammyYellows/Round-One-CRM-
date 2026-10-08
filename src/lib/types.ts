@@ -78,6 +78,24 @@ export interface Contact {
   // Their TeamUp customer record, for everyone synced from TeamUp (members
   // and the people who made an account but never bought).
   teamup?: TeamUpCustomer;
+  // On the accountability programme (docs/accountability.md): their own
+  // commitment, from the /f/accountability form. Staff can end it.
+  accountability?: Accountability;
+}
+
+export interface Accountability {
+  active: boolean;
+  joinedAt: string;
+  leftAt?: string;
+  floor: number; // sessions a week they'll hit even on a bad week (1–3)
+  stretch: number; // sessions a week on a good week (2–5)
+  goals: string[];
+  why: string; // their own words, quoted back
+  derailers: string[];
+  style: "straight" | "encourage" | "facts";
+  frequency: "slipping" | "pulse" | "daily" | "weekly";
+  slot: string; // check-in slot, e.g. "Sunday 6pm"
+  coachNotes?: string;
 }
 
 /** A customer's membership as TeamUp reports it. TeamUp stays the source of truth. */
@@ -139,6 +157,8 @@ export type EventType =
   | "task.created"
   | "automation.stopped"
   | "automation.changed" // staff changed an automation's wording or switched it on or off
+  | "accountability.joined" // they filled in the commitment form
+  | "accountability.left" // staff ended it, or they asked to stop
   | "appointment.booked"
   | "appointment.updated";
 
@@ -166,7 +186,9 @@ export type Trigger =
   | { type: "membership.ending"; daysBefore: number; category?: string; via?: Via }
   | { type: "membership.cancelling"; category?: string; via?: Via } // they've given notice; it still runs until endsAt
   | { type: "payment.failed"; category?: string; via?: Via } // TeamUp has logged 3 failed payment attempts (PAYMENT_FAILED_AT)
-  | { type: "membership.ended"; category?: string; via?: Via };
+  | { type: "membership.ended"; category?: string; via?: Via }
+  // Someone joined the accountability programme (docs/accountability.md).
+  | { type: "accountability.joined" };
 
 /**
  * How someone reached us (Sammy, 07/10/2026). "crm": through the
@@ -213,8 +235,10 @@ export interface Run {
 }
 
 // "name" asks for first and last name in two boxes on one screen; the
-// answer is saved under "<id>.first" and "<id>.last".
-export type QuestionType = "text" | "long" | "phone" | "email" | "choice" | "scale" | "name";
+// answer is saved under "<id>.first" and "<id>.last". "multi" is tick boxes
+// (up to `max`), with an "Other" box to type in when `other` is set; the
+// answer is the ticked options joined with ", ".
+export type QuestionType = "text" | "long" | "phone" | "email" | "choice" | "scale" | "name" | "multi";
 
 export interface Question {
   id: string;
@@ -226,6 +250,10 @@ export interface Question {
   low?: string;
   high?: string;
   field?: "name" | "phone" | "email"; // maps the answer onto the contact
+  // For "multi": how many can be ticked, and whether there's an "Other" box.
+  max?: number;
+  other?: boolean;
+  optional?: boolean; // may be skipped
 }
 
 export interface Form {

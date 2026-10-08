@@ -207,7 +207,35 @@ const rebookEmail = (missed: string) => ({
   body: `Hi {first},\n\nWe had you booked in for {date} at {time}, but it looks like ${missed}.\n\nNo worries, things happen.\nIf you’d still like to chat, you can rebook using the link below:\n{bookLink}\n\nIf now’s not the right time, just reply and let me know.\n\nSpeak soon\nThe Round One team`,
 });
 
+/**
+ * Accountability programme welcome (docs/accountability.md). Drafted by
+ * Claude from the handover's tone, for Sammy to edit on the Accountability
+ * screen. Off until approved there.
+ */
+const ACCOUNTABILITY_WELCOME = {
+  subject: "Locked in, {first}",
+  body: `Hi {first},
+
+You’re on the accountability programme. Here’s what you told us:
+
+Your floor: {floor} a week, even on a bad week.
+Your stretch: {stretch} a week when it’s going well.
+Why it matters to you: “{why}”
+
+Every week we’ll check your floor against what you actually did and send you a 30-second check-in on {slot}. When you’re on pace we’ll leave you alone. When you’re slipping we’ll say so, the way you asked us to.
+
+If anything changes, reply to this email or tell a coach.
+
+{team}`,
+};
+
 export const AUTOMATIONS: Automation[] = [
+  {
+    id: "accountability_welcome", name: "Accountability – locked in", enabled: false, runs: 0,
+    summary: "When a member fills in the commitment form, confirms what they committed to. Off until Sammy approves the wording.",
+    trigger: { type: "accountability.joined" },
+    steps: [{ kind: "email", to: "contact", ...ACCOUNTABILITY_WELCOME }],
+  },
   {
     id: "new_lead", name: "New lead – booking push", enabled: true, runs: 0, stopOnReply: true,
     summary: "Tells the front desk, emails and WhatsApps the lead a booking link, then nudges twice, two days apart, until they book or reply. GymGrow workflow 1.",
@@ -425,6 +453,29 @@ export const AUTOMATIONS: Automation[] = [
     steps: [{ kind: "whatsapp", template: "did_not_convert_intro_to_recurring" }],
   },
 ];
+
+/**
+ * The accountability commitment form (docs/accountability.md), reached from
+ * a personalised link (/f/accountability?c=<contact id>) so the member is
+ * known. Question ids are read by joinAccountability in the engine. Floor is
+ * capped at three a week (Sammy, 08/10/2026).
+ */
+export const ACCOUNTABILITY_FORM: Form = {
+  id: "accountability", slug: "accountability", name: "Your commitment", responses: 0,
+  thanksTitle: "Locked in",
+  thanks: "You set the commitment, we hold you to it, your way. Your first check-in comes at the time you picked.",
+  questions: [
+    { id: "a_floor", type: "choice", text: "What’s your minimum: the number of sessions you’ll hit even on your worst week?", help: "This is your floor, not your goal. Pick the number you’d bet on.", options: ["Once a week", "Twice a week", "Three times a week"] },
+    { id: "a_stretch", type: "choice", text: "And on a good week, what would make you genuinely proud?", options: ["Twice a week", "Three times a week", "Four times a week", "Five or more times a week"] },
+    { id: "a_goal", type: "multi", text: "What are you here for?", help: "Tick up to two.", options: ["Lose weight", "Get fit", "Learn to box", "Build confidence", "Mental health"], max: 2, other: true },
+    { id: "a_why", type: "long", text: "Why does this matter to you right now?", help: "Your own words. We’ll remind you of them when a week goes sideways." },
+    { id: "a_derail", type: "multi", text: "What’s most likely to knock you off course?", options: ["Shifts", "Motivation dips", "Nerves", "Family", "Injury worries"], max: 3, other: true },
+    { id: "a_style", type: "choice", text: "When a week goes badly, how do you want us to play it?", options: ["Straight talk: call me out", "Encouragement", "Just the facts"] },
+    { id: "a_freq", type: "choice", text: "During the week, how much do you want us on you?", options: ["Only if I’m slipping", "A regular mid-week pulse", "Keep me posted daily", "Just the weekly check-in"] },
+    { id: "a_slot", type: "choice", text: "When should your weekly check-in land?", options: ["Sunday 6pm", "Monday 8am", "Wednesday 7pm", "Friday 5pm"] },
+    { id: "a_notes", type: "long", text: "Anything the coaches should know?", help: "Optional.", optional: true },
+  ],
+};
 
 /** The questions from Round One's Typeform (Round One Fitness 10-Step Form). Everyone qualifies. */
 export const TRIAL_FORM: Form = {

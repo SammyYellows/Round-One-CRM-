@@ -161,6 +161,24 @@ export default function ContactPage() {
               <div className="small faint">Change it in TeamUp; synced {ago(c.membership.syncedAt, now)}.</div>
             </div>
           )}
+          {c.accountability && (
+            <div style={{ borderTop: "1px solid var(--line)", paddingTop: 12, display: "flex", flexDirection: "column", gap: 4 }}>
+              <div className="label" style={{ margin: 0 }}>Accountability</div>
+              <div className="strong">{c.accountability.active ? `${c.accountability.floor === 1 ? "Once" : c.accountability.floor === 2 ? "Twice" : `${c.accountability.floor} times`} a week, stretch ${c.accountability.stretch}` : "Left the programme"}</div>
+              {c.accountability.active && (
+                <div className="small muted">
+                  {c.accountability.style === "straight" ? "Straight talk" : c.accountability.style === "facts" ? "Just the facts" : "Encouragement"} · check-in {c.accountability.slot} · since {shortDate(c.accountability.joinedAt)}
+                  {c.accountability.why ? <><br />“{c.accountability.why}”</> : null}
+                </div>
+              )}
+              {c.accountability.active && <button className="link-btn faint" style={{ alignSelf: "flex-start" }} onClick={() => { if (confirm(`Take ${firstName(c)} off the accountability programme?`)) act("leaveAccountability", c.id, "staff"); }}>End their place on the programme</button>}
+            </div>
+          )}
+          {c.membership?.status === "active" && !c.accountability?.active && (
+            <div className="small" style={{ borderTop: "1px solid var(--line)", paddingTop: 12 }}>
+              <button className="link-btn" onClick={() => { const url = `${window.location.origin}/f/accountability?c=${c.id}`; navigator.clipboard?.writeText(url).then(() => alert("Link copied. Send it to them to join the accountability programme.")).catch(() => window.prompt("Copy this link", url)); }}>Copy their accountability invite link</button>
+            </div>
+          )}
           {c.teamup && !c.membership && (
             <div style={{ borderTop: "1px solid var(--line)", paddingTop: 12, display: "flex", flexDirection: "column", gap: 4 }}>
               <div className="label" style={{ margin: 0 }}>TeamUp</div>
