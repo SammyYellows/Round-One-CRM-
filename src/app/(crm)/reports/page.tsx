@@ -8,7 +8,7 @@ import { useStore } from "@/lib/store";
 // numbers (behind a confirm). The maths is server-side in growth.ts.
 
 interface MonthPoint { month: string; label: string; joined: number; left: number; net: number; membersAtEnd: number }
-interface Weekly { asOf: string; members: number; joined: number; left: number; net: number; pastDays: number; droppingOff: { customerId: string; name: string; ends: string }[]; forecastDays: number; averageDays: number; forecastNet: number; forecastMembers: number }
+interface Weekly { asOf: string; members: number; joined: number; left: number; net: number; pastDays: number; droppingOff: { customerId: string; name: string; membership: string; ends: string }[]; forecastDays: number; averageDays: number; forecastNet: number; forecastMembers: number }
 interface Forecast { months: number; perMonth: number; net: number; members: number }
 interface Report { kind: "weekly" | "monthly"; asOf: string; weekly: Weekly; months: MonthPoint[]; forecasts: Forecast[]; cancellations: { name: string; noticeAt: string; membership: string; reply?: string }[]; cancellationSummary: string }
 interface Settings { pastDays: number; forecastDays: number; averageDays: number; monthlyMonths: number[]; forecastMonths: number[]; managerNumbers: string[]; weeklyOn: boolean; monthlyOn: boolean; lastWeeklyAt?: string; lastMonthlyAt?: string }
@@ -203,7 +203,7 @@ export default function ReportsPage() {
         <section className="card pad">
           <h2 className="h h2" style={{ marginBottom: 8 }}>Dropping off in 30 days</h2>
           {w.droppingOff.length === 0 && <div className="small muted">Nobody.</div>}
-          {w.droppingOff.map((d) => <div key={d.customerId} className="small" style={{ display: "flex", justifyContent: "space-between", gap: 8, padding: "6px 0", borderTop: "1px solid var(--line)" }}><span>{d.name}</span><span className="muted">ends {fmt(d.ends)}</span></div>)}
+          {w.droppingOff.map((d) => <div key={d.customerId} className="small" style={{ display: "flex", justifyContent: "space-between", gap: 8, padding: "6px 0", borderTop: "1px solid var(--line)" }}><span>{d.name} <span className="faint">· {d.membership}</span></span><span className="muted" style={{ whiteSpace: "nowrap" }}>ends {fmt(d.ends)}</span></div>)}
         </section>
       </div>
     </>

@@ -11,7 +11,8 @@ import { db } from "@/lib/server/supabase";
 
 export interface MembershipRow {
   customerId: string;
-  name: string;
+  customerName: string;
+  name: string; // the membership, e.g. "Premium Middleweight"
   start: string; // YYYY-MM-DD
   end: string | null; // expiration date, YYYY-MM-DD, or null while open-ended
   status: string; // active, cancelled, completed, hold
@@ -57,8 +58,10 @@ export async function loadMemberships(): Promise<MembershipRow[]> {
       const raw = r.raw as Record<string, unknown>;
       const start = typeof raw.start_date === "string" ? raw.start_date.slice(0, 10) : "";
       if (!start) continue;
+      const cust = (raw.customer && typeof raw.customer === "object" ? raw.customer : {}) as Record<string, unknown>;
       out.push({
         customerId: String(r.customer_id),
+        customerName: `${String(cust.first_name ?? "")} ${String(cust.last_name ?? "")}`.trim() || String(cust.email ?? "") || "Unknown",
         name: String(raw.name ?? ""),
         start,
         end: typeof raw.expiration_date === "string" ? raw.expiration_date.slice(0, 10) : null,
@@ -102,15 +105,15 @@ export function windowStats(rows: MembershipRow[], from: string, to: string): Wi
 }
 
 /** Members whose membership stops within `days` of `today` and nothing else runs on. */
-export function droppingOff(rows: MembershipRow[], today: string, days: number): { customerId: string; name: string; ends: string }[] {
+export function droppingOff(rows: MembershipRow[], today: string, days: number): { customerId: string; name: string; membership: string; ends: string }[] {
   const horizon = addDays(today, days);
   const now = membersOn(rows, today);
   const later = membersOn(rows, horizon);
-  const out: { customerId: string; name: string; ends: string }[] = [];
+  const out: { customerId: string; name: string; membership: string; ends: string }[] = [];
   for (const id of now) {
     if (later.has(id)) continue;
     const last = rows.filter((m) => m.customerId === id && runningOn(m, today)).sort((a, b) => (b.end ?? "9").localeCompare(a.end ?? "9"))[0];
-    if (last) out.push({ customerId: id, name: last.name, ends: last.end ?? horizon });
+    if (last) out.push({ customerId: id, name: last.customerName, membership: last.name, ends: last.end ?? horizon });
   }
   return out.sort((a, b) => a.ends.localeCompare(b.ends));
 }
@@ -122,7 +125,7 @@ export interface Weekly {
   left: number;
   net: number;
   pastDays: number;
-  droppingOff: { customerId: string; name: string; ends: string }[];
+  droppingOff: { customerId: string; name: string; membership: string; ends: string }[];
   forecastDays: number;
   averageDays: number;
   forecastNet: number; // expected net change over forecastDays

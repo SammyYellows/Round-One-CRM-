@@ -170,8 +170,9 @@ export function renderPdf(r: ReportData): Uint8Array {
   pdf.text(L, pdf.y, "Dropping off in the next 30 days", 14, { bold: true, color: INK }); pdf.y += 20;
   if (!w.droppingOff.length) { pdf.text(L, pdf.y, "Nobody.", 10, { color: MUTED }); pdf.y += 16; }
   for (const d of w.droppingOff.slice(0, 40)) {
-    pdf.text(L, pdf.y, d.name, 10, { color: INK });
-    pdf.text(L + 240, pdf.y, d.ends ? `ends ${fmtDate(d.ends)}` : "", 10, { color: MUTED });
+    pdf.text(L, pdf.y, d.name.slice(0, 34), 10, { color: INK });
+    pdf.text(L + 190, pdf.y, d.membership.length > 36 ? `${d.membership.slice(0, 35)}…` : d.membership, 9, { color: MUTED });
+    pdf.text(R, pdf.y, d.ends ? `ends ${fmtDate(d.ends)}` : "", 10, { color: MUTED, align: "right" });
     pdf.y += 15;
     if (pdf.y > 760) { pdf.newPage(); pdf.rect(0, 0, pdf.pageWidth, 6, RED); }
   }
