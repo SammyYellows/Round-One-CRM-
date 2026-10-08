@@ -98,7 +98,7 @@ export interface Accountability {
   coachNotes?: string;
   // This week's and last week's sessions, from TeamUp attendances (refreshed
   // nightly and just before their check-in). Weeks run Monday to Sunday, UK.
-  attendance?: { weekStart: string; thisWeek: number; lastWeek: number; sessions: string[]; syncedAt: string };
+  attendance?: { weekStart: string; thisWeek: number; lastWeek: number; sessions: string[]; syncedAt: string; doorEntries?: number /* Kisi swipes in the fortnight, when connected */ };
   lastCheckinAt?: string; // when the last weekly check-in was sent
   checkins?: Checkin[]; // their answers, newest first
   lastNudgeAt?: string; // the last mid-week nudge

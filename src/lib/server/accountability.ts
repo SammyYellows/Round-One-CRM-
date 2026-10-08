@@ -9,14 +9,24 @@ import { aiConfigured, readCheckin } from "./ai";
 import { applyMany, loadState } from "./state";
 import { fetchAttendance } from "./attendance";
 import { teamupConfigured } from "./teamup";
+import { kisiConfigured, kisiEntries, kisiMemberId } from "./kisi";
 
 const TWO_WEEKS = 15 * 86400e3;
 
-async function attendanceFor(ids: { contactId: string; customerId: string }[]) {
-  const out: { contactId: string; sessions: { at: string; status: string }[] }[] = [];
-  for (const { contactId, customerId } of ids) {
+async function attendanceFor(ids: { contactId: string; customerId: string; email: string }[]) {
+  const out: { contactId: string; sessions: { at: string; status: string }[]; doors: { at: string }[] }[] = [];
+  const since = Date.now() - TWO_WEEKS;
+  for (const { contactId, customerId, email } of ids) {
     try {
-      out.push({ contactId, sessions: await fetchAttendance(customerId, Date.now() - TWO_WEEKS) });
+      const sessions = teamupConfigured() && customerId ? await fetchAttendance(customerId, since) : [];
+      let doors: { at: string }[] = [];
+      if (kisiConfigured() && email) {
+        try {
+          const kid = await kisiMemberId(email);
+          if (kid) doors = await kisiEntries(kid, since);
+        } catch (e) { console.error("[accountability] kisi", email, e instanceof Error ? e.message : e); }
+      }
+      out.push({ contactId, sessions, doors });
     } catch (e) {
       console.error("[accountability] attendance", customerId, e instanceof Error ? e.message : e);
     }
@@ -26,16 +36,16 @@ async function attendanceFor(ids: { contactId: string; customerId: string }[]) {
 
 /** Everyone active on the programme with a TeamUp id. */
 const roster = (s: Awaited<ReturnType<typeof loadState>>) =>
-  s.contacts.filter((c) => c.accountability?.active).map((c) => ({ contactId: c.id, customerId: c.teamup?.customerId ?? c.membership?.customerId ?? "" })).filter((x) => x.customerId);
+  s.contacts.filter((c) => c.accountability?.active).map((c) => ({ contactId: c.id, customerId: c.teamup?.customerId ?? c.membership?.customerId ?? "", email: c.email })).filter((x) => x.customerId || x.email);
 
 /** Nightly, and from the Refresh button: this week's and last week's sessions for everyone on the programme. */
 export async function refreshAttendance() {
-  if (!teamupConfigured()) return { refreshed: 0 };
+  if (!teamupConfigured() && !kisiConfigured()) return { refreshed: 0 };
   const s = await loadState();
   const fetched = await attendanceFor(roster(s));
   if (!fetched.length) return { refreshed: 0 };
-  await applyMany((st) => { for (const f of fetched) recordAttendance(st, f.contactId, f.sessions); });
-  return { refreshed: fetched.length };
+  await applyMany((st) => { for (const f of fetched) recordAttendance(st, f.contactId, f.sessions, f.doors); });
+  return { refreshed: fetched.length, kisi: kisiConfigured() };
 }
 
 /** Called from /api/cron: fresh attendance for whoever is due, then their check-in, nudges and the silence signal. */
@@ -43,9 +53,9 @@ export async function accountabilityTick() {
   const s = await loadState();
   const due = [...dueCheckins(s), ...dueNudges(s)];
   if (!due.length && !s.contacts.some((c) => c.accountability?.active)) return { sent: 0, nudged: 0, silent: 0 };
-  const fetched = due.length && teamupConfigured() ? await attendanceFor(roster(s).filter((r) => due.some((c) => c.id === r.contactId))) : [];
+  const fetched = due.length && (teamupConfigured() || kisiConfigured()) ? await attendanceFor(roster(s).filter((r) => due.some((c) => c.id === r.contactId))) : [];
   return applyMany((st) => {
-    for (const f of fetched) recordAttendance(st, f.contactId, f.sessions);
+    for (const f of fetched) recordAttendance(st, f.contactId, f.sessions, f.doors);
     return { sent: sendCheckins(st), nudged: sendNudges(st), silent: flagSilence(st) };
   });
 }
