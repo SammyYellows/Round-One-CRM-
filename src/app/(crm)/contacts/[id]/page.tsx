@@ -183,6 +183,24 @@ export default function ContactPage() {
         </section>
 
         <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+          {c.answers.length > 0 && (
+            <section className="card">
+              <div className="card-head">
+                <div>
+                  <div className="eyebrow">{submitted ? `Answered ${ago(submitted.at, now)}` : "From the form"}</div>
+                  <h2 className="h h3">Questionnaire</h2>
+                </div>
+              </div>
+              <dl className="qa">
+                {c.answers.map((a) => (
+                  <div key={a.question} className="qa-row">
+                    <dt>{a.question}</dt>
+                    <dd className={a.answer ? "" : "faint"}>{a.answer || "Skipped"}</dd>
+                  </div>
+                ))}
+              </dl>
+            </section>
+          )}
         <section className="card">
           <div className="card-head" style={{ alignItems: "center" }}>
             <h2 className="h" style={{ fontSize: 24 }}>WhatsApp</h2>
@@ -244,24 +262,6 @@ export default function ContactPage() {
           )}
         </section>
 
-          {c.answers.length > 0 && (
-            <section className="card">
-              <div className="card-head">
-                <div>
-                  <div className="eyebrow">{submitted ? `Answered ${ago(submitted.at, now)}` : "From the form"}</div>
-                  <h2 className="h h3">Questionnaire</h2>
-                </div>
-              </div>
-              <dl className="qa">
-                {c.answers.map((a) => (
-                  <div key={a.question} className="qa-row">
-                    <dt>{a.question}</dt>
-                    <dd className={a.answer ? "" : "faint"}>{a.answer || "Skipped"}</dd>
-                  </div>
-                ))}
-              </dl>
-            </section>
-          )}
         </div>
 
         <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
