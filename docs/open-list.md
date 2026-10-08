@@ -22,7 +22,7 @@ list comes up, until each is on or dropped.
 | Program day 28: you did it | Program members | Day 28 |
 | Payment failed – update your details | Failed payments | TeamUp logs the third failed attempt |
 
-**Bug to fix: failed payments missed (found 08/10, Romel Rodriques).**
+**Fixed 08/10 (PR #83): failed payments missed (Romel Rodriques).** Romel flags after the next nightly sync. Still for Sammy: check in TeamUp whether he really has three Full Facility Access memberships. Original note:
 TeamUp's invoices have a `retry_failed` status the sync doesn't read (it
 only counts `open`), and a person with more than one active membership
 is checked on their newest one only. Romel's 5 Oct £34.99 is retry_failed
@@ -53,6 +53,13 @@ submitted to Meta (Sammy pastes the WhatsApp token; Claude runs
 when staff mark a sale on the pipeline.
 
 ## Work streams
+
+0. **Reports to the managers** (built 08/10, improvement items 12 and 13).
+   Waiting on Sammy: the managers' numbers in Reports → Settings; the
+   WhatsApp token so the `management_report` template can go to Meta; a
+   look at the PDF (Reports → Open the PDF, or Email me a copy); then
+   switch the weekly and monthly schedules on there.
+
 
 1. **TeamUp members** (`docs/teamup-members.md`). Sync live: all 1,264
    TeamUp customers are in (304 active members, 238 ex-members, 675 who

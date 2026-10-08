@@ -17,6 +17,7 @@ const NAV = [
   { href: "/program", label: "Program members", icon: <><path d="M4 20V10M10 20V4M16 20v-8M22 20H2" /></> },
   { href: "/members", label: "Members", icon: <><circle cx="9" cy="8" r="3.5" /><circle cx="17" cy="9" r="2.5" /><path d="M3 20c1-3.5 3.5-5.5 6-5.5s5 2 6 5.5M15 19c.5-2 2-3.5 4-3.5s2.5 1 2 3.5" /></> },
   { href: "/cancellations", label: "Cancellations", icon: <><circle cx="12" cy="12" r="9" /><path d="m9 9 6 6M15 9l-6 6" /></> },
+  { href: "/reports", label: "Reports", icon: <><path d="M4 20V4h16v16z" /><path d="M8 15l3-4 3 2 3-5" /></> },
   { href: "/payments", label: "Failed payments", icon: <><rect x="2" y="6" width="20" height="13" /><path d="M2 10h20M6 15h4" /></> },
   { href: "/automations", label: "Automations", icon: <path d="M13 2 4 14h7l-1 8 9-12h-7z" /> },
   { href: "/forms", label: "Forms", icon: <><rect x="5" y="3" width="14" height="18" /><path d="M9 8h6M9 12h6M9 16h4" /></> },

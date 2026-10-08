@@ -183,3 +183,22 @@ export async function rewriteTemplate(input: { subject: string; body: string; in
   const out = JSON.parse(json.content.find((c) => c.type === "text")?.text ?? "{}") as { subject?: string; body?: string };
   return { subject: String(out.subject ?? "").trim(), body: String(out.body ?? "").trim() };
 }
+
+/** Sums up what people who gave notice said in their replies, for the managers' report. Facts only from the replies. */
+export async function summariseCancellations(items: { name: string; membership: string; reply: string }[]): Promise<string> {
+  const key = process.env.ANTHROPIC_API_KEY;
+  if (!key || !items.length) return "";
+  const res = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: { "x-api-key": key, "anthropic-version": "2023-06-01", "content-type": "application/json" },
+    body: JSON.stringify({
+      model: MODEL,
+      max_tokens: 800,
+      system: `You write a short, plain summary for the managers of ${GYM.name}, a gym in Bristol, of why members who gave notice to cancel said they were leaving, based only on their own email replies. British English, sentence case, no exclamation marks. Group the reasons (e.g. moving away, cost, injury, not using it, switching gym), say how many gave each, name who said what in brackets, and point out anything the gym could act on (e.g. someone who would stay for a different class time). Never invent reasons; if a reply doesn't say why, say so. 120 words at most.`,
+      messages: [{ role: "user", content: items.map((i) => `${i.name} (${i.membership}):\n${i.reply}`).join("\n\n---\n\n") }],
+    }),
+  });
+  if (!res.ok) throw new Error(`Anthropic said ${res.status}`);
+  const json = (await res.json()) as { content: { type: string; text?: string }[] };
+  return (json.content.find((c) => c.type === "text")?.text ?? "").trim();
+}
