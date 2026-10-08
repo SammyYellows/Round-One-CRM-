@@ -53,6 +53,7 @@ export const sourceLabel = (s: Source) => SOURCES.find((x) => x.id === s)?.label
 export interface Contact {
   id: string;
   name: string;
+  firstName?: string; // from the form's first-name box; otherwise guessed from name
   phone: string;
   email: string;
   source: Source;
@@ -210,7 +211,9 @@ export interface Run {
   startedAt: string;
 }
 
-export type QuestionType = "text" | "long" | "phone" | "email" | "choice" | "scale";
+// "name" asks for first and last name in two boxes on one screen; the
+// answer is saved under "<id>.first" and "<id>.last".
+export type QuestionType = "text" | "long" | "phone" | "email" | "choice" | "scale" | "name";
 
 export interface Question {
   id: string;

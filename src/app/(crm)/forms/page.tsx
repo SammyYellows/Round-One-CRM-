@@ -8,6 +8,7 @@ import { Form, Question, QuestionType } from "@/lib/types";
 
 const TYPES: { id: QuestionType; label: string }[] = [
   { id: "text", label: "Short text" },
+  { id: "name", label: "First and last name" },
   { id: "long", label: "Long text" },
   { id: "phone", label: "Phone" },
   { id: "email", label: "Email" },

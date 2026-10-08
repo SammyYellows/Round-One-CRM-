@@ -442,7 +442,7 @@ export const TRIAL_FORM: Form = {
     { id: "q7", type: "choice", text: "Are you looking for coaching & accountability?", options: ["Yes", "No", "Not sure"] },
     { id: "q8", type: "choice", text: "How soon would you be ready to start?", options: ["Immediately", "This week", "This month", "Just browsing"] },
     { id: "q9", type: "scale", text: "How committed are you?", low: "Not very - just browsing", high: "I’m ready to commit" },
-    { id: "q10", type: "text", field: "name", text: "What’s your full name?" },
+    { id: "q10", type: "name", field: "name", text: "What’s your name?" },
     { id: "q11", type: "phone", field: "phone", text: "What’s the best phone number to reach you?", help: "We’ll message you about your intro meeting on WhatsApp." },
     { id: "q12", type: "email", field: "email", text: "And finally, what’s your email address?" },
   ],

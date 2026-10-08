@@ -37,6 +37,7 @@ export function FormRunner({
 
   const valid = (value: string) => {
     if (!q) return true;
+    if (q.type === "name") return !!(answers[`${q.id}.first`] ?? "").trim() && !!(answers[`${q.id}.last`] ?? "").trim();
     if (!value.trim()) return false;
     if (q.type === "email") return /\S+@\S+\.\S+/.test(value);
     if (q.type === "phone") return value.replace(/\D/g, "").length >= 10;
@@ -45,10 +46,12 @@ export function FormRunner({
 
   const next = (value = answers[q?.id] ?? "") => {
     if (!valid(value)) {
-      setError(q.type === "email" ? "That doesn’t look like an email address." : q.type === "phone" ? "Please enter a full mobile number." : "Please answer this one to carry on.");
+      setError(q.type === "email" ? "That doesn’t look like an email address." : q.type === "phone" ? "Please enter a full mobile number." : q.type === "name" ? "Please give us both your first and last name." : "Please answer this one to carry on.");
       return;
     }
-    const nextAnswers = { ...answers, [q.id]: value };
+    const nextAnswers = q.type === "name"
+      ? { ...answers, [q.id]: `${(answers[`${q.id}.first`] ?? "").trim()} ${(answers[`${q.id}.last`] ?? "").trim()}`.trim() }
+      : { ...answers, [q.id]: value };
     setAnswers(nextAnswers);
     if (step === Q.length - 1) onSubmit?.(nextAnswers);
     setStep(step + 1);
@@ -109,6 +112,35 @@ export function FormRunner({
                     <span style={{ textAlign: "right" }}>10 · {q.high}</span>
                   </div>
                 )}
+              </div>
+            ) : q.type === "name" ? (
+              <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+                <label style={{ flex: 1, minWidth: 160, display: "flex", flexDirection: "column", gap: 6 }}>
+                  <span className="help" style={{ fontSize: 13 }}>First name</span>
+                  <input
+                    key={`${q.id}.first`}
+                    id={`q-${q.id}`}
+                    autoFocus={controlledStep === undefined && step > 0}
+                    className="pin"
+                    type="text"
+                    autoComplete="given-name"
+                    placeholder="First name"
+                    value={answers[`${q.id}.first`] ?? ""}
+                    onChange={(e) => setAnswers({ ...answers, [`${q.id}.first`]: e.target.value })}
+                  />
+                </label>
+                <label style={{ flex: 1, minWidth: 160, display: "flex", flexDirection: "column", gap: 6 }}>
+                  <span className="help" style={{ fontSize: 13 }}>Last name</span>
+                  <input
+                    key={`${q.id}.last`}
+                    className="pin"
+                    type="text"
+                    autoComplete="family-name"
+                    placeholder="Last name"
+                    value={answers[`${q.id}.last`] ?? ""}
+                    onChange={(e) => setAnswers({ ...answers, [`${q.id}.last`]: e.target.value })}
+                  />
+                </label>
               </div>
             ) : q.type === "long" ? (
               <textarea
