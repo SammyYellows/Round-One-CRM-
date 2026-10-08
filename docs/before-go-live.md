@@ -34,6 +34,12 @@ over it).
 
 ## 2. Other items (from earlier)
 
+- **Managers' WhatsApp numbers for the reports** (Sammy, 08/10/2026): put
+  the two or three numbers in Reports → Settings, submit the
+  `management_report` template to Meta (with the Program templates), send
+  one test to Sammy, then switch the weekly and monthly schedules on.
+  Until the real number moves over, only Meta's test recipients get them.
+
 - Pre-live test checklist: build it, then run it. (Tests owed for things
   built since 05/10 are in `docs/test-log.md`, to be run in one go.)
 - Decide which database is the real one (everything runs on `round1-dev`).

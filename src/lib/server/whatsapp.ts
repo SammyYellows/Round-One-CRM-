@@ -32,12 +32,15 @@ export interface TemplateSend {
   language: string;
   params: string[]; // body {{1}}, {{2}}…
   videoUrl?: string; // header video
+  documentUrl?: string; // header document (a PDF), with its file name
+  documentName?: string;
   buttonParam?: string; // the end of a "Book meeting" link
 }
 
 export function sendTemplate(to: string, t: TemplateSend) {
   const components: Record<string, unknown>[] = [];
   if (t.videoUrl) components.push({ type: "header", parameters: [{ type: "video", video: { link: t.videoUrl } }] });
+  else if (t.documentUrl) components.push({ type: "header", parameters: [{ type: "document", document: { link: t.documentUrl, filename: t.documentName ?? "report.pdf" } }] });
   if (t.params.length) components.push({ type: "body", parameters: t.params.map((text) => ({ type: "text", text })) });
   if (t.buttonParam) components.push({ type: "button", sub_type: "url", index: "0", parameters: [{ type: "text", text: t.buttonParam }] });
   return post({ to, type: "template", template: { name: t.name, language: { code: t.language }, components } });

@@ -6,6 +6,7 @@ export type SendResult = { ok: true; dryRun: boolean; id?: string } | { ok: fals
 export interface SendOptions {
   from?: string; // defaults to EMAIL_FROM (bookings@)
   headers?: Record<string, string>; // e.g. In-Reply-To, to keep a reply in its thread
+  attachments?: { filename: string; content: Uint8Array }[]; // e.g. a report PDF
 }
 
 export async function sendEmail(to: string, subject: string, text: string, opts: SendOptions = {}): Promise<SendResult> {
@@ -19,7 +20,11 @@ export async function sendEmail(to: string, subject: string, text: string, opts:
     const res = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ from, to, subject, text, ...(opts.headers ? { headers: opts.headers } : {}) }),
+      body: JSON.stringify({
+        from, to, subject, text,
+        ...(opts.headers ? { headers: opts.headers } : {}),
+        ...(opts.attachments?.length ? { attachments: opts.attachments.map((a) => ({ filename: a.filename, content: Buffer.from(a.content).toString("base64") })) } : {}),
+      }),
     });
     const json = (await res.json().catch(() => ({}))) as { id?: string; message?: string };
     if (!res.ok) return { ok: false, error: json.message || `Resend said ${res.status}` };

@@ -70,6 +70,21 @@ async function uploadVideo(file) {
   return json.h;
 }
 
+/** Uploads a small sample PDF so Meta can see a document header. */
+async function uploadSample(name) {
+  const body = "%PDF-1.4\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj\n2 0 obj<</Type/Pages/Kids[3 0 R]/Count 1>>endobj\n3 0 obj<</Type/Page/Parent 2 0 R/MediaBox[0 0 595 842]>>endobj\nxref\n0 4\n0000000000 65535 f \n0000000009 00000 n \n0000000052 00000 n \n0000000101 00000 n \ntrailer<</Size 4/Root 1 0 R>>\nstartxref\n160\n%%EOF";
+  const bytes = Buffer.from(body, "latin1");
+  const appId = env("META_APP_ID");
+  const session = await graph(`${appId}/uploads?file_name=${encodeURIComponent(name)}&file_length=${bytes.length}&file_type=application/pdf`, { method: "POST" });
+  const res = await fetch(`${GRAPH}/${session.id}`, { method: "POST", headers: { Authorization: `OAuth ${token}`, file_offset: "0" }, body: bytes });
+  const json = await res.json();
+  if (!json.h) throw new Error(`Sample upload failed: ${JSON.stringify(json)}`);
+  return json.h;
+}
+
+const SAMPLES_EXTRA = { report: "Weekly members report", date: "6 Oct 2026", headline: "312 members, +4 in the last 30 days." };
+Object.assign(SAMPLES, SAMPLES_EXTRA);
+
 const STATUS = { APPROVED: "approved", REJECTED: "rejected", PENDING: "submitted", IN_APPEAL: "submitted", PAUSED: "approved", DISABLED: "rejected" };
 
 const templates = await rest("templates?select=*&order=name");
@@ -98,6 +113,7 @@ for (const t of templates) {
   const text = t.body.replace(/\{(\w+)\}/g, () => `{{${++n}}}`);
   const components = [];
   if (t.header_video) components.push({ type: "HEADER", format: "VIDEO", example: { header_handle: [await uploadVideo(t.header_video)] } });
+  else if (t.header_document) components.push({ type: "HEADER", format: "DOCUMENT", example: { header_handle: [await uploadSample("sample-report.pdf")] } });
   components.push({ type: "BODY", text, ...(keys.length ? { example: { body_text: [keys.map((k) => SAMPLES[k] ?? k)] } } : {}) });
   if (t.button_text && t.button_url) {
     const app = env("APP_URL").replace(/\/$/, "");
