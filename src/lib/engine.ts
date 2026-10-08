@@ -527,7 +527,7 @@ export function submitForm(s: State, formId: string, answers: Record<string, str
   const last = nameQ?.type === "name" ? (answers[`${nameQ.id}.last`] ?? "").trim().replace(/\s+/g, " ") : "";
   const name = [first, last].filter(Boolean).join(" ") || byField("name") || "Unknown";
   const phone = byField("phone");
-  const email = byField("email");
+  const email = byField("email").toLowerCase();
   const fromMeta = !!utm.fbclid || /facebook|instagram|meta/i.test(utm.source ?? "");
   const source: Source = fromMeta ? "meta_ad" : "website";
   const qa = form.questions.filter((q) => !q.field).map((q) => ({ question: q.text, answer: answers[q.id] ?? "" }));

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Form } from "@/lib/types";
+import { checkEmail } from "@/lib/emailCheck";
 
 // One question per screen, Typeform-style. Used for the live public form and
 // for the preview in the builder, so what staff see is what people get.
@@ -26,6 +27,8 @@ export function FormRunner({
   const [localStep, setLocalStep] = useState(0);
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [error, setError] = useState("");
+  const [suggestion, setSuggestion] = useState<string | null>(null); // "Did you mean …?" for an email typo
+  const [keptEmail, setKeptEmail] = useState(""); // the address they insisted on despite the suggestion
   const step = controlledStep ?? localStep;
   const setStep = (n: number) => { setError(""); (onStep ?? setLocalStep)(n); };
 
@@ -46,14 +49,21 @@ export function FormRunner({
     if (q.type === "multi") return q.optional || !!multiValue(q.id);
     if (q.optional && !value.trim()) return true;
     if (!value.trim()) return false;
-    if (q.type === "email") return /\S+@\S+\.\S+/.test(value);
+    if (q.type === "email") return checkEmail(value).ok;
     if (q.type === "phone") return value.replace(/\D/g, "").length >= 10;
     return true;
   };
 
   const next = (value = answers[q?.id] ?? "") => {
+    if (q?.type === "email") {
+      const check = checkEmail(value);
+      if (!check.ok) { setError(check.reason ?? "That doesn’t look like an email address."); return; }
+      if (check.suggestion && check.suggestion !== value && keptEmail !== check.value) { setSuggestion(check.suggestion); setError(""); return; }
+      value = check.value;
+      setSuggestion(null);
+    }
     if (!valid(value)) {
-      setError(q.type === "email" ? "That doesn’t look like an email address." : q.type === "phone" ? "Please enter a full mobile number." : q.type === "name" ? "Please give us both your first and last name." : q.type === "multi" ? "Tick at least one to carry on." : "Please answer this one to carry on.");
+      setError(q.type === "phone" ? "Please enter a full mobile number." : q.type === "name" ? "Please give us both your first and last name." : q.type === "multi" ? "Tick at least one to carry on." : "Please answer this one to carry on.");
       return;
     }
     const nextAnswers = q.type === "name"
@@ -212,10 +222,17 @@ export function FormRunner({
                 autoComplete={q.field === "name" ? "name" : q.field === "phone" ? "tel" : q.field === "email" ? "email" : "off"}
                 placeholder={q.type === "phone" ? "07…" : q.type === "email" ? "you@example.com" : "Type your answer"}
                 value={answers[q.id] ?? ""}
-                onChange={(e) => setAnswers({ ...answers, [q.id]: e.target.value })}
+                onChange={(e) => { setAnswers({ ...answers, [q.id]: e.target.value }); setSuggestion(null); }}
               />
             )}
             {error && <div className="err" role="alert">{error}</div>}
+            {suggestion && q.type === "email" && (
+              <div className="err" role="alert" style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+                <span>Did you mean <strong>{suggestion}</strong>?</span>
+                <button type="button" className="btn btn-red" style={{ height: 36, padding: "0 12px" }} onClick={() => { setAnswers({ ...answers, [q.id]: suggestion }); setSuggestion(null); }}>Yes, use that</button>
+                <button type="button" className="btn btn-ghost" style={{ height: 36, padding: "0 12px" }} onClick={() => { setKeptEmail(checkEmail(answers[q.id] ?? "").value); setSuggestion(null); }}>No, mine is right</button>
+              </div>
+            )}
             <div style={{ flex: 1 }} />
             <div style={{ display: "flex", gap: 8 }}>
               <button type="button" className="btn btn-ghost" onClick={() => setStep(Math.max(0, step - 1))} disabled={step === 0}>Back</button>

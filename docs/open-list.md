@@ -52,6 +52,26 @@ submitted to Meta (Sammy pastes the WhatsApp token; Claude runs
 **Off and not TeamUp-driven any more:** the GymGrow welcomes fire only
 when staff mark a sale on the pipeline.
 
+## Reminders Sammy asked for (08/10/2026)
+
+- **Reports: the other managers' numbers.** Set to 07855284151 only for
+  now; add the rest in Reports → Settings before switching the schedules
+  on. Also the `management_report` template needs Meta's approval.
+- **Kisi API key** (owner account) so failed-payment blocking can shut the
+  door directly as well as the TeamUp hold (improvement item 15).
+- **Summary on the contact of what they said in replies** (improvement item
+  16): Sammy wants reminding; not started.
+- **Two-way TeamUp actions** (item 9): Sammy wants reminding; the hold
+  button is the first one, built 08/10.
+- **Test log run** (`docs/test-log.md`): Sammy wants reminding to pick a
+  time.
+- **Program messages days 1–28:** Sammy said the wording is good as it is
+  (08/10). They stay off until he presses Approve on each card on Program
+  members, or tells Claude to switch them all on. Switching on affects
+  new Program starts only, nobody retrospectively.
+- **Route 2 schedule:** still listening for Sammy's description.
+- **Win-back replies** landing in Enquiries: fine as it is (Sammy, 08/10).
+
 ## Work streams
 
 0. **Reports to the managers** (built 08/10, improvement items 12 and 13).
@@ -84,6 +104,8 @@ when staff mark a sale on the pipeline.
 3. **Photo background on the questionnaire** (improvement list item 1).
    Waiting on Sammy: a photo from Round One.
 3b. **Win-back email the day after notice** (improvement list item 7).
+   **Stays on (Sammy, 08/10).** Research into better win-back approaches
+   is improvement item 17.
    Built 06/10 and tested end to end the same night (sent to info@ via
    the real sync code and the live server). Editable on the Cancellations
    screen with named drafts and an AI rewrite. **Found switched on at
