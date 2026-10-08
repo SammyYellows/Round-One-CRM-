@@ -136,8 +136,10 @@ In place so far:
   on `contact.accountability`; `accountability.joined` fires the welcome.
   Attendance comes from TeamUp (`attendance.ts`); `/api/cron` sends the
   weekly check-in at their slot (`accountabilityTick`), only while their
-  membership is active; answers to `/f/check-in` land on the contact.
-  Both emails are off until approved. Screen: Accountability.
+  membership is active; answers to `/f/check-in` land on the contact and
+  Claude's read of them (`readCheckin`) waits on the Accountability screen
+  for staff to approve a reply. Mid-week nudges and the silence signal run
+  from the same tick. All three emails are off until approved.
 - **Reports** (`src/lib/server/growth.ts`, `reports.ts`): weekly members
   and monthly growth PDFs (made in-house, `reports` bucket) to the
   managers' WhatsApp numbers on a schedule from `/api/cron`, off until

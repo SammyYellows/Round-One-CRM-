@@ -202,3 +202,47 @@ export async function summariseCancellations(items: { name: string; membership: 
   const json = (await res.json()) as { content: { type: string; text?: string }[] };
   return (json.content.find((c) => c.type === "text")?.text ?? "").trim();
 }
+
+export interface CheckinRead { status: "on_track" | "slipping" | "struggling" | "wants_coach"; sentiment: "up" | "flat" | "down"; flagCoach: boolean; reply: string; adjust: "keep" | "lower" | "raise" | "talk"; note: string }
+
+/**
+ * Reads a member's weekly check-in against their commitment and attendance
+ * (docs/accountability.md, Scenario B) and suggests a reply in their chosen
+ * tone. Staff see and approve the reply before anything is sent.
+ */
+export async function readCheckin(input: { first: string; floor: number; stretch: number; why: string; style: string; thisWeek: number; lastWeek: number; feel: string; blocker?: string; play: string; recent: string[] }): Promise<CheckinRead> {
+  const key = process.env.ANTHROPIC_API_KEY;
+  if (!key) throw new Error("ANTHROPIC_API_KEY isn’t set");
+  const tone = input.style === "straight" ? "Straight talk: direct, no cushioning, no lecture, respect them enough to be blunt." : input.style === "facts" ? "Just the facts: numbers and next step, no feelings talk." : "Encouragement: warm and specific, never gushing.";
+  const res = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: { "x-api-key": key, "anthropic-version": "2023-06-01", "content-type": "application/json" },
+    body: JSON.stringify({
+      model: MODEL,
+      max_tokens: 1024,
+      system: `You are a coach at ${GYM.name}, a boxing and strength gym in Bristol, replying to a member's weekly accountability check-in. A staff member reads and edits your reply before it is sent. British English, plain, sentence case, no exclamation marks, no emoji, at most 80 words. Address them by first name. Tone: ${tone} Quote their own "why" back only when motivation is the problem. Never invent facts about the gym, classes or prices. Sign off "${GYM.signOff}".`,
+      output_config: {
+        effort: "medium",
+        format: { type: "json_schema", schema: { type: "object", properties: {
+          status: { type: "string", enum: ["on_track", "slipping", "struggling", "wants_coach"] },
+          sentiment: { type: "string", enum: ["up", "flat", "down"] },
+          flagCoach: { type: "boolean", description: "True if a coach should speak to them in person this week." },
+          reply: { type: "string", description: "The reply, ready to send." },
+          adjust: { type: "string", enum: ["keep", "lower", "raise", "talk"], description: "What should happen to their target." },
+          note: { type: "string", description: "One line for staff only: what you noticed and why you replied this way." },
+        }, required: ["status", "sentiment", "flagCoach", "reply", "adjust", "note"], additionalProperties: false } },
+      },
+      messages: [{ role: "user", content:
+        `Member: ${input.first}. Floor: ${input.floor} sessions a week. Stretch: ${input.stretch}. Their why: "${input.why}".\n` +
+        `This week: ${input.thisWeek} sessions. Last week: ${input.lastWeek}.\n` +
+        `Check-in answers: how the week felt: "${input.feel}". What got in the way: "${input.blocker || "(nothing written)"}". Next week's play: "${input.play}".\n` +
+        (input.recent.length ? `Previous check-ins, newest first: ${input.recent.join(" | ")}\n` : "") +
+        `If their floor is already above what they are managing and they chose "lower the target", say that is a sensible call. If they asked for a coach, keep the reply short and say a coach will catch them this week.` }],
+    }),
+  });
+  if (!res.ok) { const err = (await res.json().catch(() => ({}))) as { error?: { message?: string } }; throw new Error(err.error?.message || `Anthropic said ${res.status}`); }
+  const json = (await res.json()) as { stop_reason?: string; content: { type: string; text?: string }[] };
+  if (json.stop_reason === "refusal") throw new Error("The AI declined");
+  const out = JSON.parse(json.content.find((c) => c.type === "text")?.text ?? "{}") as Partial<CheckinRead>;
+  return { status: out.status ?? "slipping", sentiment: out.sentiment ?? "flat", flagCoach: !!out.flagCoach, reply: String(out.reply ?? "").trim(), adjust: out.adjust ?? "keep", note: String(out.note ?? "").trim() };
+}

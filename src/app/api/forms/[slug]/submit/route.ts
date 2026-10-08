@@ -9,6 +9,7 @@ import { checkFormToken, clientIp, overLimit } from "@/lib/server/spam";
 import { db } from "@/lib/server/supabase";
 import type { Question } from "@/lib/types";
 import { checkEmail } from "@/lib/emailCheck";
+import { readLatestCheckin } from "@/lib/server/accountability";
 
 export const dynamic = "force-dynamic";
 
@@ -60,6 +61,8 @@ export async function POST(req: Request, { params }: { params: { slug: string } 
     const known = text(body.contactId, 40) || undefined; // from a personalised link (?c=…)
     const after = await applyAction("submitForm", [form.id as string, answers, utm, uid(), known]);
     const contactId = after.events.find((e) => e.type === "form.submitted")?.contactId;
+    // A weekly check-in: Claude reads it now so the suggested reply is waiting for staff.
+    if (params.slug === "check-in" && contactId) await readLatestCheckin(contactId).catch((e) => console.error("[check-in read]", e instanceof Error ? e.message : e));
     return Response.json({ ok: true, contactId });
   } catch (e) {
     console.error("[form submit]", params.slug, e);

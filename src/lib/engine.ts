@@ -4,7 +4,7 @@
 // routes and the automation part moves to a job runner (Inngest / Trigger.dev).
 
 import {
-  Accountability, Appointment, Automation, Availability, Membership, Contact, CrmEvent, EventType, Form, Run, Source, Stage, State, Step, apptStatusLabel, stageLabel, PAYMENT_FAILED_AT, viaOf } from "./types";
+  Accountability, Appointment, Automation, Checkin, Availability, Membership, Contact, CrmEvent, EventType, Form, Run, Source, Stage, State, Step, apptStatusLabel, stageLabel, PAYMENT_FAILED_AT, viaOf } from "./types";
 import { GYM } from "./gym";
 import { samePhone } from "./phone";
 import { ukParts, ukTime, ukWeekStart } from "./time";
@@ -92,7 +92,8 @@ type Fired =
   | { type: "payment.failed"; contactId: string; category: string }
   | { type: "membership.ended"; contactId: string; category: string }
   | { type: "accountability.joined"; contactId: string }
-  | { type: "accountability.checkin"; contactId: string };
+  | { type: "accountability.checkin"; contactId: string }
+  | { type: "accountability.nudge"; contactId: string };
 
 const sameCategory = (want: string | undefined, got: string) => !want || want.trim().toLowerCase() === got.trim().toLowerCase();
 
@@ -115,6 +116,7 @@ function matches(s: State, a: Automation, ev: Fired) {
   if (t.type === "membership.ending" && ev.type === "membership.ending") return t.daysBefore === ev.daysBefore && sameCategory(t.category, ev.category);
   if (t.type === "accountability.joined" && ev.type === "accountability.joined") return true;
   if (t.type === "accountability.checkin" && ev.type === "accountability.checkin") return true;
+  if (t.type === "accountability.nudge" && ev.type === "accountability.nudge") return true;
   return false;
 }
 
@@ -253,6 +255,7 @@ export function describeTrigger(a: Automation, forms: Form[]) {
   if (t.type === "membership.ended") return `Membership ends${cat(t.category)}${via}`;
   if (t.type === "accountability.joined") return "Joins the accountability programme";
   if (t.type === "accountability.checkin") return "Their weekly check-in time comes round";
+  if (t.type === "accountability.nudge") return "Mid-week, and they want or need a nudge";
   return `Tagged “${t.tag}”`;
 }
 
@@ -665,7 +668,7 @@ export function sendCheckins(s: State) {
 export function recordCheckin(s: State, c: Contact, answers: Record<string, string>) {
   if (!c.accountability) return;
   const get = (id: string) => (answers[id] ?? "").trim();
-  const entry = { week: ukParts(nowMs(s)).date, at: nowIso(s), feel: get("ci_feel"), blocker: get("ci_blocker") || undefined, play: get("ci_play") };
+  const entry: Checkin = { week: ukParts(nowMs(s)).date, at: nowIso(s), feel: get("ci_feel"), blocker: get("ci_blocker") || undefined, play: get("ci_play") };
   c.accountability = { ...c.accountability, checkins: [entry, ...(c.accountability.checkins ?? [])].slice(0, 52) };
   log(s, "accountability.checkin_received", c.id, `${c.name} checked in: ${entry.feel || "no answer"}${entry.play ? ` · ${entry.play}` : ""}${entry.blocker ? ` · “${entry.blocker.slice(0, 80)}”` : ""}`);
   if (/coach/i.test(entry.play) || /write-off|struggled/i.test(entry.feel)) {
@@ -673,6 +676,94 @@ export function recordCheckin(s: State, c: Contact, answers: Record<string, stri
     s.tasks.unshift({ id: uid(), contactId: c.id, text, done: false, at: nowIso(s) });
     log(s, "task.created", c.id, text);
   }
+}
+
+/** The server's Claude read of a check-in, stored against it. Quiet: no event. */
+export function setCheckinAi(s: State, contactId: string, at: string, ai: NonNullable<Checkin["ai"]>) {
+  const c = s.contacts.find((x) => x.id === contactId);
+  if (!c?.accountability?.checkins) return;
+  c.accountability = { ...c.accountability, checkins: c.accountability.checkins.map((k) => (k.at === at ? { ...k, ai } : k)) };
+}
+
+/** Staff approved a reply to a check-in: it goes as an email from bookings@ (deliver.ts sends email.sent events). */
+export function replyToCheckin(s: State, contactId: string, at: string, text: string, by: string) {
+  const c = s.contacts.find((x) => x.id === contactId);
+  const k = c?.accountability?.checkins?.find((x) => x.at === at);
+  if (!c || !k || !text.trim()) return;
+  c.accountability = { ...c.accountability!, checkins: c.accountability!.checkins!.map((x) => (x.at === at ? { ...x, repliedAt: nowIso(s) } : x)) };
+  const subject = `Re: your week, ${firstName(c) || "there"}`;
+  log(s, "accountability.replied", c.id, `${by} replied to ${c.name}’s check-in`);
+  log(s, "email.sent", c.id, `${subject} to ${c.name}`, { to: "contact", subject, body: text.trim(), automation: "accountability_reply" });
+}
+
+/** Staff chose not to reply to a check-in. */
+export function dismissCheckin(s: State, contactId: string, at: string) {
+  const c = s.contacts.find((x) => x.id === contactId);
+  if (!c?.accountability?.checkins) return;
+  c.accountability = { ...c.accountability, checkins: c.accountability.checkins.map((k) => (k.at === at ? { ...k, dismissedAt: nowIso(s) } : k)) };
+}
+
+/** The mid-week nudge hour, UK. Thursday for the weekly pulse; every day for "keep me posted". */
+export const NUDGE_HOUR = 17;
+
+/**
+ * Who gets a nudge now (docs/accountability.md rule 6: silence when on
+ * pace). "slipping": Thursday, only if under the floor. "pulse": every
+ * Thursday. "daily": every day from Tuesday, once a day. "weekly": never.
+ */
+export function dueNudges(s: State): Contact[] {
+  const now = nowMs(s);
+  const { weekday, hour, date } = ukParts(now);
+  if (hour < NUDGE_HOUR) return [];
+  const thursday = weekday === 4;
+  return s.contacts.filter((c) => {
+    const a = c.accountability;
+    if (!a?.active || c.membership?.status !== "active") return false;
+    if (a.lastNudgeAt && ukParts(Date.parse(a.lastNudgeAt)).date === date) return false; // once a day at most
+    const sentThisWeek = a.lastNudgeAt ? Date.parse(a.lastNudgeAt) >= ukWeekStart(now).getTime() : false;
+    const under = (a.attendance?.thisWeek ?? 0) < a.floor;
+    if (a.frequency === "weekly") return false;
+    if (a.frequency === "daily") return weekday >= 2 || weekday === 0; // Tuesday to Sunday
+    if (!thursday || sentThisWeek) return false;
+    return a.frequency === "pulse" || under;
+  });
+}
+
+export function sendNudges(s: State) {
+  let n = 0;
+  for (const c of dueNudges(s)) {
+    c.accountability = { ...c.accountability!, lastNudgeAt: nowIso(s) };
+    log(s, "accountability.nudge", c.id, `Mid-week nudge for ${c.name}: ${sessions(c.accountability!.attendance?.thisWeek ?? 0)} against a floor of ${times(c.accountability!.floor)}`);
+    fire(s, { type: "accountability.nudge", contactId: c.id });
+    n++;
+  }
+  return n;
+}
+
+/**
+ * The silence signal: on the programme, no sessions this week or last, and
+ * no check-in answered in two weeks. One task for the coaches, at most once
+ * a fortnight per member.
+ */
+export function flagSilence(s: State) {
+  const now = nowMs(s);
+  let n = 0;
+  for (const c of s.contacts) {
+    const a = c.accountability;
+    if (!a?.active || c.membership?.status !== "active" || !a.attendance) continue;
+    if (now - Date.parse(a.joinedAt) < 14 * 86400e3) continue; // give them a fortnight
+    if (a.attendance.thisWeek > 0 || a.attendance.lastWeek > 0) continue;
+    const lastAnswer = a.checkins?.[0]?.at;
+    if (lastAnswer && now - Date.parse(lastAnswer) < 14 * 86400e3) continue;
+    if (a.lastSilenceTaskAt && now - Date.parse(a.lastSilenceTaskAt) < 14 * 86400e3) continue;
+    c.accountability = { ...a, lastSilenceTaskAt: nowIso(s) };
+    const text = `${firstName(c) || c.name} has gone quiet: no sessions for two weeks and no check-in answered. Worth a call. They said: “${a.why}”`;
+    s.tasks.unshift({ id: uid(), contactId: c.id, text, done: false, at: nowIso(s) });
+    log(s, "accountability.silent", c.id, text);
+    log(s, "task.created", c.id, text);
+    n++;
+  }
+  return n;
 }
 
 /** Staff end someone's place on the programme (or they asked to stop). */
