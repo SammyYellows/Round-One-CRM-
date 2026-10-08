@@ -608,18 +608,31 @@ export function joinAccountability(s: State, c: Contact, form: Form, answers: Re
   if (!prev?.active) fire(s, { type: "accountability.joined", contactId: c.id });
 }
 
-/** TeamUp's attendances for one member, counted into this week and last (Monday to Sunday, UK). Quiet: no events. */
-export function recordAttendance(s: State, contactId: string, attended: { at: string; status: string }[]) {
+/**
+ * One member's sessions, counted into this week and last (Monday to Sunday,
+ * UK). Attendance truth is TeamUp classes plus Kisi door entries (rule 7):
+ * a class counts if attended, or booked and already happened; a door entry
+ * counts as an open-gym session. One session per UK day at most, so a
+ * class and the door swipe for it aren't counted twice. Quiet: no events.
+ */
+export function recordAttendance(s: State, contactId: string, attended: { at: string; status: string }[], doorEntries: { at: string }[] = []) {
   const c = s.contacts.find((x) => x.id === contactId);
   if (!c?.accountability) return;
   const now = nowMs(s);
   const thisStart = ukWeekStart(now).getTime();
   const lastStart = ukTime(thisStart, -7, 0, 0).getTime();
-  // Attended, or booked for a class that has already happened (many gyms never tick people in).
-  const counts = attended.filter((a) => (a.status === "attended" || a.status === "registered") && Date.parse(a.at) <= now);
-  const sessionsThisWeek = counts.filter((a) => Date.parse(a.at) >= thisStart).map((a) => a.at).sort();
-  const lastWeek = counts.filter((a) => Date.parse(a.at) >= lastStart && Date.parse(a.at) < thisStart).length;
-  c.accountability = { ...c.accountability, attendance: { weekStart: new Date(thisStart).toISOString(), thisWeek: sessionsThisWeek.length, lastWeek, sessions: sessionsThisWeek, syncedAt: nowIso(s) } };
+  const classes = attended.filter((a) => (a.status === "attended" || a.status === "registered") && Date.parse(a.at) <= now).map((a) => a.at);
+  const doors = doorEntries.map((d) => d.at).filter((at) => Date.parse(at) <= now);
+  const byDay = new Map<string, string>(); // UK date → earliest time that day
+  for (const at of [...classes, ...doors]) {
+    const day = ukParts(Date.parse(at)).date;
+    const cur = byDay.get(day);
+    if (!cur || at < cur) byDay.set(day, at);
+  }
+  const all = [...byDay.values()].sort();
+  const sessionsThisWeek = all.filter((at) => Date.parse(at) >= thisStart);
+  const lastWeek = all.filter((at) => Date.parse(at) >= lastStart && Date.parse(at) < thisStart).length;
+  c.accountability = { ...c.accountability, attendance: { weekStart: new Date(thisStart).toISOString(), thisWeek: sessionsThisWeek.length, lastWeek, sessions: sessionsThisWeek, syncedAt: nowIso(s), doorEntries: doors.filter((at) => Date.parse(at) >= lastStart).length || undefined } };
 }
 
 const SLOT = /^(sunday|monday|tuesday|wednesday|thursday|friday|saturday)\s+(\d{1,2})(?::(\d{2}))?\s*(am|pm)?$/i;
