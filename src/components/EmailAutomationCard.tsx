@@ -32,6 +32,12 @@ export function EmailAutomationCard({ automationId, title, purpose, when, startO
 
   const liveSubject = emailStep?.kind === "email" ? emailStep.subject : "";
   const liveBody = emailStep?.kind === "email" ? emailStep.body ?? "" : "";
+  const [showLive, setShowLive] = useState(false);
+  // What has happened to this automation: last wording change, last switch, how many sent.
+  const lastChange = s.events.find((e) => e.type === "automation.changed" && e.data?.automation === automationId && e.data?.subject);
+  const lastSwitch = s.events.find((e) => e.type === "automation.changed" && e.data?.automation === automationId && e.data?.enabled);
+  const sentCount = s.events.filter((e) => e.type === "email.sent" && e.data?.automation === automationId && e.data?.to === "contact").length;
+  const lastSent = s.events.find((e) => e.type === "email.sent" && e.data?.automation === automationId && e.data?.to === "contact");
   useEffect(() => { setSubject(liveSubject); setBody(liveBody); }, [liveSubject, liveBody]);
   useEffect(() => {
     if (!live) return;
@@ -41,6 +47,8 @@ export function EmailAutomationCard({ automationId, title, purpose, when, startO
 
   if (!automation || emailStep?.kind !== "email") return null;
   const dirty = subject !== liveSubject || body !== liveBody;
+  const liveDraft = drafts.find((d) => d.subject === liveSubject && d.body === liveBody);
+  const dateTime = (iso: string) => new Date(iso).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
 
   const api = async (payload: Record<string, unknown>) => {
     const res = await fetch("/api/automation-drafts", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ automation: automationId, purpose, ...payload }) });
@@ -49,7 +57,7 @@ export function EmailAutomationCard({ automationId, title, purpose, when, startO
   const loadDraft = (id: string) => {
     setDraftId(id);
     const d = drafts.find((x) => x.id === id);
-    if (d) { setSubject(d.subject); setBody(d.body); setDraftName(d.name); setConfirming(false); setNote(`Loaded “${d.name}”. It isn’t live until you save the wording or approve it.`); }
+    if (d) { setSubject(d.subject); setBody(d.body); setDraftName(d.name); setConfirming(false); setNote(`Loaded “${d.name}”. It isn’t live until you press “Make this the live wording” or approve it.`); }
   };
   const currentDraft = drafts.find((d) => d.id === draftId);
   const saveDraft = async () => {
@@ -77,9 +85,13 @@ export function EmailAutomationCard({ automationId, title, purpose, when, startO
     setBusy(null);
     if (!r.ok || !r.body) { setNote(r.error ?? "Couldn’t rewrite"); return; }
     setSubject(r.subject ?? subject); setBody(r.body); setInstruction(""); setConfirming(false);
-    setNote("Rewritten. Read it through, then save it as a draft or save the wording.");
+    setNote("Rewritten. Read it through, then save it as a draft or make it the live wording.");
   };
-  const saveWording = () => { act("setEmailStep", automationId, emailIndex, subject, body); setNote("Wording saved."); };
+  const saveWording = () => {
+    if (automation.enabled && !confirm(`Replace the live wording of “${title}”? Everyone it applies to from now on gets the new version.`)) return;
+    act("setEmailStep", automationId, emailIndex, subject, body);
+    setNote(automation.enabled ? "This is now the live wording. It goes out from the next send." : "Wording saved. It goes out once you approve and switch on.");
+  };
   const switchOn = () => { if (dirty) act("setEmailStep", automationId, emailIndex, subject, body); act("toggleAutomation", automationId); setConfirming(false); setNote("Switched on."); };
   const switchOff = () => { act("toggleAutomation", automationId); setNote("Switched off. Nothing more will be sent."); };
 
@@ -97,12 +109,32 @@ export function EmailAutomationCard({ automationId, title, purpose, when, startO
       </div>
       {open && (
         <div style={{ padding: "0 22px 22px", display: "flex", flexDirection: "column", gap: 12 }}>
+          <div className="enq-confirm" style={{ borderColor: automation.enabled ? "var(--red)" : undefined }}>
+            <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap", alignItems: "baseline" }}>
+              <div className="strong">{automation.enabled ? "Live now: this is what gets sent" : "Off: nothing is sent. Wording that would go out if switched on"}</div>
+              <button type="button" className="link-btn faint" onClick={() => setShowLive((v) => !v)}>{showLive ? "Hide the message" : "Read the message"}</button>
+            </div>
+            <div className="small muted">
+              Subject: <span className="strong">{liveSubject || "(none)"}</span>
+              {liveDraft ? ` · same as saved draft “${liveDraft.name}”` : drafts.length ? " · not one of the saved drafts" : ""}
+            </div>
+            <div className="small muted">Who: {when}.</div>
+            <div className="small faint">
+              {lastChange ? `Wording last changed ${dateTime(lastChange.at)}. ` : "Wording unchanged since it was set up. "}
+              {lastSwitch ? `Switched ${lastSwitch.data?.enabled === "yes" ? "on" : "off"} ${dateTime(lastSwitch.at)}. ` : ""}
+              {sentCount > 0 ? `Sent to ${sentCount} ${sentCount === 1 ? "person" : "people"}, last ${lastSent ? dateTime(lastSent.at) : ""}.` : "Not sent to anyone yet."}
+            </div>
+            {showLive && <div className="enq-mail" style={{ margin: "6px 0 0", maxHeight: 260 }}>{liveBody || "(empty)"}</div>}
+          </div>
+          <div className="label" style={{ marginTop: 4 }}>
+            Editing{dirty ? (currentDraft && currentDraft.subject === subject && currentDraft.body === body ? ` · draft “${currentDraft.name}” loaded, not live` : " · changed, not live yet") : " · same as live"}
+          </div>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "flex-end" }}>
             <div style={{ flex: "1 1 220px" }}>
               <label className="label" htmlFor={`${automationId}-draft`}>Saved drafts</label>
               <select id={`${automationId}-draft`} className="select" value={draftId} onChange={(e) => loadDraft(e.target.value)}>
                 <option value="">{drafts.length ? "Pick a saved draft to load" : "No saved drafts yet"}</option>
-                {drafts.map((d) => <option key={d.id} value={d.id}>{d.name} · {new Date(d.savedAt).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}</option>)}
+                {drafts.map((d) => <option key={d.id} value={d.id}>{d.name}{liveDraft?.id === d.id ? " · LIVE" : ""} · {new Date(d.savedAt).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}</option>)}
               </select>
             </div>
             <div style={{ flex: "1 1 220px" }}>
@@ -147,13 +179,13 @@ export function EmailAutomationCard({ automationId, title, purpose, when, startO
             <div className="actions" style={{ gap: 10, flexWrap: "wrap" }}>
               {automation.enabled ? (
                 <>
-                  <button className="btn btn-ghost" disabled={!dirty} onClick={saveWording}>Save wording</button>
+                  <button className="btn btn-ghost" disabled={!dirty} onClick={saveWording}>Make this the live wording</button>
                   <button className="btn btn-ghost" onClick={switchOff}>Switch off</button>
                 </>
               ) : (
                 <>
                   <button className="btn btn-red" disabled={!subject.trim() || !body.trim()} onClick={() => setConfirming(true)}>Approve and switch on</button>
-                  <button className="btn btn-ghost" disabled={!dirty} onClick={saveWording}>Save wording</button>
+                  <button className="btn btn-ghost" disabled={!dirty} onClick={saveWording}>Make this the live wording</button>
                 </>
               )}
             </div>

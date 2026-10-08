@@ -120,7 +120,7 @@ function advanceRun(s: State, run: Run) {
         // Only recorded here. On the live server, src/lib/server/deliver.ts
         // sends it once the change is saved.
         const subject = fill(step.subject, c);
-        const data: Record<string, string> = { to: step.to, subject };
+        const data: Record<string, string> = { to: step.to, subject, automation: a.id };
         if (step.body) data.body = fill(step.body, c);
         if (step.marketing) data.marketing = "yes";
         log(s, "email.sent", c.id, step.to === "staff" ? `${subject} to the front desk` : `${subject} to ${c.name}`, data);
@@ -187,11 +187,14 @@ export function setEmailStep(s: State, automationId: string, stepIndex: number, 
   if (!a || !step || step.kind !== "email") return;
   step.subject = subject.trim().slice(0, 200);
   step.body = body.trim().slice(0, 20000);
+  log(s, "automation.changed", undefined, `${a.name}: live wording changed to “${step.subject}”`, { automation: a.id, subject: step.subject });
 }
 
 export function toggleAutomation(s: State, id: string) {
   const a = s.automations.find((x) => x.id === id);
-  if (a) a.enabled = !a.enabled;
+  if (!a) return;
+  a.enabled = !a.enabled;
+  log(s, "automation.changed", undefined, `${a.name}: switched ${a.enabled ? "on" : "off"}`, { automation: a.id, enabled: a.enabled ? "yes" : "no" });
 }
 
 export function describeStep(step: Step, templates: Record<string, string>) {

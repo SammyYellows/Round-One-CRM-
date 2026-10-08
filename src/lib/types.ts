@@ -138,6 +138,7 @@ export type EventType =
   | "email.replied" // staff sent the reply
   | "task.created"
   | "automation.stopped"
+  | "automation.changed" // staff changed an automation's wording or switched it on or off
   | "appointment.booked"
   | "appointment.updated";
 

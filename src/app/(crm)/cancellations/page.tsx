@@ -30,9 +30,10 @@ export default function CancellationsPage() {
     for (const e of s.events) {
       if (e.type === "stage.changed" && e.contactId && / gave notice on /.test(e.detail) && !noticeAt.has(e.contactId)) noticeAt.set(e.contactId, e.at);
     }
-    const emailAt = new Map<string, string>();
+    const emailAt = new Map<string, { at: string; subject: string }>();
     for (const e of s.events) {
-      if (e.type === "email.sent" && e.contactId && e.detail.startsWith("Sorry to see you go") && !emailAt.has(e.contactId)) emailAt.set(e.contactId, e.at);
+      const ours = e.data?.automation === WIN_BACK || (!e.data?.automation && e.detail.startsWith("Sorry to see you go"));
+      if (e.type === "email.sent" && e.contactId && ours && !emailAt.has(e.contactId)) emailAt.set(e.contactId, { at: e.at, subject: e.data?.subject ?? e.detail.replace(/ to .*$/, "") });
     }
     return s.contacts
       // Serving notice now, a notice the sync recorded, or (when included)
@@ -41,9 +42,9 @@ export default function CancellationsPage() {
       .map((c) => {
         const m = c.membership!;
         const run = s.runs.filter((r) => r.contactId === c.id && r.automationId === WIN_BACK).sort((a, b) => Date.parse(b.startedAt) - Date.parse(a.startedAt))[0];
-        const sentAt = emailAt.get(c.id);
+        const sent = emailAt.get(c.id);
         let email: { label: string; tone: "sent" | "waiting" | "none" };
-        if (sentAt) email = { label: `Sent ${day(sentAt)}`, tone: "sent" };
+        if (sent) email = { label: `Sent ${day(sent.at)} · “${sent.subject}”`, tone: "sent" };
         else if (run?.status === "waiting" && run.resumeAt) email = { label: `Goes ${dayTime(run.resumeAt)}`, tone: "waiting" };
         else if (run?.status === "stopped") email = { label: "Stopped", tone: "none" };
         else if (c.marketingOptOut) email = { label: "Not sent: opted out", tone: "none" };
