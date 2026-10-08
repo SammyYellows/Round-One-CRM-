@@ -124,18 +124,22 @@ export async function fetchCustomers(): Promise<CustomerInput[]> {
 /**
  * Failed payments, from two places in TeamUp: each payment subscription's
  * retry_count (attempts that failed), keyed by subscription id, which a
- * customer_membership row points at; and open invoices, keyed by payer.
+ * customer_membership row points at; and unpaid invoices, keyed by payer.
+ * An unpaid invoice is "open" or, once TeamUp has given up retrying the
+ * card, "retry_failed" (found 08/10/2026: that is where a failed payment
+ * actually ends up). £0 invoices are ignored.
  */
 export async function fetchPaymentInfo(): Promise<{ retries: Map<string, number>; owed: Map<string, { count: number; total: number; since?: string }> }> {
-  const [subs, invoices] = await Promise.all([list("/payment_subscriptions"), list("/invoices", { status: "open" })]);
+  const [subs, open, retryFailed] = await Promise.all([list("/payment_subscriptions"), list("/invoices", { status: "open" }), list("/invoices", { status: "retry_failed" })]);
   const retries = new Map(subs.map((x) => [idOf(x.id), Number(x.retry_count ?? 0) || 0]));
   const owed = new Map<string, { count: number; total: number; since?: string }>();
-  for (const inv of invoices) {
+  for (const inv of [...open, ...retryFailed]) {
     const payer = idOf(inv.payer);
-    if (!payer) continue;
+    const amount = Number(obj(inv.total_amount_due).decimal ?? 0) || 0;
+    if (!payer || amount <= 0) continue;
     const cur = owed.get(payer) ?? { count: 0, total: 0 };
     cur.count++;
-    cur.total += Number(obj(inv.total_amount_due).decimal ?? 0) || 0;
+    cur.total += amount;
     const due = iso(inv.due_date);
     if (due && (!cur.since || due < cur.since)) cur.since = due;
     owed.set(payer, cur);

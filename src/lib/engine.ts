@@ -644,8 +644,19 @@ export function importMembers(s: State, inputs: MemberInput[], opts: { baseline?
     const rank = (x: MemberInput) => (x.status === "active" ? 2 : x.status === "on_hold" ? 1 : 0) * 1e13 + (x.startedAt ? Date.parse(x.startedAt) : 0);
     if (!cur || rank(m) > rank(cur)) best.set(m.customerId, m);
   }
+  // Failed payments can be on any of a customer's current memberships, not
+  // just the one we keep (Romel, 08/10/2026: three at once, the oldest one
+  // failing). Carry the worst count, and the name of the membership it's on.
+  const worst = new Map<string, { retries: number; name: string }>();
+  for (const m of inputs) {
+    if (m.status === "ended") continue;
+    const cur = worst.get(m.customerId);
+    if (!cur || (m.paymentRetries ?? 0) > cur.retries) worst.set(m.customerId, { retries: m.paymentRetries ?? 0, name: m.membershipName });
+  }
   let added = 0, updated = 0, started = 0, ended = 0;
   for (const m of best.values()) {
+    const failing = worst.get(m.customerId);
+    if (failing && failing.retries > (m.paymentRetries ?? 0)) m.paymentRetries = failing.retries;
     let c =
       s.contacts.find((x) => x.membership?.customerId === m.customerId) ??
       s.contacts.find((x) => x.teamup?.customerId === m.customerId) ??
@@ -673,7 +684,7 @@ export function importMembers(s: State, inputs: MemberInput[], opts: { baseline?
     // sync (on a membership we had already recorded below it).
     const retries = m.paymentRetries ?? 0;
     if (m.status !== "ended" && retries >= PAYMENT_FAILED_AT && prev?.id === m.id && prev.paymentRetries !== undefined && prev.paymentRetries < PAYMENT_FAILED_AT && !opts.baseline) {
-      log(s, "stage.changed", c.id, `${c.name}: ${retries} failed payment attempts on ${m.membershipName} (TeamUp)`);
+      log(s, "stage.changed", c.id, `${c.name}: ${retries} failed payment attempts on ${failing?.name ?? m.membershipName} (TeamUp)`);
       fire(s, { type: "payment.failed", contactId: c.id, category: m.category });
     }
     // Notice given since the last sync (on a membership we already knew and
