@@ -223,6 +223,11 @@ a.crow:hover { background: var(--char); color: var(--white); }
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 
 /* ---- Calendar ---- */
+/* The selected person's questionnaire above the calendar. */
+.answers-strip { border-left: 3px solid var(--red); }
+.answers-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 12px 18px 8px; }
+.answers-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 0; padding: 0 18px 14px; }
+.answers-cell { display: flex; flex-direction: column; gap: 3px; padding: 8px 14px 8px 0; border-top: 1px solid var(--line); }
 .cal-toolbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
 .cal-wrap { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 16px; align-items: start; }
 .cal-wrap.nopanel { grid-template-columns: minmax(0, 1fr); }
