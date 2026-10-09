@@ -1,7 +1,7 @@
 # Open list
 
 Everything in progress and what each item is waiting on. Sammy picks from
-this; Claude keeps it current. Last updated 07/10/2026.
+this; Claude keeps it current. Last updated 09/10/2026.
 
 ## Switched off, waiting for Sammy's approval
 
@@ -21,6 +21,8 @@ list comes up, until each is on or dropped.
 | Program day 24: finish strong | Program members | Day 24 |
 | Program day 28: you did it | Program members | Day 28 |
 | Payment failed – update your details | Failed payments | TeamUp logs the third failed attempt |
+| Accountability welcome, weekly check-in, mid-week nudge | Accountability | Joining, their slot each week, Thursday 17:00 |
+| Weekly members, monthly growth and unpaid reports | Reports | Mondays and the 1st at 08:00 |
 
 **Fixed 08/10 (PR #83): failed payments missed (Romel Rodriques).** Romel flags after the next nightly sync. Still for Sammy: check in TeamUp whether he really has three Full Facility Access memberships. Original note:
 TeamUp's invoices have a `retry_failed` status the sync doesn't read (it
@@ -149,6 +151,18 @@ when staff mark a sale on the pipeline.
    Sammy: a screenshot, if wanted.
 9. **Delete the full-access Resend key** in Resend → API Keys. Claude has
    finished with it. Sammy's call.
+
+## Done and off the list (08–09/10/2026)
+
+Two routes (CRM vs direct TeamUp); first and last name; repeat form
+submissions update details; questionnaire first on the contact and above
+the calendar; live wording on every email card; calendar contact
+ergonomics; failed-payment sync fixed, then each missed payment per person
+newest first; Reports (weekly, monthly, unpaid PDFs, settings, reconcile
+note); Accountability steps 1–6 (commitment form, attendance from TeamUp
+and Kisi, weekly check-in, Claude-read replies to approve, mid-week nudge,
+silence signal); email check on the form; win-back WhatsApp; staged
+nightly sync with timings; back button; automations grouped.
 
 ## Done and off the list (05–06/10/2026)
 
