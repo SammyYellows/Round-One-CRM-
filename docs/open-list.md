@@ -54,6 +54,10 @@ when staff mark a sale on the pipeline.
 
 ## Reminders Sammy asked for (08/10/2026)
 
+- **Vercel Pro at go-live** (Sammy, 09/10): raises the function limit from
+  60 seconds to five minutes. The sync is now staged so it isn't needed to
+  keep working, but it's the headroom. Already on `before-go-live.md`.
+
 - **Unpaid memberships report** (Reports → Unpaid): switch the Monday
   schedule on once the managers' numbers are in. WhatsApp can't post to a
   group; it goes to each number.

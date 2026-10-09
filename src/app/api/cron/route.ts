@@ -6,7 +6,7 @@
 
 import { db } from "@/lib/server/supabase";
 import { loadAndTick } from "@/lib/server/state";
-import { syncTeamUp } from "@/lib/server/teamupSync";
+import { STAGES, runStage, syncTeamUp, type Stage } from "@/lib/server/teamupSync";
 import { drainQueue, queuedCount } from "@/lib/server/mailouts";
 import { catchUpReceived } from "@/lib/server/enquiries";
 import { runDueReports } from "@/lib/server/reports";
@@ -19,8 +19,15 @@ export async function GET(req: Request) {
   const secret = process.env.CRON_SECRET;
   if (!secret || req.headers.get("authorization") !== `Bearer ${secret}`) return Response.json({ error: "Forbidden" }, { status: 403 });
 
-  // ?job=teamup: the nightly members sync (a second pg_cron job calls this).
-  if (new URL(req.url).searchParams.get("job") === "teamup") return Response.json(await syncTeamUp());
+  // ?job=teamup&stage=<customers|members|apply|attendance>: one stage of the
+  // nightly members sync (pg_cron calls them a couple of minutes apart so
+  // none goes near the 60-second limit). Without a stage, all of them in turn.
+  const url = new URL(req.url);
+  if (url.searchParams.get("job") === "teamup") {
+    const stage = url.searchParams.get("stage");
+    if (stage && (STAGES as readonly string[]).includes(stage)) return Response.json(await runStage(stage as Stage));
+    return Response.json(await syncTeamUp());
+  }
 
   // Mailout emails still queued (within today's allowance) go out first.
   const mailout = (await queuedCount()) > 0 ? await drainQueue() : undefined;
