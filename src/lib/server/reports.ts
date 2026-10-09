@@ -19,7 +19,7 @@ export type ReportKind = "weekly" | "monthly" | "unpaid";
 
 export interface CancellationNote { name: string; noticeAt: string; membership: string; reply?: string }
 
-export interface Unpaid { name: string; membership: string; retries: number; owed: number; since?: string; contactId: string; email: string; phone: string }
+export interface Unpaid { name: string; membership: string; retries: number; owed: number; since?: string; latest?: string; count: number; contactId: string; email: string; phone: string }
 
 export interface ReportData {
   kind: ReportKind;
@@ -67,11 +67,12 @@ async function unpaidList(): Promise<Unpaid[]> {
   const { data } = await db().from("contacts").select("id, name, email, phone, membership").not("membership", "is", null);
   const out: Unpaid[] = [];
   for (const c of data ?? []) {
-    const m = c.membership as { name?: string; status?: string; paymentRetries?: number; owed?: { count: number; total: number; since?: string } } | null;
+    const m = c.membership as { name?: string; status?: string; paymentRetries?: number; owed?: { count: number; total: number; since?: string; latest?: string } } | null;
     if (!m || m.status === "ended" || (m.paymentRetries ?? 0) < PAYMENT_FAILED_AT) continue;
-    out.push({ contactId: c.id as string, name: String(c.name), email: String(c.email ?? ""), phone: String(c.phone ?? ""), membership: m.name ?? "", retries: m.paymentRetries ?? 0, owed: m.owed?.total ?? 0, since: m.owed?.since });
+    out.push({ contactId: c.id as string, name: String(c.name), email: String(c.email ?? ""), phone: String(c.phone ?? ""), membership: m.name ?? "", retries: m.paymentRetries ?? 0, owed: m.owed?.total ?? 0, since: m.owed?.since, latest: m.owed?.latest, count: m.owed?.count ?? 0 });
   }
-  return out.sort((a, b) => b.retries - a.retries || b.owed - a.owed || a.name.localeCompare(b.name));
+  // Most recent failed payment first (Sammy, 09/10), then attempts.
+  return out.sort((a, b) => (b.latest ?? "").localeCompare(a.latest ?? "") || b.retries - a.retries || a.name.localeCompare(b.name));
 }
 
 export async function buildReport(kind: ReportKind): Promise<ReportData> {
@@ -131,7 +132,7 @@ function renderUnpaid(r: ReportData): Uint8Array {
   const total = r.unpaid.reduce((n, u) => n + u.owed, 0);
   pdf.text(L, pdf.y, `As of ${fmtDate(r.asOf)}. ${r.unpaid.length} member${r.unpaid.length === 1 ? "" : "s"} with ${PAYMENT_FAILED_AT} or more failed payment attempts in TeamUp, owing £${total.toFixed(2)} between them on unpaid invoices.`, 9, { color: MUTED }); pdf.y += 24;
   const cols = [L, L + 170, L + 330, L + 390, L + 450];
-  const header = () => { ["Member", "Membership", "Attempts", "Owed", "Since"].forEach((h, i) => pdf.text(cols[i], pdf.y, h.toUpperCase(), 7.5, { bold: true, color: MUTED })); pdf.y += 14; };
+  const header = () => { ["Member", "Membership", "Attempts", "Owed", "Most recent"].forEach((h, i) => pdf.text(cols[i], pdf.y, h.toUpperCase(), 7.5, { bold: true, color: MUTED })); pdf.y += 14; };
   header();
   if (!r.unpaid.length) { pdf.text(L, pdf.y, "Nobody. Everyone is paid up.", 10, { color: MUTED }); }
   for (const u of r.unpaid) {
@@ -141,7 +142,7 @@ function renderUnpaid(r: ReportData): Uint8Array {
     pdf.text(cols[1], pdf.y, u.membership.length > 30 ? `${u.membership.slice(0, 29)}…` : u.membership, 9, { color: MUTED });
     pdf.text(cols[2] + 30, pdf.y, String(u.retries), 10, { color: INK, align: "right" });
     pdf.text(cols[3] + 40, pdf.y, u.owed ? `£${u.owed.toFixed(2)}` : "–", 10, { color: INK, align: "right" });
-    pdf.text(cols[4], pdf.y, u.since ? fmtDate(u.since) : "", 9, { color: MUTED });
+    pdf.text(cols[4], pdf.y, u.latest ? `${fmtDate(u.latest)}${u.count > 1 ? ` (${u.count} missed)` : ""}` : "", 9, { color: MUTED });
     pdf.y += 15;
     const contact = [u.phone, u.email].filter(Boolean).join(" · ");
     if (contact) { pdf.text(cols[0], pdf.y, contact, 8, { color: MUTED }); pdf.y += 12; }
@@ -254,7 +255,7 @@ function headline(r: ReportData) {
   const w = r.weekly;
   if (r.kind === "unpaid") {
     const total = r.unpaid.reduce((n, u) => n + u.owed, 0);
-    const top = r.unpaid.slice(0, 5).map((u) => `${u.name} (${u.retries}${u.owed ? `, £${u.owed.toFixed(0)}` : ""})`).join(", ");
+    const top = r.unpaid.slice(0, 5).map((u) => `${u.name} (${u.count} missed${u.owed ? `, £${u.owed.toFixed(0)}` : ""})`).join(", ");
     return `${r.unpaid.length} member${r.unpaid.length === 1 ? "" : "s"} with ${PAYMENT_FAILED_AT}+ failed payments, £${total.toFixed(2)} owed. ${top}${r.unpaid.length > 5 ? " and more in the PDF" : ""}.`;
   }
   return r.kind === "weekly"

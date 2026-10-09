@@ -10,7 +10,7 @@ import { useStore } from "@/lib/store";
 interface MonthPoint { month: string; label: string; joined: number; left: number; net: number; membersAtEnd: number }
 interface Weekly { asOf: string; members: number; joined: number; left: number; net: number; pastDays: number; droppingOff: { customerId: string; name: string; membership: string; ends: string }[]; forecastDays: number; averageDays: number; forecastNet: number; forecastMembers: number }
 interface Forecast { months: number; perMonth: number; net: number; members: number }
-interface Unpaid { name: string; membership: string; retries: number; owed: number; since?: string; contactId: string; email: string; phone: string }
+interface Unpaid { name: string; membership: string; retries: number; owed: number; since?: string; latest?: string; count: number; contactId: string; email: string; phone: string }
 interface Report { kind: "weekly" | "monthly" | "unpaid"; asOf: string; unpaid: Unpaid[]; weekly: Weekly; months: MonthPoint[]; forecasts: Forecast[]; cancellations: { name: string; noticeAt: string; membership: string; reply?: string }[]; cancellationSummary: string }
 interface Settings { pastDays: number; forecastDays: number; averageDays: number; monthlyMonths: number[]; forecastMonths: number[]; managerNumbers: string[]; weeklyOn: boolean; monthlyOn: boolean; unpaidOn: boolean; lastWeeklyAt?: string; lastMonthlyAt?: string; lastUnpaidAt?: string }
 interface Payload { weekly: Report; monthly: Report; unpaid: Report; settings: Settings; whatsapp: boolean; staffEmail: string | null }
@@ -133,14 +133,14 @@ export default function ReportsPage() {
       <div className="grid cols-dash" style={{ marginTop: 16 }}>
         {tab === "unpaid" ? (
           <section className="card">
-            <div className="card-head"><h2 className="h h2">Who hasn’t paid</h2><span className="small muted">Worst first · from last night’s TeamUp sync</span></div>
+            <div className="card-head"><h2 className="h h2">Who hasn’t paid</h2><span className="small muted">Most recent missed payment first · from last night’s TeamUp sync</span></div>
             {r.unpaid.length === 0 && <div className="pad small muted" style={{ paddingTop: 0 }}>Nobody. Everyone is paid up.</div>}
             {r.unpaid.map((u) => (
               <div key={u.contactId} style={{ borderTop: "1px solid var(--line)", padding: "10px 22px", display: "grid", gridTemplateColumns: "minmax(0, 1.4fr) minmax(0, 1fr) 70px 90px", gap: 12, alignItems: "center" }}>
                 <div><a href={`/contacts/${u.contactId}`} className="strong" style={{ color: "var(--white)" }}>{u.name}</a><div className="small faint">{[u.phone, u.email].filter(Boolean).join(" · ")}</div></div>
                 <div className="small muted">{u.membership}</div>
-                <div className="num">{u.retries} <span className="small faint">tries</span></div>
-                <div className="num">{u.owed ? `£${u.owed.toFixed(2)}` : "–"}</div>
+                <div className="num">{u.count} <span className="small faint">missed</span></div>
+                <div className="num">{u.owed ? `£${u.owed.toFixed(2)}` : "–"}<div className="small faint">{u.latest ? fmt(u.latest) : ""}</div></div>
               </div>
             ))}
           </section>

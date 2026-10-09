@@ -21,6 +21,7 @@ export default function PaymentsPage() {
   const [holding, setHolding] = useState<string | null>(null); // contact id with the confirm open
   const [busy, setBusy] = useState<string | null>(null);
   const [notes, setNotes] = useState<Record<string, string>>({});
+  const [open, setOpen] = useState<Record<string, boolean>>({}); // which people have their missed payments shown
   const hold = async (contactId: string) => {
     setBusy(contactId);
     const r = await fetch("/api/teamup/hold", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ contactId, confirm: true }) });
@@ -53,7 +54,8 @@ export default function PaymentsPage() {
         return { c, m, flaggedAt: flaggedAt.get(c.id), email };
       })
       .filter((r) => window === "all" || (r.flaggedAt ? now - Date.parse(r.flaggedAt) <= Number(window) * 86400e3 : false))
-      .sort((a, b) => (b.m.paymentRetries ?? 0) - (a.m.paymentRetries ?? 0) || (b.m.owed?.total ?? 0) - (a.m.owed?.total ?? 0) || a.c.name.localeCompare(b.c.name));
+      // Most recent failed payment first (Sammy, 09/10), then by attempts.
+      .sort((a, b) => (b.m.owed?.latest ?? "").localeCompare(a.m.owed?.latest ?? "") || (b.m.paymentRetries ?? 0) - (a.m.paymentRetries ?? 0) || a.c.name.localeCompare(b.c.name));
   }, [s, now, window, automation]);
   const pages = Math.max(1, Math.ceil(rows.length / PER_PAGE));
   const shown = rows.slice((page - 1) * PER_PAGE, page * PER_PAGE);
@@ -86,17 +88,21 @@ export default function PaymentsPage() {
 
       <section className="card">
         <div className="crow thead" style={{ borderTop: 0 }}>
-          <div>Name</div><div>Membership</div><div>Failed attempts</div><div>Open invoices</div><div>Flagged</div><div>Email</div>
+          <div>Name</div><div>Membership</div><div>Failed attempts</div><div>Missed payments</div><div>Most recent</div><div>Email</div>
         </div>
         {shown.map(({ c, m, flaggedAt, email }) => (
-          <Link key={c.id} href={`/contacts/${c.id}`} className="crow">
+          <div key={c.id} className="crow" style={{ display: "contents" }}>
+          <div className="crow" style={{ cursor: m.owed?.invoices?.length ? "pointer" : undefined }} onClick={() => m.owed?.invoices?.length && setOpen((o) => ({ ...o, [c.id]: !o[c.id] }))} aria-expanded={!!open[c.id]}>
             <div style={{ minWidth: 0 }}>
-              <div className="strong">{c.name}</div>
+              <Link href={`/contacts/${c.id}`} className="strong" style={{ color: "var(--white)" }} onClick={(e) => e.stopPropagation()}>{c.name}</Link>
               <div className="faint num" style={{ fontSize: 12 }}>{c.email || c.phone || "no contact details"}</div>
             </div>
             <div><div>{m.name}</div><div className="muted small">{m.category}</div></div>
             <div className="num">{m.paymentRetries}</div>
-            <div className="muted small">{m.owed ? `${m.owed.count} · ${gbp(m.owed.total, 2)}${m.owed.since ? ` · since ${shortDate(m.owed.since)}` : ""}` : "–"}</div>
+            <div className="muted small">
+              {m.owed ? <><span className="strong">{m.owed.count}</span> · {gbp(m.owed.total, 2)}{m.owed.invoices?.length ? <span className="faint"> · {open[c.id] ? "hide" : "show"} ▾</span> : ""}</> : "–"}
+            </div>
+            <div className="muted small">{m.owed?.latest ? `${shortDate(m.owed.latest)} · ${ago(m.owed.latest, now)}` : flaggedAt ? `flagged ${shortDate(flaggedAt)}` : "Before 7 Oct 2026"}</div>
             <div className="muted small">{flaggedAt ? `${shortDate(flaggedAt)} · ${ago(flaggedAt, now)}` : "Before 7 Oct 2026"}</div>
             <div><span className={`chip ${email.tone === "sent" ? "chip-red" : email.tone === "waiting" ? "chip-light" : ""}`} style={{ height: 22, fontSize: 10, whiteSpace: "normal", textAlign: "left" }}>{email.label}</span>
             {/* Hidden (Sammy, 08/10): a hold pauses billing; he wants a block that keeps billing. Back once TeamUp's block is found. */}
@@ -117,7 +123,21 @@ export default function PaymentsPage() {
                 {notes[c.id] && <span className="small muted">{notes[c.id]}</span>}
               </div>
             )}</div>
-          </Link>
+          </div>
+          {open[c.id] && m.owed?.invoices?.length ? (
+            <div style={{ padding: "0 22px 14px", background: "var(--char)" }}>
+              <div className="label" style={{ margin: "10px 0 6px" }}>Each missed payment, newest first</div>
+              {m.owed.invoices.map((inv) => (
+                <div key={inv.id} className="small" style={{ display: "grid", gridTemplateColumns: "140px 90px 1fr", gap: 12, padding: "4px 0", borderTop: "1px solid var(--line)" }}>
+                  <span>{shortDate(inv.due)} <span className="faint">· {ago(inv.due, now)}</span></span>
+                  <span className="num">{gbp(inv.amount, 2)}</span>
+                  <span className={inv.status === "retry_failed" ? "muted" : "faint"}>{inv.status === "retry_failed" ? "Card declined, TeamUp gave up retrying" : "Open, not yet paid"}</span>
+                </div>
+              ))}
+              <div className="small faint" style={{ marginTop: 6 }}>A run of the same amount month after month means the card on file is dead; a one-off usually sorts itself out on the next attempt.</div>
+            </div>
+          ) : null}
+          </div>
         ))}
         {rows.length === 0 && <div className="empty">Nobody has {PAYMENT_FAILED_AT} or more failed attempts right now.</div>}
         {pages > 1 && (
