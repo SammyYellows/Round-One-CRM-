@@ -44,7 +44,7 @@ a recurring membership rather than the Program get the same messages.
 Claude then drafts each in Round One's voice as its own switched-off card
 on Program members.
 
-Also needed before the Program WhatsApps can send: the eight new templates
+Also needed before the Program and win-back WhatsApps can send: the ten new templates (eight Program, win_back, management_report)
 submitted to Meta (Sammy pastes the WhatsApp token; Claude runs
 `npm run wa:templates`).
 
@@ -54,6 +54,9 @@ when staff mark a sale on the pipeline.
 
 ## Reminders Sammy asked for (08/10/2026)
 
+- **Unpaid memberships report** (Reports → Unpaid): switch the Monday
+  schedule on once the managers' numbers are in. WhatsApp can't post to a
+  group; it goes to each number.
 - **Reports: the other managers' numbers.** Set to 07855284151 only for
   now; add the rest in Reports → Settings before switching the schedules
   on. Also the `management_report` template needs Meta's approval.
