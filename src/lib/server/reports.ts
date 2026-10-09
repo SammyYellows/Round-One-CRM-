@@ -12,14 +12,18 @@ import { summariseCancellations } from "@/lib/server/ai";
 import { Pdf } from "@/lib/server/pdf";
 import { ukTime } from "@/lib/time";
 import { GYM } from "@/lib/gym";
+import { PAYMENT_FAILED_AT } from "@/lib/types";
 import { day, growthSettings, loadMemberships, monthly, monthlyForecast, saveGrowthSettings, weekly, type GrowthSettings, type MonthPoint, type MonthlyForecast, type Weekly } from "@/lib/server/growth";
 
-export type ReportKind = "weekly" | "monthly";
+export type ReportKind = "weekly" | "monthly" | "unpaid";
 
 export interface CancellationNote { name: string; noticeAt: string; membership: string; reply?: string }
 
+export interface Unpaid { name: string; membership: string; retries: number; owed: number; since?: string; contactId: string; email: string; phone: string }
+
 export interface ReportData {
   kind: ReportKind;
+  unpaid: Unpaid[]; // people over the failed-payment threshold, worst first
   asOf: string;
   settings: GrowthSettings;
   weekly: Weekly;
@@ -58,8 +62,20 @@ async function cancellationNotes(days: number): Promise<CancellationNote[]> {
   return notes;
 }
 
+/** Everyone over the failed-payment threshold, from the contacts the sync keeps. */
+async function unpaidList(): Promise<Unpaid[]> {
+  const { data } = await db().from("contacts").select("id, name, email, phone, membership").not("membership", "is", null);
+  const out: Unpaid[] = [];
+  for (const c of data ?? []) {
+    const m = c.membership as { name?: string; status?: string; paymentRetries?: number; owed?: { count: number; total: number; since?: string } } | null;
+    if (!m || m.status === "ended" || (m.paymentRetries ?? 0) < PAYMENT_FAILED_AT) continue;
+    out.push({ contactId: c.id as string, name: String(c.name), email: String(c.email ?? ""), phone: String(c.phone ?? ""), membership: m.name ?? "", retries: m.paymentRetries ?? 0, owed: m.owed?.total ?? 0, since: m.owed?.since });
+  }
+  return out.sort((a, b) => b.retries - a.retries || b.owed - a.owed || a.name.localeCompare(b.name));
+}
+
 export async function buildReport(kind: ReportKind): Promise<ReportData> {
-  const [rows, settings] = await Promise.all([loadMemberships(), growthSettings()]);
+  const [rows, settings, unpaid] = await Promise.all([loadMemberships(), growthSettings(), unpaidList().catch(() => [] as Unpaid[])]);
   const today = day(Date.now());
   const w = weekly(rows, today, settings);
   const longest = Math.max(...settings.monthlyMonths, 1);
@@ -76,7 +92,7 @@ export async function buildReport(kind: ReportKind): Promise<ReportData> {
       ? `${cancellations.length} gave notice. ${withReplies.length ? `${withReplies.length} replied to the win-back email.` : "No replies to the win-back email yet."}`
       : "Nobody gave notice in this period.";
   }
-  return { kind, asOf: today, settings, weekly: w, months, forecasts, cancellations, cancellationSummary };
+  return { kind, asOf: today, settings, weekly: w, months, forecasts, cancellations, cancellationSummary, unpaid };
 }
 
 // ---- The PDF ----------------------------------------------------------------
@@ -105,7 +121,38 @@ function lineChart(pdf: Pdf, x: number, y: number, w: number, h: number, pts: Mo
   });
 }
 
+function renderUnpaid(r: ReportData): Uint8Array {
+  const pdf = new Pdf();
+  const L = 48, R = pdf.pageWidth - 48, CW = R - L;
+  const head = () => { pdf.rect(0, 0, pdf.pageWidth, 6, RED); };
+  head();
+  pdf.text(L, pdf.y, GYM.name.toUpperCase(), 10, { bold: true, color: MUTED }); pdf.y += 18;
+  pdf.text(L, pdf.y, "Unpaid memberships", 24, { bold: true, color: INK }); pdf.y += 30;
+  const total = r.unpaid.reduce((n, u) => n + u.owed, 0);
+  pdf.text(L, pdf.y, `As of ${fmtDate(r.asOf)}. ${r.unpaid.length} member${r.unpaid.length === 1 ? "" : "s"} with ${PAYMENT_FAILED_AT} or more failed payment attempts in TeamUp, owing £${total.toFixed(2)} between them on unpaid invoices.`, 9, { color: MUTED }); pdf.y += 24;
+  const cols = [L, L + 170, L + 330, L + 390, L + 450];
+  const header = () => { ["Member", "Membership", "Attempts", "Owed", "Since"].forEach((h, i) => pdf.text(cols[i], pdf.y, h.toUpperCase(), 7.5, { bold: true, color: MUTED })); pdf.y += 14; };
+  header();
+  if (!r.unpaid.length) { pdf.text(L, pdf.y, "Nobody. Everyone is paid up.", 10, { color: MUTED }); }
+  for (const u of r.unpaid) {
+    if (pdf.y > 780) { pdf.newPage(); head(); header(); }
+    pdf.line(L, pdf.y - 3, R, pdf.y - 3, 0.5, [0.9, 0.9, 0.9]);
+    pdf.text(cols[0], pdf.y, u.name.slice(0, 30), 10, { color: INK, bold: true });
+    pdf.text(cols[1], pdf.y, u.membership.length > 30 ? `${u.membership.slice(0, 29)}…` : u.membership, 9, { color: MUTED });
+    pdf.text(cols[2] + 30, pdf.y, String(u.retries), 10, { color: INK, align: "right" });
+    pdf.text(cols[3] + 40, pdf.y, u.owed ? `£${u.owed.toFixed(2)}` : "–", 10, { color: INK, align: "right" });
+    pdf.text(cols[4], pdf.y, u.since ? fmtDate(u.since) : "", 9, { color: MUTED });
+    pdf.y += 15;
+    const contact = [u.phone, u.email].filter(Boolean).join(" · ");
+    if (contact) { pdf.text(cols[0], pdf.y, contact, 8, { color: MUTED }); pdf.y += 12; }
+  }
+  pdf.y += 10;
+  pdf.para(L, pdf.y, "Attempts are TeamUp's failed charges on the payment subscription; owed is open and retry-failed invoices. Names link to the Failed payments screen in the CRM.", 8, CW, { color: MUTED });
+  return pdf.bytes();
+}
+
 export function renderPdf(r: ReportData): Uint8Array {
+  if (r.kind === "unpaid") return renderUnpaid(r);
   const pdf = new Pdf();
   const L = 48, R = pdf.pageWidth - 48, CW = R - L;
   pdf.rect(0, 0, pdf.pageWidth, 6, RED);
@@ -200,11 +247,16 @@ export async function storeReport(kind: ReportKind, bytes: Uint8Array): Promise<
   return { path, url: data.publicUrl };
 }
 
-export const reportName = (kind: ReportKind) => (kind === "weekly" ? "Weekly members report" : "Monthly growth report");
+export const reportName = (kind: ReportKind) => (kind === "weekly" ? "Weekly members report" : kind === "monthly" ? "Monthly growth report" : "Unpaid memberships");
 const fileName = (kind: ReportKind, asOf: string) => `round-one-${kind}-report-${asOf}.pdf`;
 
 function headline(r: ReportData) {
   const w = r.weekly;
+  if (r.kind === "unpaid") {
+    const total = r.unpaid.reduce((n, u) => n + u.owed, 0);
+    const top = r.unpaid.slice(0, 5).map((u) => `${u.name} (${u.retries}${u.owed ? `, £${u.owed.toFixed(0)}` : ""})`).join(", ");
+    return `${r.unpaid.length} member${r.unpaid.length === 1 ? "" : "s"} with ${PAYMENT_FAILED_AT}+ failed payments, £${total.toFixed(2)} owed. ${top}${r.unpaid.length > 5 ? " and more in the PDF" : ""}.`;
+  }
   return r.kind === "weekly"
     ? `${w.members} members, ${signed(w.net)} in the last ${w.pastDays} days, ${w.droppingOff.length} dropping off within 30 days, forecast ${signed(w.forecastNet)} over the next ${w.forecastDays} days.`
     : `${w.members} members. ${r.months.slice(-2, -1).map((m) => `${m.label}: ${signed(m.net)}.`).join(" ")} ${r.forecasts.map((f) => `${f.months} months: ${signed(f.net)}`).join(", ")}.`;
@@ -248,6 +300,11 @@ export async function runDueReports(now = Date.now()) {
     await sendReport("weekly", s.managerNumbers, "the scheduler");
     await saveGrowthSettings({ lastWeeklyAt: todayKey });
     sent.push("weekly");
+  }
+  if (s.unpaidOn && parts.weekday === "Mon" && now >= dueAt && (s.lastUnpaidAt ?? "") < todayKey) {
+    await sendReport("unpaid", s.managerNumbers, "the scheduler");
+    await saveGrowthSettings({ lastUnpaidAt: todayKey });
+    sent.push("unpaid");
   }
   if (s.monthlyOn && parts.day === "01" && now >= dueAt && (s.lastMonthlyAt ?? "") < todayKey) {
     await sendReport("monthly", s.managerNumbers, "the scheduler");
