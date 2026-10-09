@@ -52,9 +52,9 @@ function AutomationsInner() {
         <div className="filters-row" style={{ gap: 8, flexWrap: "wrap" }}>
           {GROUPS.map((g) => {
             const n = s.automations.filter((x) => g.match(x.id));
-            return <button key={g.id} className={`fchip ${groupId === g.id ? "on" : ""}`} aria-pressed={groupId === g.id} onClick={() => pick(g.id)}>{g.label} <span className="faint" style={{ marginLeft: 6 }}>{n.filter((x) => x.enabled).length}/{n.length}</span></button>;
+            return <button key={g.id} className={`gtab ${groupId === g.id ? "on" : ""}`} aria-pressed={groupId === g.id} onClick={() => pick(g.id)}>{g.label} <span className="n">{n.filter((x) => x.enabled).length}/{n.length}</span></button>;
           })}
-          {others.length > 0 && <button className={`fchip ${groupId === "other" ? "on" : ""}`} aria-pressed={groupId === "other"} onClick={() => pick("other")}>Other <span className="faint" style={{ marginLeft: 6 }}>{others.length}</span></button>}
+          {others.length > 0 && <button className={`gtab ${groupId === "other" ? "on" : ""}`} aria-pressed={groupId === "other"} onClick={() => pick("other")}>Other <span className="n">{others.length}</span></button>}
         </div>
         <div className="small muted" style={{ marginTop: 8 }}>{groupId === "other" ? "Automations that don't fit a group yet." : group.blurb}</div>
       </div>
