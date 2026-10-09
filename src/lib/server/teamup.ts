@@ -4,6 +4,7 @@
 // machine token made in TeamUp's dashboard) and TEAMUP_PROVIDER_ID.
 
 import { CustomerInput, MemberInput } from "@/lib/engine";
+import type { Membership } from "@/lib/types";
 
 const BASE = "https://goteamup.com/api/v2";
 
@@ -150,21 +151,27 @@ export async function fetchCustomers(): Promise<CustomerInput[]> {
  * card, "retry_failed" (found 08/10/2026: that is where a failed payment
  * actually ends up). £0 invoices are ignored.
  */
-export async function fetchPaymentInfo(): Promise<{ retries: Map<string, number>; owed: Map<string, { count: number; total: number; since?: string }> }> {
+type Owed = NonNullable<Membership["owed"]>;
+
+export async function fetchPaymentInfo(): Promise<{ retries: Map<string, number>; owed: Map<string, Owed> }> {
   const [subs, open, retryFailed] = await Promise.all([list("/payment_subscriptions"), list("/invoices", { status: "open" }), list("/invoices", { status: "retry_failed" })]);
   const retries = new Map(subs.map((x) => [idOf(x.id), Number(x.retry_count ?? 0) || 0]));
-  const owed = new Map<string, { count: number; total: number; since?: string }>();
+  const owed = new Map<string, Owed>();
   for (const inv of [...open, ...retryFailed]) {
     const payer = idOf(inv.payer);
     const amount = Number(obj(inv.total_amount_due).decimal ?? 0) || 0;
     if (!payer || amount <= 0) continue;
-    const cur = owed.get(payer) ?? { count: 0, total: 0 };
+    const cur = owed.get(payer) ?? { count: 0, total: 0, invoices: [] };
     cur.count++;
-    cur.total += amount;
-    const due = iso(inv.due_date);
+    cur.total = Math.round((cur.total + amount) * 100) / 100;
+    const due = String(inv.due_date ?? "").slice(0, 10);
     if (due && (!cur.since || due < cur.since)) cur.since = due;
+    if (due && (!cur.latest || due > cur.latest)) cur.latest = due;
+    cur.invoices!.push({ id: idOf(inv.id), due, amount, status: String(inv.status) === "retry_failed" ? "retry_failed" : "open" });
     owed.set(payer, cur);
   }
+  // Newest first, at most two years' worth per person.
+  for (const o of owed.values()) o.invoices = o.invoices!.sort((a, b) => b.due.localeCompare(a.due)).slice(0, 24);
   return { retries, owed };
 }
 

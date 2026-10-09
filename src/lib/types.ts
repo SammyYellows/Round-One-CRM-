@@ -139,11 +139,20 @@ export interface Membership {
   endsAt?: string; // expiry or next renewal, when TeamUp gives one
   cancelling?: boolean; // notice given in TeamUp; the membership runs out at endsAt
   paymentRetries?: number; // failed payment attempts TeamUp has logged on the subscription
-  owed?: { count: number; total: number; since?: string }; // open invoices in TeamUp
+  // Unpaid invoices in TeamUp (open or retry-failed): the total, and each
+  // one, newest first, so staff can see which payments keep failing.
+  owed?: { count: number; total: number; since?: string; latest?: string; invoices?: UnpaidInvoice[] };
   lastAttendedAt?: string;
   syncedAt: string;
   // Keys of "ending soon" notices already sent, e.g. "ending:7:2026-10-31".
   noticesSent?: string[];
+}
+
+export interface UnpaidInvoice {
+  id: string;
+  due: string; // YYYY-MM-DD
+  amount: number;
+  status: "open" | "retry_failed";
 }
 
 export interface Message {

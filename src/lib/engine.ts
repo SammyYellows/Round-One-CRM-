@@ -828,7 +828,7 @@ export interface MemberInput {
   endsAt?: string;
   cancelling?: boolean; // TeamUp's is_set_for_cancellation
   paymentRetries?: number; // failed attempts on the payment subscription
-  owed?: { count: number; total: number; since?: string }; // open invoices for the customer
+  owed?: Membership["owed"]; // unpaid invoices for the customer
   createdAt?: string; // when the customer first appeared in TeamUp
 }
 
