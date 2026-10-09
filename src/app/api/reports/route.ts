@@ -13,13 +13,13 @@ import { whatsappConfigured } from "@/lib/server/whatsapp";
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
-const KINDS: ReportKind[] = ["weekly", "monthly"];
+const KINDS: ReportKind[] = ["weekly", "monthly", "unpaid"];
 
 export async function GET() {
   const auth = await requireStaff();
   if ("error" in auth) return auth.error;
-  const [weekly, monthly] = await Promise.all([buildReport("weekly"), buildReport("monthly")]);
-  return Response.json({ weekly, monthly, settings: weekly.settings, whatsapp: whatsappConfigured(), staffEmail: auth.staff.email || process.env.STAFF_EMAIL || null });
+  const [weekly, monthly, unpaid] = await Promise.all([buildReport("weekly"), buildReport("monthly"), buildReport("unpaid")]);
+  return Response.json({ weekly, monthly, unpaid, settings: weekly.settings, whatsapp: whatsappConfigured(), staffEmail: auth.staff.email || process.env.STAFF_EMAIL || null });
 }
 
 export async function PUT(req: Request) {
@@ -37,6 +37,7 @@ export async function PUT(req: Request) {
   if (b.managerNumbers !== undefined && Array.isArray(b.managerNumbers)) patch.managerNumbers = b.managerNumbers.map((n) => String(n).replace(/[^\d+]/g, "")).filter((n) => n.replace(/\D/g, "").length >= 10).slice(0, 5);
   if (typeof b.weeklyOn === "boolean") patch.weeklyOn = b.weeklyOn;
   if (typeof b.monthlyOn === "boolean") patch.monthlyOn = b.monthlyOn;
+  if (typeof b.unpaidOn === "boolean") patch.unpaidOn = b.unpaidOn;
   const settings = await saveGrowthSettings(patch);
   return Response.json({ ok: true, settings });
 }

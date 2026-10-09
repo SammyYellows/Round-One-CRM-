@@ -10,9 +10,10 @@ import { useStore } from "@/lib/store";
 interface MonthPoint { month: string; label: string; joined: number; left: number; net: number; membersAtEnd: number }
 interface Weekly { asOf: string; members: number; joined: number; left: number; net: number; pastDays: number; droppingOff: { customerId: string; name: string; membership: string; ends: string }[]; forecastDays: number; averageDays: number; forecastNet: number; forecastMembers: number }
 interface Forecast { months: number; perMonth: number; net: number; members: number }
-interface Report { kind: "weekly" | "monthly"; asOf: string; weekly: Weekly; months: MonthPoint[]; forecasts: Forecast[]; cancellations: { name: string; noticeAt: string; membership: string; reply?: string }[]; cancellationSummary: string }
-interface Settings { pastDays: number; forecastDays: number; averageDays: number; monthlyMonths: number[]; forecastMonths: number[]; managerNumbers: string[]; weeklyOn: boolean; monthlyOn: boolean; lastWeeklyAt?: string; lastMonthlyAt?: string }
-interface Payload { weekly: Report; monthly: Report; settings: Settings; whatsapp: boolean; staffEmail: string | null }
+interface Unpaid { name: string; membership: string; retries: number; owed: number; since?: string; contactId: string; email: string; phone: string }
+interface Report { kind: "weekly" | "monthly" | "unpaid"; asOf: string; unpaid: Unpaid[]; weekly: Weekly; months: MonthPoint[]; forecasts: Forecast[]; cancellations: { name: string; noticeAt: string; membership: string; reply?: string }[]; cancellationSummary: string }
+interface Settings { pastDays: number; forecastDays: number; averageDays: number; monthlyMonths: number[]; forecastMonths: number[]; managerNumbers: string[]; weeklyOn: boolean; monthlyOn: boolean; unpaidOn: boolean; lastWeeklyAt?: string; lastMonthlyAt?: string; lastUnpaidAt?: string }
+interface Payload { weekly: Report; monthly: Report; unpaid: Report; settings: Settings; whatsapp: boolean; staffEmail: string | null }
 
 const signed = (n: number) => (n > 0 ? `+${n}` : String(n));
 const fmt = (iso: string) => new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short" });
@@ -44,7 +45,7 @@ export default function ReportsPage() {
   const { live } = useStore();
   const [data, setData] = useState<Payload | null>(null);
   const [err, setErr] = useState("");
-  const [tab, setTab] = useState<"weekly" | "monthly">("weekly");
+  const [tab, setTab] = useState<"weekly" | "monthly" | "unpaid">("weekly");
   const [s, setS] = useState<Settings | null>(null);
   const [numbers, setNumbers] = useState("");
   const [months, setMonths] = useState("");
@@ -83,7 +84,15 @@ export default function ReportsPage() {
     if (action === "email") setNote(j.dryRun ? "No email key here: the PDF was only logged." : `Emailed to ${j.to}.`);
     if (action === "send") { const failed = (j.results ?? []).filter((x: { ok: boolean }) => !x.ok); setNote(failed.length ? `Sent, but ${failed.length} failed: ${failed.map((x: { to: string; error?: string }) => `${x.to} (${x.error})`).join("; ")}` : `Sent to ${(j.results ?? []).length} number${(j.results ?? []).length === 1 ? "" : "s"}.`); }
   };
-  const tiles = tab === "weekly"
+  const owedTotal = r.unpaid.reduce((n, u) => n + u.owed, 0);
+  const tiles = tab === "unpaid"
+    ? [
+      { label: "Unpaid members", value: String(r.unpaid.length), note: "3 or more failed attempts in TeamUp" },
+      { label: "Owed", value: `£${owedTotal.toFixed(0)}`, note: "open and retry-failed invoices" },
+      { label: "Worst", value: r.unpaid[0] ? String(r.unpaid[0].retries) : "–", note: r.unpaid[0] ? `attempts: ${r.unpaid[0].name}` : "" },
+      { label: "Schedule", value: s.unpaidOn ? "On" : "Off", note: "Mondays 08:00 to the managers" },
+    ]
+    : tab === "weekly"
     ? [
       { label: "Members now", value: String(w.members), note: "people with a membership running in TeamUp" },
       { label: `Growth, last ${w.pastDays} days`, value: signed(w.net), note: `${w.joined} joined, ${w.left} left` },
@@ -96,8 +105,8 @@ export default function ReportsPage() {
       ...r.forecasts.slice(0, 3).map((f) => ({ label: `Forecast, ${f.months} months`, value: signed(f.net), note: `about ${f.members} members, average ${signed(Math.round(f.perMonth * 10) / 10)} a month` })),
     ];
   const chartPts = tab === "weekly" ? r.months.slice(-4) : r.months;
-  const sched = tab === "weekly" ? s.weeklyOn : s.monthlyOn;
-  const lastAt = tab === "weekly" ? s.lastWeeklyAt : s.lastMonthlyAt;
+  const sched = tab === "weekly" ? s.weeklyOn : tab === "monthly" ? s.monthlyOn : s.unpaidOn;
+  const lastAt = tab === "weekly" ? s.lastWeeklyAt : tab === "monthly" ? s.lastMonthlyAt : s.lastUnpaidAt;
 
   return (
     <>
@@ -107,7 +116,7 @@ export default function ReportsPage() {
           <h1 className="h h1">Reports</h1>
         </div>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-          {(["weekly", "monthly"] as const).map((k) => <button key={k} className={`fchip ${tab === k ? "on" : ""}`} aria-pressed={tab === k} onClick={() => { setTab(k); setConfirming(false); }}>{k === "weekly" ? "Weekly" : "Monthly"}</button>)}
+          {(["weekly", "monthly", "unpaid"] as const).map((k) => <button key={k} className={`fchip ${tab === k ? "on" : ""}`} aria-pressed={tab === k} onClick={() => { setTab(k); setConfirming(false); }}>{k === "weekly" ? "Weekly" : k === "monthly" ? "Monthly" : "Unpaid"}</button>)}
         </div>
       </header>
 
@@ -122,6 +131,20 @@ export default function ReportsPage() {
       </div>
 
       <div className="grid cols-dash" style={{ marginTop: 16 }}>
+        {tab === "unpaid" ? (
+          <section className="card">
+            <div className="card-head"><h2 className="h h2">Who hasn’t paid</h2><span className="small muted">Worst first · from last night’s TeamUp sync</span></div>
+            {r.unpaid.length === 0 && <div className="pad small muted" style={{ paddingTop: 0 }}>Nobody. Everyone is paid up.</div>}
+            {r.unpaid.map((u) => (
+              <div key={u.contactId} style={{ borderTop: "1px solid var(--line)", padding: "10px 22px", display: "grid", gridTemplateColumns: "minmax(0, 1.4fr) minmax(0, 1fr) 70px 90px", gap: 12, alignItems: "center" }}>
+                <div><a href={`/contacts/${u.contactId}`} className="strong" style={{ color: "var(--white)" }}>{u.name}</a><div className="small faint">{[u.phone, u.email].filter(Boolean).join(" · ")}</div></div>
+                <div className="small muted">{u.membership}</div>
+                <div className="num">{u.retries} <span className="small faint">tries</span></div>
+                <div className="num">{u.owed ? `£${u.owed.toFixed(2)}` : "–"}</div>
+              </div>
+            ))}
+          </section>
+        ) : (
         <section className="card pad">
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 12, gap: 12, flexWrap: "wrap" }}>
             <h2 className="h h2">Members at month end</h2>
@@ -138,6 +161,7 @@ export default function ReportsPage() {
             </div>
           )}
         </section>
+        )}
 
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
           <section className="card pad" style={{ display: "flex", flexDirection: "column", gap: 10 }}>
@@ -145,7 +169,7 @@ export default function ReportsPage() {
             <div className="small muted">
               {s.managerNumbers.length ? `Goes to ${s.managerNumbers.join(", ")} on WhatsApp as a PDF.` : "No manager numbers yet: add them in Settings below."}
               {!data.whatsapp && " WhatsApp isn’t connected on this server, so a send is only logged."}
-              {" "}Schedule: <strong>{sched ? "on" : "off"}</strong>{lastAt ? `, last sent ${fmt(lastAt)}` : ""}. {tab === "weekly" ? "Mondays at 08:00." : "The 1st of the month at 08:00."}
+              {" "}Schedule: <strong>{sched ? "on" : "off"}</strong>{lastAt ? `, last sent ${fmt(lastAt)}` : ""}. {tab === "monthly" ? "The 1st of the month at 08:00." : "Mondays at 08:00."}
             </div>
             {!confirming ? (
               <div className="actions" style={{ gap: 8, flexWrap: "wrap" }}>
@@ -164,7 +188,7 @@ export default function ReportsPage() {
               </div>
             )}
             <div className="actions" style={{ gap: 8 }}>
-              <button className="btn btn-ghost btn-sm" disabled={busy !== null} onClick={() => save(tab === "weekly" ? { weeklyOn: !s.weeklyOn } : { monthlyOn: !s.monthlyOn })}>
+              <button className="btn btn-ghost btn-sm" disabled={busy !== null} onClick={() => save(tab === "weekly" ? { weeklyOn: !s.weeklyOn } : tab === "monthly" ? { monthlyOn: !s.monthlyOn } : { unpaidOn: !s.unpaidOn })}>
                 {sched ? "Switch the schedule off" : "Switch the schedule on"}
               </button>
             </div>
@@ -189,6 +213,7 @@ export default function ReportsPage() {
         </div>
       </div>
 
+      {tab !== "unpaid" && (
       <div className="grid cols-dash" style={{ marginTop: 16 }}>
         <section className="card pad">
           <h2 className="h h2" style={{ marginBottom: 8 }}>Cancellations and what people said</h2>
@@ -206,6 +231,7 @@ export default function ReportsPage() {
           {w.droppingOff.map((d) => <div key={d.customerId} className="small" style={{ display: "flex", justifyContent: "space-between", gap: 8, padding: "6px 0", borderTop: "1px solid var(--line)" }}><span>{d.name} <span className="faint">· {d.membership}</span></span><span className="muted" style={{ whiteSpace: "nowrap" }}>ends {fmt(d.ends)}</span></div>)}
         </section>
       </div>
+      )}
     </>
   );
 }

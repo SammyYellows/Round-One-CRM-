@@ -28,13 +28,15 @@ export interface GrowthSettings {
   managerNumbers: string[]; // WhatsApp numbers the reports go to
   weeklyOn: boolean; // Monday 08:00 UK
   monthlyOn: boolean; // 1st of the month 08:00 UK
+  unpaidOn: boolean; // Monday 08:00 UK: who hasn't paid (failed payments)
   lastWeeklyAt?: string;
   lastMonthlyAt?: string;
+  lastUnpaidAt?: string;
 }
 
 export const DEFAULT_GROWTH: GrowthSettings = {
   pastDays: 30, forecastDays: 30, averageDays: 30, monthlyMonths: [2, 3, 6], forecastMonths: [2, 3],
-  managerNumbers: [], weeklyOn: false, monthlyOn: false,
+  managerNumbers: [], weeklyOn: false, monthlyOn: false, unpaidOn: false,
 };
 
 export async function growthSettings(): Promise<GrowthSettings> {

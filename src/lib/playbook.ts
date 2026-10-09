@@ -65,6 +65,11 @@ export const TEMPLATES: TemplateDef[] = [
     name: "intro_programme_2", category: "marketing",
     body: "Hi {first},\n\nJust checking in after your first week - how are your sessions going? 🙌\n\nWanted to make sure you’re getting the most out of the programme!\n\nAnything at all - questions, feedback, anything - just reply here.\n\nThe Round One team :)",
   },
+  // Win-back (09/10/2026): goes with the win-back email, to the number on the account.
+  {
+    name: "win_back", category: "marketing",
+    body: "Hi {first}, we saw you’ve given notice on your membership. No hard feelings. If it’s about time or money there may be a membership that fits better, or a hold for a while. If something put you off, tell us, we’d rather hear it than guess. Reply here or grab a coach next time you’re in.\n\n{team}",
+  },
   // Program schedule (06/10/2026): service messages, one per email in the sequence.
   {
     name: "program_day_3", category: "utility",
@@ -476,6 +481,7 @@ export const AUTOMATIONS: Automation[] = [
     steps: [
       { kind: "wait", hours: 24 },
       { kind: "email", to: "contact", marketing: true, ...WIN_BACK_EMAIL },
+      { kind: "whatsapp", template: "win_back" },
     ],
   },
   {
