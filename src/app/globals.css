@@ -30,6 +30,8 @@ button, input, select, textarea { font-family: var(--ui); }
 /* ---- Layout ---- */
 .app { display: flex; min-height: 100vh; }
 .main { flex: 1; min-width: 0; padding: 36px 48px 48px; display: flex; flex-direction: column; gap: 24px; }
+.back-btn { align-self: flex-start; margin-bottom: -12px; background: transparent; border: 0; padding: 0; color: var(--muted); font-size: 12px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; cursor: pointer; }
+.back-btn:hover { color: var(--white); }
 .page-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
 .page-head > div:first-child { display: flex; flex-direction: column; gap: 8px; }
 .actions { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
