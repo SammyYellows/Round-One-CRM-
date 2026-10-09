@@ -156,8 +156,11 @@ live account: Kisi has no plain events list; history is an "event set"
 id, `event_type: lock.unlock`, `event_success: true`; paged by `cursor`;
 at most 90 days). One door ("Round One Entrance"), about 50 entries a
 week. `KISI_API_KEY` is in Vercel (the key was pasted in chat on 09/10,
-so it's on the go-live rotation list). Next: WhatsApp versions once the
-number moves.
+so it's on the go-live rotation list). Emails match between TeamUp and
+Kisi by design: a member only gets their Kisi invite after registering in
+TeamUp, and the TeamUp↔Kisi integration creates the Kisi member from the
+TeamUp record (Sammy, 09/10), so matching on email is reliable. Next:
+WhatsApp versions once the number moves.
 
 ## Where we stopped (05/10/2026)
 

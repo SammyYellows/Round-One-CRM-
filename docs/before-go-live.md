@@ -34,8 +34,12 @@ over it).
 
 ## 2. Other items (from earlier)
 
-- **Rotate the Kisi API key** (pasted in chat 09/10/2026): Kisi → account → API,
-  delete "Round One CRM" and make a new one, update `KISI_API_KEY` in Vercel.
+- **Kisi API key switch-over** (Sammy, 09/10/2026): the key in use was pasted
+  in chat on 09/10. At go-live: Kisi → account → API, delete "Round One
+  CRM", make a new key from the organisation owner account, put it in
+  Vercel as `KISI_API_KEY` (Production + Preview, Sensitive), redeploy, then
+  press Refresh on the Accountability screen to check door counts still come
+  through.
 - **Managers' WhatsApp numbers for the reports** (Sammy, 08/10/2026): put
   the two or three numbers in Reports → Settings, submit the
   `management_report` template to Meta (with the Program templates), send
