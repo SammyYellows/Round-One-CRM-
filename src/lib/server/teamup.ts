@@ -49,13 +49,19 @@ export async function holdMembership(customerMembershipId: string, startDate: st
 /** One GET, for callers that page themselves (attendance.ts). Takes a path or a full "next" URL. */
 export const fetchJson = (path: string, params: Record<string, string> = {}) => get(path, params);
 
-/** Every page of a list endpoint (100 per page). */
+/**
+ * Every page of a list endpoint (100 per page). The first page says how
+ * many there are, so the rest are fetched four at a time rather than one
+ * after another (TeamUp allows 250 requests a minute).
+ */
 async function list(path: string, params: Record<string, string> = {}): Promise<Json[]> {
-  const out: Json[] = [];
-  let page: Json | null = await get(path, { page_size: "100", ...params });
-  while (page) {
-    out.push(...((page.results as Json[]) ?? []));
-    page = typeof page.next === "string" ? await get(page.next) : null;
+  const first = await get(path, { page_size: "100", page: "1", ...params });
+  const out: Json[] = [...((first.results as Json[]) ?? [])];
+  const total = Number(first.count ?? out.length) || out.length;
+  const pages = Math.ceil(total / 100);
+  for (let from = 2; from <= pages; from += 4) {
+    const batch = await Promise.all(Array.from({ length: Math.min(4, pages - from + 1) }, (_, i) => get(path, { page_size: "100", page: String(from + i), ...params })));
+    for (const pg of batch) out.push(...((pg.results as Json[]) ?? []));
   }
   return out;
 }
@@ -175,28 +181,46 @@ export async function fetchPaymentInfo(): Promise<{ retries: Map<string, number>
   return { retries, owed };
 }
 
-/** Everyone with a membership in TeamUp, plus the raw rows for the audit copy. */
-export async function fetchMembers(): Promise<{ members: MemberInput[]; raw: { id: string; customer_id: string; raw: Json }[] }> {
-  const cats = await list("/membership_categories");
+/** Payment info in a shape that survives a trip through JSON (the staged sync keeps it between calls). */
+export type PaymentInfoJson = { retries: Record<string, number>; owed: Record<string, Owed> };
+export const paymentInfoToJson = (p: { retries: Map<string, number>; owed: Map<string, Owed> }): PaymentInfoJson => ({ retries: Object.fromEntries(p.retries), owed: Object.fromEntries(p.owed) });
+
+/**
+ * Everyone with a membership in TeamUp, plus the raw rows for the audit
+ * copy. Pass `payments` (from fetchPaymentInfo, possibly read in an earlier
+ * stage) to attach failed-payment counts; without it they're left at 0 and
+ * filled in by `attachPayments`.
+ */
+export async function fetchMembers(payments?: PaymentInfoJson): Promise<{ members: MemberInput[]; raw: { id: string; customer_id: string; raw: Json }[] }> {
+  const [cats, rows] = await Promise.all([list("/membership_categories"), list("/customer_memberships", { expand: "customer,membership" })]);
   const categories = new Map(cats.map((c) => [idOf(c.id), String(c.name ?? "")]));
-  const [rows, payments] = await Promise.all([list("/customer_memberships", { expand: "customer,membership" }), fetchPaymentInfo()]);
   const members: MemberInput[] = [];
   const raw: { id: string; customer_id: string; raw: Json }[] = [];
   for (const row of rows) {
     const m = readMembership(row, categories);
     if (!m) continue;
-    m.paymentRetries = payments.retries.get(idOf(row.payment_subscription)) ?? 0;
-    m.owed = payments.owed.get(m.customerId);
+    m.paymentSubscriptionId = idOf(row.payment_subscription) || undefined;
     members.push(m);
     raw.push({ id: idOf(row.id) || `${m.customerId}-${m.membershipName}`, customer_id: m.customerId, raw: row });
   }
+  if (payments) attachPayments(members, payments);
   return { members, raw };
+}
+
+/** Puts failed-payment counts and unpaid invoices onto memberships. */
+export function attachPayments(members: MemberInput[], payments: PaymentInfoJson) {
+  for (const m of members) {
+    m.paymentRetries = (m.paymentSubscriptionId && payments.retries[m.paymentSubscriptionId]) || 0;
+    m.owed = payments.owed[m.customerId];
+  }
 }
 
 /** One customer's memberships, for a webhook nudge. */
 export async function fetchCustomerMembers(customerId: string): Promise<MemberInput[]> {
   const cats = await list("/membership_categories");
   const categories = new Map(cats.map((c) => [idOf(c.id), String(c.name ?? "")]));
-  const rows = await list("/customer_memberships", { expand: "customer,membership", customer: customerId });
-  return rows.map((r) => readMembership(r, categories)).filter((m): m is MemberInput => !!m);
+  const [rows, payments] = await Promise.all([list("/customer_memberships", { expand: "customer,membership", customer: customerId }), fetchPaymentInfo()]);
+  const members = rows.map((r) => { const m = readMembership(r, categories); if (m) m.paymentSubscriptionId = idOf(r.payment_subscription) || undefined; return m; }).filter((m): m is MemberInput => !!m);
+  attachPayments(members, paymentInfoToJson(payments));
+  return members;
 }

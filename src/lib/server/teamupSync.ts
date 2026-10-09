@@ -4,7 +4,8 @@
 // apart, and by the TeamUp webhook for one customer.
 //
 //   customers   read every customer from TeamUp          → sync_payloads
-//   members     read memberships, categories, payments   → sync_payloads
+//   members     read memberships and categories          → sync_payloads
+//   payments    read payment subscriptions and invoices  → sync_payloads
 //   apply       run importCustomers / importMembers / checkMembershipsEnding
 //               on the saved payloads, keep the raw copy
 //   attendance  this week's sessions for the accountability programme
@@ -15,12 +16,12 @@
 // is visible long before it bites.
 
 import { checkMembershipsEnding, importCustomers, importMembers, type CustomerInput, type MemberInput } from "@/lib/engine";
-import { fetchCustomerMembers, fetchCustomers, fetchMembers, teamupConfigured } from "./teamup";
+import { attachPayments, fetchCustomerMembers, fetchCustomers, fetchMembers, fetchPaymentInfo, paymentInfoToJson, teamupConfigured, type PaymentInfoJson } from "./teamup";
 import { applyMany } from "./state";
 import { db } from "./supabase";
 import { refreshAttendance } from "./accountability";
 
-export const STAGES = ["customers", "members", "apply", "attendance"] as const;
+export const STAGES = ["customers", "members", "payments", "apply", "attendance"] as const;
 export type Stage = (typeof STAGES)[number];
 
 type RawRow = { id: string; customer_id: string; raw: Record<string, unknown> };
@@ -63,11 +64,16 @@ export async function runStage(stage: Stage): Promise<Record<string, unknown>> {
       const { members, raw } = await fetchMembers();
       await savePayload("teamup:members", { members, raw });
       result = { count: members.length };
+    } else if (stage === "payments") {
+      const payments = paymentInfoToJson(await fetchPaymentInfo());
+      await savePayload("teamup:payments", payments);
+      result = { count: Object.keys(payments.owed).length };
     } else if (stage === "apply") {
-      const [c, m] = await Promise.all([payload<CustomerInput[]>("teamup:customers"), payload<{ members: MemberInput[]; raw: RawRow[] }>("teamup:members")]);
-      if (!c || !m) throw new Error("Nothing to apply: the customers or members stage hasn’t run");
-      const stale = [c.at, m.at].filter((x) => Date.now() - Date.parse(x) > FRESH_MS);
-      if (stale.length) throw new Error(`Payloads are stale (${stale.map((x) => x.slice(0, 16)).join(", ")}): run the customers and members stages first`);
+      const [c, m, pay] = await Promise.all([payload<CustomerInput[]>("teamup:customers"), payload<{ members: MemberInput[]; raw: RawRow[] }>("teamup:members"), payload<PaymentInfoJson>("teamup:payments")]);
+      if (!c || !m || !pay) throw new Error("Nothing to apply: the customers, members or payments stage hasn’t run");
+      const stale = [c.at, m.at, pay.at].filter((x) => Date.now() - Date.parse(x) > FRESH_MS);
+      if (stale.length) throw new Error(`Payloads are stale (${stale.map((x) => x.slice(0, 16)).join(", ")}): run the earlier stages first`);
+      attachPayments(m.value.members, pay.value);
       const applied = await applyMany((s) => {
         // The first ever sync just records what's there, without messaging anyone.
         const baseline = !s.contacts.some((x) => x.membership);
