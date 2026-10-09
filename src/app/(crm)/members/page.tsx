@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { waitingOnUs } from "@/lib/contactQuery";
 import { ago, dayTime, shortDate } from "@/lib/format";
 import { useStore } from "@/lib/store";
@@ -16,7 +16,7 @@ type CameIn = "all" | "30" | "90" | "180" | "365";
 const TEAMUP_STATUS: Record<string, string> = { prospect: "Prospect", prospect_drop_off: "Dropped off", at_risk: "At risk", converted: "Converted", churned: "Churned", lost: "Lost" };
 
 export default function MembersPage() {
-  const { s, now } = useStore();
+  const { s, now, live } = useStore();
   const [q, setQ] = useState("");
   const [category, setCategory] = useState("all");
   const [status, setStatus] = useState<"all" | Membership["status"] | "never">("active");
@@ -57,6 +57,12 @@ export default function MembersPage() {
 
   const byCategory = categories.map((k) => ({ k, n: members.filter((m) => m.membership.category === k && m.membership.status === "active").length }));
   const synced = members.length ? Math.max(...members.map((m) => Date.parse(m.membership.syncedAt))) : 0;
+  const [sync, setSync] = useState<{ stages?: Record<string, { at: string; ms: number; ok: boolean; count?: number; error?: string }> } | null>(null);
+  useEffect(() => { if (live) fetch("/api/teamup/sync", { cache: "no-store" }).then((r) => (r.ok ? r.json() : null)).then(setSync).catch(() => undefined); }, [live]);
+  const stageLine = sync?.stages
+    ? ["customers", "members", "apply", "attendance"].map((k) => { const st = sync.stages![k]; return st ? `${k} ${st.ok ? `${(st.ms / 1000).toFixed(0)}s` : "failed"}` : `${k} –`; }).join(" · ")
+    : "";
+  const slowest = sync?.stages ? Math.max(0, ...Object.values(sync.stages).map((s) => s.ms)) : 0;
 
   return (
     <>
@@ -66,6 +72,11 @@ export default function MembersPage() {
             {members.filter((m) => m.membership.status === "active").length} active members
             {synced ? ` · synced from TeamUp ${ago(new Date(synced).toISOString(), now)}` : " · not synced from TeamUp yet"}
           </div>
+          {stageLine && (
+            <div className="small faint" title="How long each stage of last night's sync took. The limit is 60 seconds per stage.">
+              Sync stages: {stageLine}{slowest > 40000 ? " · getting close to the 60s limit" : ""}
+            </div>
+          )}
           <h1 className="h h1">Members</h1>
         </div>
       </header>

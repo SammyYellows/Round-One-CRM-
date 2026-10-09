@@ -95,7 +95,10 @@ In place so far:
   (`messages` field, to `/api/webhooks/whatsapp`).
 
 - **TeamUp members** (`docs/teamup-members.md`). Members are contacts: the
-  nightly sync (`/api/cron?job=teamup`, `src/lib/server/teamupSync.ts`)
+  nightly sync (`src/lib/server/teamupSync.ts`) runs in four stages from
+  pg_cron a few minutes apart (`/api/cron?job=teamup&stage=customers|
+  members|apply|attendance`, payloads kept in `sync_payloads`) so none
+  nears Vercel's 60-second limit; each stage's time shows on Members. It
   reads every customer membership from TeamUp with the M2M token and runs
   `importMembers` in the engine, which adds or matches contacts (source
   `teamup`), keeps `contact.membership` current, moves them to the right
