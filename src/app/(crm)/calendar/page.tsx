@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { uid } from "@/lib/engine";
+import { firstName, uid } from "@/lib/engine";
 import { isSameDay, time, toLocalInput } from "@/lib/format";
 import { useStore } from "@/lib/store";
 import { APPT_STATUSES, Appointment, ApptStatus, Availability, apptStatusLabel, stageLabel } from "@/lib/types";
@@ -189,6 +189,38 @@ export default function CalendarPage() {
           )}
         </div>
       </div>
+
+      {/* The selected person's questionnaire, in the space above the calendar (Sammy, 09/10). */}
+      {panel?.kind === "appt" && (() => {
+        const ap = s.appointments.find((x) => x.id === panel.id);
+        const c = ap && s.contacts.find((x) => x.id === ap.contactId);
+        if (!c) return null;
+        const answered = c.answers.filter((a) => a.answer);
+        return (
+          <section className="card answers-strip" aria-label={`${c.name}’s questionnaire`}>
+            <div className="answers-head">
+              <div>
+                <span className="eyebrow">Questionnaire</span>
+                <Link href={`/contacts/${c.id}`} className="strong" style={{ color: "var(--white)", marginLeft: 10 }}>{c.name} ›</Link>
+                {c.phone && <span className="small muted" style={{ marginLeft: 10 }}>{c.phone}</span>}
+              </div>
+              <button type="button" className="icon-btn" aria-label="Close" onClick={() => setPanel(null)}>✕</button>
+            </div>
+            {answered.length === 0 ? (
+              <div className="small muted" style={{ padding: "0 18px 14px" }}>No questionnaire answers for {firstName(c) || c.name}{c.source === "teamup" ? ": they came in through TeamUp" : ""}.</div>
+            ) : (
+              <div className="answers-grid">
+                {answered.map((a) => (
+                  <div key={a.question} className="answers-cell">
+                    <div className="small faint">{a.question}</div>
+                    <div className="small" style={{ whiteSpace: "pre-wrap" }}>{a.answer}</div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
+        );
+      })()}
 
       <div className={`cal-wrap ${panel ? "" : "nopanel"}`}>
         {view === "list" ? (
