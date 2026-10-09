@@ -147,15 +147,17 @@ Tested 08/10 through the real route ("sammy test": Struggled, wants a
 coach → check-in stored, coach task made; the Claude read runs only where
 the key is set, i.e. on Vercel).
 
-Step 6, Kisi (built 08/10, **waiting on the key**): `src/lib/server/kisi.ts`
-looks the member up in Kisi by email and reads their successful unlocks;
+Step 6, Kisi (**live 09/10/2026**): `src/lib/server/kisi.ts` looks the
+member up in Kisi by email and reads their successful door entries;
 `recordAttendance` merges them with TeamUp classes, one session per UK day
-at most, so the swipe for a class isn't counted twice. Needs `KISI_API_KEY`
-in Vercel (an organisation-owner key: Kisi → Settings → API). Until then
-attendance is TeamUp classes only. The event filters in `kisi.ts` are from
-Kisi's docs and need checking against the live account the first time:
-run a Refresh on the Accountability screen and compare one member's door
-count with Kisi's own log. Then WhatsApp versions once the number moves.
+at most, so the swipe for a class isn't counted twice. Checked against the
+live account: Kisi has no plain events list; history is an "event set"
+(`POST /event_sets` with `interval`, `event_actor_id` = the member's user
+id, `event_type: lock.unlock`, `event_success: true`; paged by `cursor`;
+at most 90 days). One door ("Round One Entrance"), about 50 entries a
+week. `KISI_API_KEY` is in Vercel (the key was pasted in chat on 09/10,
+so it's on the go-live rotation list). Next: WhatsApp versions once the
+number moves.
 
 ## Where we stopped (05/10/2026)
 
