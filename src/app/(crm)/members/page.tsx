@@ -60,7 +60,7 @@ export default function MembersPage() {
   const [sync, setSync] = useState<{ stages?: Record<string, { at: string; ms: number; ok: boolean; count?: number; error?: string }> } | null>(null);
   useEffect(() => { if (live) fetch("/api/teamup/sync", { cache: "no-store" }).then((r) => (r.ok ? r.json() : null)).then(setSync).catch(() => undefined); }, [live]);
   const stageLine = sync?.stages
-    ? ["customers", "members", "apply", "attendance"].map((k) => { const st = sync.stages![k]; return st ? `${k} ${st.ok ? `${(st.ms / 1000).toFixed(0)}s` : "failed"}` : `${k} –`; }).join(" · ")
+    ? ["customers", "members", "payments", "apply", "attendance"].map((k) => { const st = sync.stages![k]; return st ? `${k} ${st.ok ? `${(st.ms / 1000).toFixed(0)}s` : "failed"}` : `${k} –`; }).join(" · ")
     : "";
   const slowest = sync?.stages ? Math.max(0, ...Object.values(sync.stages).map((s) => s.ms)) : 0;
 
