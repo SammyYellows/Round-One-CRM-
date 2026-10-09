@@ -611,8 +611,9 @@ export function joinAccountability(s: State, c: Contact, form: Form, answers: Re
 /**
  * One member's sessions, counted into this week and last (Monday to Sunday,
  * UK). Attendance truth is TeamUp classes plus Kisi door entries (rule 7):
- * a class counts if attended, or booked and already happened; a door entry
- * counts as an open-gym session. One session per UK day at most, so a
+ * a class counts only when staff ticked them in (Sammy, 09/10/2026: the
+ * front desk ticks people in, so a booking left un-ticked is a no-show); a
+ * door entry counts as a session. One session per UK day at most, so a
  * class and the door swipe for it aren't counted twice. Quiet: no events.
  */
 export function recordAttendance(s: State, contactId: string, attended: { at: string; status: string }[], doorEntries: { at: string }[] = []) {
@@ -621,7 +622,7 @@ export function recordAttendance(s: State, contactId: string, attended: { at: st
   const now = nowMs(s);
   const thisStart = ukWeekStart(now).getTime();
   const lastStart = ukTime(thisStart, -7, 0, 0).getTime();
-  const classes = attended.filter((a) => (a.status === "attended" || a.status === "registered") && Date.parse(a.at) <= now).map((a) => a.at);
+  const classes = attended.filter((a) => a.status === "attended" && Date.parse(a.at) <= now).map((a) => a.at);
   const doors = doorEntries.map((d) => d.at).filter((at) => Date.parse(at) <= now);
   const byDay = new Map<string, string>(); // UK date → earliest time that day
   for (const at of [...classes, ...doors]) {
