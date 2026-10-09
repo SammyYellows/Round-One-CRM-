@@ -34,6 +34,8 @@ over it).
 
 ## 2. Other items (from earlier)
 
+- **Rotate the Kisi API key** (pasted in chat 09/10/2026): Kisi → account → API,
+  delete "Round One CRM" and make a new one, update `KISI_API_KEY` in Vercel.
 - **Managers' WhatsApp numbers for the reports** (Sammy, 08/10/2026): put
   the two or three numbers in Reports → Settings, submit the
   `management_report` template to Meta (with the Program templates), send

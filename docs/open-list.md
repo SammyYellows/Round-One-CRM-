@@ -61,10 +61,6 @@ when staff mark a sale on the pipeline.
   block in TeamUp that keeps billing going, not a hold. **Reminder: Sammy
   will send a screenshot of where he blocks someone in TeamUp**; Claude
   then finds the API for it. Kisi is not needed for this (08/10).
-- **Kisi API key** for the accountability programme (Sammy, 08/10: link it
-  to check they actually came in). Generate from the Kisi organisation
-  owner account (Settings → API), put it in Vercel as `KISI_API_KEY`, then
-  Claude checks the door counts against Kisi's log.
 - **Summary on the contact of what they said in replies** (improvement item
   16): Sammy wants reminding; not started.
 - **Two-way TeamUp actions** (item 9): Sammy wants reminding; the hold
@@ -104,8 +100,8 @@ when staff mark a sale on the pipeline.
    contact, the Accountability screen, the welcome email (off); attendance
    from TeamUp and the weekly check-in email (off) with the check-in form;
    Claude's read of each answer with a suggested reply staff approve; the
-   mid-week nudge (off) and the silence signal. Kisi door entries are wired
-   in (one session a day, merged with classes) and wait on the key.
+   mid-week nudge (off) and the silence signal. Kisi door entries are in
+   (one session a day, merged with classes), live since 09/10.
    Waiting on Sammy: approve the welcome, check-in and nudge emails on the
    Accountability screen; send one real member their link when ready.
 3. **Photo background on the questionnaire** (improvement list item 1).
