@@ -96,9 +96,12 @@ Built in steps 2 and 3 (same night):
   takes `customer=` and `expand=event` (it ignores date filters, so the
   cut-off is applied in code). `recordAttendance` in the engine counts
   this week and last (Monday to Sunday, UK) into
-  `accountability.attendance`. A session counts if its status is
-  `attended`, or `registered` for a class that has already happened (many
-  gyms never tick people in). Refreshed nightly by the TeamUp sync, by the
+  `accountability.attendance`. A session counts only if its status is
+  `attended` (Sammy, 09/10: the front desk ticks people in, including
+  those who book and register at the desk, so an un-ticked booking is a
+  no-show). Class-only members can only pass the gate 20 minutes either
+  side of their class, so their door entry and class fall on the same day
+  and count once. Refreshed nightly by the TeamUp sync, by the
   Refresh button on the Accountability screen, and just before a check-in.
 - **Weekly check-in** (`src/lib/server/accountability.ts`,
   `accountabilityTick` from `/api/cron` every 5 minutes): `dueCheckins`

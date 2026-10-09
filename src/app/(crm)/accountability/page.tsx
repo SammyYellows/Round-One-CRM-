@@ -151,7 +151,7 @@ export default function AccountabilityPage() {
             <div className="label" style={{ margin: 0 }}>How it works</div>
             <div>Opt-in only. The member sets a floor (up to three sessions a week), a stretch, their why, how they want to be spoken to and when the weekly check-in lands.</div>
             <div>Every message checks their membership is still active at send time. Lapsed means silence.</div>
-            <div>Attendance is TeamUp class bookings (attended, or booked for a class that has happened) plus Kisi door entries once the Kisi key is in, one session per day at most. Refreshed nightly and just before each check-in.</div>
+            <div>Attendance is classes the front desk ticked them in to on TeamUp, plus Kisi door entries, one session per day at most. A booking nobody ticked is a no-show. Refreshed nightly and just before each check-in.</div>
             <div>Mid-week nudge: Thursday from 5pm for those who asked for a pulse or are under their floor, daily for those who asked for daily, never for “just the weekly check-in”. Silence signal: no sessions for two weeks and no check-in answered makes a task for the coaches.</div>
             <div>When a check-in comes in, Claude reads it against their commitment and drafts a reply in their tone. It appears above for you to edit and send. Nothing goes out by itself.</div>
           </section>
