@@ -11,7 +11,8 @@ interface MonthPoint { month: string; label: string; joined: number; left: numbe
 interface Weekly { asOf: string; members: number; joined: number; left: number; net: number; pastDays: number; droppingOff: { customerId: string; name: string; membership: string; ends: string }[]; forecastDays: number; averageDays: number; forecastNet: number; forecastMembers: number }
 interface Forecast { months: number; perMonth: number; net: number; members: number }
 interface Unpaid { name: string; membership: string; retries: number; owed: number; since?: string; latest?: string; count: number; contactId: string; email: string; phone: string }
-interface Report { kind: "weekly" | "monthly" | "unpaid"; asOf: string; unpaid: Unpaid[]; weekly: Weekly; months: MonthPoint[]; forecasts: Forecast[]; cancellations: { name: string; noticeAt: string; membership: string; reply?: string }[]; cancellationSummary: string }
+interface Reconciliation { activeMemberships: number; peopleActive: number; byDates: number; doubles: { customerId: string; name: string; memberships: string[] }[]; lapsedButActive: { customerId: string; name: string; membership: string; ended: string }[] }
+interface Report { kind: "weekly" | "monthly" | "unpaid"; asOf: string; unpaid: Unpaid[]; reconciliation: Reconciliation; weekly: Weekly; months: MonthPoint[]; forecasts: Forecast[]; cancellations: { name: string; noticeAt: string; membership: string; reply?: string }[]; cancellationSummary: string }
 interface Settings { pastDays: number; forecastDays: number; averageDays: number; monthlyMonths: number[]; forecastMonths: number[]; managerNumbers: string[]; weeklyOn: boolean; monthlyOn: boolean; unpaidOn: boolean; lastWeeklyAt?: string; lastMonthlyAt?: string; lastUnpaidAt?: string }
 interface Payload { weekly: Report; monthly: Report; unpaid: Report; settings: Settings; whatsapp: boolean; staffEmail: string | null }
 
@@ -53,6 +54,7 @@ export default function ReportsPage() {
   const [busy, setBusy] = useState<string | null>(null);
   const [note, setNote] = useState("");
   const [confirming, setConfirming] = useState(false);
+  const [showRec, setShowRec] = useState(false);
 
   const load = () => fetch("/api/reports", { cache: "no-store" }).then(async (r) => { if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error ?? `Error ${r.status}`); return r.json(); })
     .then((j: Payload) => { setData(j); setS(j.settings); setNumbers(j.settings.managerNumbers.join(", ")); setMonths(j.settings.monthlyMonths.join(", ")); setFmonths(j.settings.forecastMonths.join(", ")); })
@@ -232,6 +234,35 @@ export default function ReportsPage() {
         </section>
       </div>
       )}
+
+      {/* Why TeamUp's number and ours differ: useful, kept quiet at the foot (Sammy, 09/10). */}
+      {(() => { const rc = data.weekly.reconciliation; return (
+        <section className="card pad" style={{ marginTop: 16, opacity: 0.85 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 12, flexWrap: "wrap" }}>
+            <div className="small muted">
+              <span className="label" style={{ display: "inline", marginRight: 10 }}>Why the numbers differ from TeamUp</span>
+              TeamUp counts <strong>{rc.activeMemberships}</strong> active memberships. That is <strong>{rc.peopleActive}</strong> people, because {rc.doubles.length} hold more than one. Counted by start and expiry dates, as the report does, it is <strong>{rc.byDates}</strong>{rc.lapsedButActive.length ? `: ${rc.lapsedButActive.length} whose expiry date has passed while TeamUp still says active` : ""}.
+            </div>
+            <button type="button" className="link-btn faint" onClick={() => setShowRec((v) => !v)}>{showRec ? "Hide the names" : "Show the names"}</button>
+          </div>
+          {showRec && (
+            <div className="grid cols-dash" style={{ marginTop: 12 }}>
+              <div>
+                <div className="label">Holding more than one active membership</div>
+                {rc.doubles.length === 0 && <div className="small faint">Nobody.</div>}
+                {rc.doubles.map((d) => <div key={d.customerId} className="small" style={{ padding: "4px 0", borderTop: "1px solid var(--line)" }}>{d.name} <span className="faint">· {d.memberships.join(" + ")}</span></div>)}
+                <div className="small faint" style={{ marginTop: 6 }}>Usually an upgrade or a discount switch where the old one was never closed. Worth checking in TeamUp: some may be charged twice.</div>
+              </div>
+              <div>
+                <div className="label">Active in TeamUp, expiry date passed</div>
+                {rc.lapsedButActive.length === 0 && <div className="small faint">Nobody.</div>}
+                {rc.lapsedButActive.map((d) => <div key={d.customerId} className="small" style={{ padding: "4px 0", borderTop: "1px solid var(--line)" }}>{d.name} <span className="faint">· {d.membership} · {d.ended ? fmt(d.ended) : ""}</span></div>)}
+                <div className="small faint" style={{ marginTop: 6 }}>Usually waiting on a renewal. The report counts them out until it renews.</div>
+              </div>
+            </div>
+          )}
+        </section>
+      ); })()}
     </>
   );
 }
