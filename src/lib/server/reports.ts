@@ -13,6 +13,7 @@ import { Pdf } from "@/lib/server/pdf";
 import { ukTime } from "@/lib/time";
 import { GYM } from "@/lib/gym";
 import { PAYMENT_FAILED_AT } from "@/lib/types";
+import { reconcile, type Reconciliation } from "@/lib/server/growth";
 import { day, growthSettings, loadMemberships, monthly, monthlyForecast, saveGrowthSettings, weekly, type GrowthSettings, type MonthPoint, type MonthlyForecast, type Weekly } from "@/lib/server/growth";
 
 export type ReportKind = "weekly" | "monthly" | "unpaid";
@@ -24,6 +25,7 @@ export interface Unpaid { name: string; membership: string; retries: number; owe
 export interface ReportData {
   kind: ReportKind;
   unpaid: Unpaid[]; // people over the failed-payment threshold, worst first
+  reconciliation: Reconciliation; // why TeamUp's count and ours differ
   asOf: string;
   settings: GrowthSettings;
   weekly: Weekly;
@@ -93,7 +95,7 @@ export async function buildReport(kind: ReportKind): Promise<ReportData> {
       ? `${cancellations.length} gave notice. ${withReplies.length ? `${withReplies.length} replied to the win-back email.` : "No replies to the win-back email yet."}`
       : "Nobody gave notice in this period.";
   }
-  return { kind, asOf: today, settings, weekly: w, months, forecasts, cancellations, cancellationSummary, unpaid };
+  return { kind, asOf: today, settings, weekly: w, months, forecasts, cancellations, cancellationSummary, unpaid, reconciliation: reconcile(rows, today) };
 }
 
 // ---- The PDF ----------------------------------------------------------------

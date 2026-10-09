@@ -174,3 +174,26 @@ export function monthlyForecast(rows: MembershipRow[], today: string, s: GrowthS
   const members = membersOn(rows, today).size;
   return s.forecastMonths.map((months) => ({ months, perMonth, net: Math.round(perMonth * months), members: members + Math.round(perMonth * months) }));
 }
+
+/**
+ * Why TeamUp's "active memberships" and the CRM's member counts differ
+ * (Sammy, 09/10/2026): TeamUp counts memberships, the CRM counts people, and
+ * the growth maths counts by dates. Shown quietly at the foot of Reports.
+ */
+export interface Reconciliation {
+  activeMemberships: number; // TeamUp's own tile
+  peopleActive: number; // people with at least one membership TeamUp calls active
+  byDates: number; // people with a membership running today by start/expiry dates
+  doubles: { customerId: string; name: string; memberships: string[] }[]; // people holding two or more active memberships
+  lapsedButActive: { customerId: string; name: string; membership: string; ended: string }[]; // TeamUp says active, expiry date has passed
+}
+
+export function reconcile(rows: MembershipRow[], today: string): Reconciliation {
+  const active = rows.filter((m) => m.status === "active");
+  const byPerson = new Map<string, MembershipRow[]>();
+  for (const m of active) byPerson.set(m.customerId, [...(byPerson.get(m.customerId) ?? []), m]);
+  const doubles = [...byPerson.entries()].filter(([, ms]) => ms.length > 1).map(([customerId, ms]) => ({ customerId, name: ms[0].customerName, memberships: ms.map((m) => m.name) })).sort((a, b) => b.memberships.length - a.memberships.length || a.name.localeCompare(b.name));
+  const running = membersOn(rows, today);
+  const lapsedButActive = [...byPerson.entries()].filter(([id]) => !running.has(id)).map(([customerId, ms]) => { const m = ms.sort((a, b) => (b.end ?? "").localeCompare(a.end ?? ""))[0]; return { customerId, name: m.customerName, membership: m.name, ended: m.end ?? "" }; });
+  return { activeMemberships: active.length, peopleActive: byPerson.size, byDates: running.size, doubles, lapsedButActive };
+}
