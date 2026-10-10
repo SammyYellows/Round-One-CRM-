@@ -25,12 +25,16 @@ import { fetchJson, teamupConfigured } from "./teamup";
 
 type Json = Record<string, unknown>;
 
+// Eight pages at a time: the form-submission pages are heavy (first live
+// run at four: 27s, too close to Vercel's 60s). TeamUp allows 250 calls a
+// minute and the whole stage is under 30 calls.
+const PARALLEL = 8;
 async function listAll(path: string, params: Record<string, string> = {}): Promise<Json[]> {
   const first = (await fetchJson(path, { page_size: "100", page: "1", ...params })) as Json;
   const out: Json[] = [...((first.results as Json[]) ?? [])];
   const pages = Math.ceil((Number(first.count ?? out.length) || out.length) / 100);
-  for (let from = 2; from <= pages; from += 4) {
-    const batch = await Promise.all(Array.from({ length: Math.min(4, pages - from + 1) }, (_, i) => fetchJson(path, { page_size: "100", page: String(from + i), ...params }) as Promise<Json>));
+  for (let from = 2; from <= pages; from += PARALLEL) {
+    const batch = await Promise.all(Array.from({ length: Math.min(PARALLEL, pages - from + 1) }, (_, i) => fetchJson(path, { page_size: "100", page: String(from + i), ...params }) as Promise<Json>));
     for (const pg of batch) out.push(...((pg.results as Json[]) ?? []));
   }
   return out;
