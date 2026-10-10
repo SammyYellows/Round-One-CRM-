@@ -57,18 +57,21 @@ export async function POST(req: Request) {
     history = (data ?? []).map((r) => ({ role: r.role as ChampMessage["role"], content: r.content as ChampMessage["content"] }));
   }
 
-  let result;
-  try {
-    result = await askChamp(history, text, auth.staff.name);
-  } catch (e) {
-    console.error("[champ]", e instanceof Error ? e.message : e);
-    return Response.json({ error: e instanceof Error ? e.message : String(e) }, { status: 502 });
-  }
-
-  if (!chatId) {
+  // A new chat is made first, so anything Champ records (a conduct flag) can point at it.
+  const isNew = !chatId;
+  if (isNew) {
     const { data, error } = await db().from("champ_chats").insert({ staff_id: auth.staff.id, staff_name: auth.staff.name, title: text.slice(0, 80) }).select("id").single();
     if (error) return Response.json({ error: error.message }, { status: 500 });
     chatId = data.id as string;
+  }
+
+  let result;
+  try {
+    result = await askChamp(history, text, auth.staff.name, { staffId: auth.staff.id, chatId });
+  } catch (e) {
+    console.error("[champ]", e instanceof Error ? e.message : e);
+    if (isNew) await db().from("champ_chats").delete().eq("id", chatId);
+    return Response.json({ error: e instanceof Error ? e.message : String(e) }, { status: 502 });
   }
   const last = result.added.length - 1;
   const rows = result.added.map((m, i) => ({
