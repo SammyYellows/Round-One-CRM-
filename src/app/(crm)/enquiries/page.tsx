@@ -187,7 +187,7 @@ export default function EnquiriesPage() {
             <div className="empty">{view === "open" ? "Nothing waiting. New emails to info@ show up here with a draft." : "Nothing here."}</div>
           ) : (
             shown.map((e) => (
-              <button key={e.id} className={`enq-row ${selected === e.id ? "on" : ""}`} onClick={() => setSelected(e.id)}>
+              <button key={e.id} className={`enq-row ${selected === e.id ? "on" : ""}`} onClick={() => { setSelected(e.id); if (window.matchMedia("(max-width: 800px)").matches) setTimeout(() => document.querySelector(".enq-detail")?.scrollIntoView({ behavior: "smooth", block: "start" }), 50); }}>
                 <div className="enq-row-top">
                   <span className="strong">{e.fromName || e.fromEmail}</span>
                   <span className="faint small">{ago(e.receivedAt, now)}</span>

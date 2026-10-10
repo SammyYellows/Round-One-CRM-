@@ -117,7 +117,7 @@ export default function AccountabilityPage() {
           {on.map((c) => {
             const a = c.accountability!;
             return (
-              <div key={c.id} style={{ borderTop: "1px solid var(--line)", padding: "12px 22px", display: "grid", gridTemplateColumns: "minmax(0, 1.4fr) minmax(0, 1fr) auto minmax(0, 1fr) auto", gap: 12, alignItems: "center" }}>
+              <div key={c.id} className="acc-row" style={{ borderTop: "1px solid var(--line)", padding: "12px 22px", display: "grid", gridTemplateColumns: "minmax(0, 1.4fr) minmax(0, 1fr) auto minmax(0, 1fr) auto", gap: 12, alignItems: "center" }}>
                 <div>
                   <Link href={`/contacts/${c.id}`} className="strong" style={{ color: "var(--white)" }}>{c.name}</Link>
                   <div className="small muted">{c.membership?.name ?? "No membership"}{c.membership && c.membership.status !== "active" ? " · not active: paused" : ""} · joined {day(a.joinedAt)}</div>
