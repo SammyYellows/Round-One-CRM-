@@ -13,7 +13,13 @@ export function AuthShell({ title, children }: { title: string; children: React.
   );
 }
 
-export function Notice({ tone, children }: { tone: "error" | "info"; children: React.ReactNode }) {
+export function Notice({ tone, children }: { tone: "error" | "info" | "done"; children: React.ReactNode }) {
+  // "done" is the obvious one: a step worked and the person needs to know what happens next.
+  if (tone === "done") return (
+    <div role="status" style={{ borderLeft: "4px solid var(--red)", background: "var(--line)", padding: "12px 14px", fontSize: 14, lineHeight: 1.5, color: "var(--white)" }}>
+      {children}
+    </div>
+  );
   return (
     <p role={tone === "error" ? "alert" : "status"} className="small" style={{ margin: 0, color: tone === "error" ? "var(--red)" : "var(--muted)" }}>
       {children}

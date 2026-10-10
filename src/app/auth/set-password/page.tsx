@@ -2,9 +2,17 @@ import { redirect } from "next/navigation";
 import { AuthShell, Notice } from "@/components/AuthShell";
 import { currentUser } from "@/lib/server/staff";
 
-export default async function SetPasswordPage({ searchParams }: { searchParams: { error?: string } }) {
+export default async function SetPasswordPage({ searchParams }: { searchParams: { error?: string; done?: string } }) {
   const user = await currentUser();
-  if (!user) redirect("/login?error=link");
+  if (!user) redirect(searchParams.done ? "/login?password=1" : "/login?error=link");
+  if (searchParams.done) {
+    return (
+      <AuthShell title="Password saved">
+        <Notice tone="done"><strong>Your new password is saved.</strong><br />You’re logged in as {user.email}. Next time, log in with the new password.</Notice>
+        <a className="btn btn-red" href="/" style={{ textAlign: "center" }}>Go to the CRM</a>
+      </AuthShell>
+    );
+  }
   return (
     <AuthShell title="Set your password">
       <Notice tone="info">For {user.email}. Use at least 10 characters.</Notice>

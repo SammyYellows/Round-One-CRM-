@@ -11,5 +11,6 @@ export async function POST(req: Request) {
   const { data } = await supabase.auth.getUser();
   if (!data.user) return back("/login?error=link");
   const { error } = await supabase.auth.updateUser({ password });
-  return back(error ? "/auth/set-password?error=1" : "/");
+  // Say it worked before carrying on (Sammy, 10/10/2026: it wasn't obvious).
+  return back(error ? "/auth/set-password?error=1" : "/auth/set-password?done=1");
 }
