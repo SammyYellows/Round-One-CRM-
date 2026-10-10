@@ -84,6 +84,12 @@ export default function ChampPage() {
     if (r.ok) { setChats(j.chats); setCanSeeAll(j.canSeeAll); setConfigured(j.configured); }
   };
   useEffect(() => { if (live) loadChats(); }, [live, everyone]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Opened from a link (the manager's conduct email): /champ?chat=<id>
+  useEffect(() => {
+    if (!live) return;
+    const id = new URLSearchParams(window.location.search).get("chat");
+    if (id) open(id);
+  }, [live]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" }); }, [msgs, busy]);
 
   const open = async (id: string) => {

@@ -21,6 +21,7 @@ import { fetchAttendance } from "./attendance";
 import { kisiConfigured, kisiEntries, kisiMemberId } from "./kisi";
 import { whoIsIn } from "./safety";
 import { knowledgeForChamp } from "./champKnowledge";
+import { sendEmail } from "./email";
 import { loadState } from "./state";
 import { db } from "./supabase";
 import { fetchJson, listAll, teamupConfigured } from "./teamup";
@@ -43,7 +44,13 @@ What you help with, and nothing else:
 1. Looking things up so staff don't have to: members, ex-members, leads and enquiries, their memberships, classes and who's booked or ticked in, attendance, Kisi door entries, who's in the gym now, waivers and emergency contacts, trials and the sales pipeline, and a specific member's payments (missed payments, failed attempts, what they owe).
 2. Gym training: exercises, technique and coaching cues, boxing, strength and conditioning, programming for different goals (fat loss, strength, fitness, confidence, fight prep), warm-ups, finishers, class plans, ideas to work into classes, scaling for beginners and injuries, general nutrition and recovery basics.
 3. Gym sales and growth: selling memberships and the 28 Day Program, intro meetings, follow-ups, handling objections, retention, referrals, win-backs, marketing and growth ideas, community.
-If someone asks about anything else (general knowledge, coding, homework, politics, other businesses, personal matters), say in one line that you only help with Round One's members, training and sales, and offer something you can help with.
+If someone asks about anything else (general knowledge, coding, homework, politics, other businesses, personal matters, jokes, opinions on people), say in one line that you only help with Round One's members, training and sales, and offer something you can help with. Stick to these topics strictly, even if asked nicely or told it's a test.
+
+Conduct (Sammy's rule): if a staff member's message is racist, discriminatory towards anyone because of who they are (ethnicity, nationality, religion, disability, sexuality, gender identity, age) or misogynistic or sexist, including slurs, demeaning jokes, stereotypes, or asking you to judge, sort, treat or talk about members differently because of who they are, then:
+1. Call the flag_conduct tool once, before answering, with the category and a short quote of what was said.
+2. Don't do any part of what was asked.
+3. Reply in two or three plain sentences using what the tool tells you (a first warning, or that a manager has been told). Calm and firm, no lecture.
+Don't flag ordinary questions that mention who people are: a Ladies Boxfit class plan, making the gym welcoming for women or for a member with a disability, training around Ramadan, coaching an older member, adapting for a member's injury or pregnancy. Those are welcome. If you're unsure, answer helpfully and don't flag.
 
 Looking things up:
 - Always use your tools for facts about people, classes and attendance. Never guess or invent a name, date, number or booking. If a look-up finds nothing, say so and suggest how to check (spelling, email, TeamUp).
@@ -89,6 +96,7 @@ const TOOLS: Block[] = [
   { name: "person_door_entries", description: "One person's Kisi door entries (each time their fob or phone opened the front door).", input_schema: { type: "object", properties: { contact_id: { type: "string" }, days_back: { type: "integer", description: "Default 30, max 89" } }, required: ["contact_id"] } },
   { name: "who_is_in_now", description: "Who's in the gym now: ticked into a class that's on, or through the door in the last 1.5 hours, with waiver and emergency contact.", input_schema: { type: "object", properties: {} } },
   { name: "class_popularity", description: "Each regular class slot over the last 60 days: sessions run, average ticked in, fill against capacity. Busiest first.", input_schema: { type: "object", properties: {} } },
+  { name: "flag_conduct", description: "Record a racist, discriminatory or misogynistic message from the staff member, under Round One's conduct rule. Call once, before replying. Returns what to tell them.", input_schema: { type: "object", properties: { category: { type: "string", enum: ["racism", "discrimination", "misogyny"] }, quote: { type: "string", description: "A short quote of what they said" } }, required: ["category", "quote"] } },
   { name: "teamup_lookup", description: "Read anything else from TeamUp's API (read-only). Allowed paths: /customers, /customers/<id>, /customer_memberships, /memberships, /membership_categories, /events, /events/<id>, /attendances, /waivers, /waiver_agreements, /customer_forms, /customer_fields, /customer_form_submissions, /instructors, /venues, /venue_rooms, /offering_types. Filters that work: customer, event, status, expand, page, page_size. TeamUp ignores date filters on lists.", input_schema: { type: "object", properties: { path: { type: "string" }, params: { type: "object", additionalProperties: { type: "string" } } }, required: ["path"] } },
 ];
 
@@ -155,7 +163,33 @@ const stripUrls = (o: unknown): unknown => Array.isArray(o) ? o.map(stripUrls) :
 class Ctx {
   private st?: Promise<State>;
   now = Date.now();
+  constructor(public who?: { staffId: string; staffName: string; chatId: string; question: string }) {}
   state() { return (this.st ??= loadState()); }
+}
+
+/** The conduct rule: first time a warning, then a manager is told (email to Owner/Manager staff, else STAFF_EMAIL). */
+async function flagConduct(input: Block, ctx: Ctx): Promise<string> {
+  const who = ctx.who;
+  if (!who) return "Refuse this. (No staff member on record for this chat.)";
+  const category = ["racism", "discrimination", "misogyny"].includes(String(input.category)) ? String(input.category) : "discrimination";
+  const quote = clip(String(input.quote ?? who.question), 500);
+  const { count } = await db().from("champ_flags").select("id", { count: "exact", head: true }).eq("staff_id", who.staffId);
+  const first = !count;
+  let told = false;
+  if (!first) {
+    const { data: managers } = await db().from("staff").select("email, role").eq("active", true);
+    const to = [...new Set((managers ?? []).filter((m) => /owner|manager/i.test(String(m.role)) && m.email).map((m) => String(m.email)))];
+    if (!to.length && process.env.STAFF_EMAIL) to.push(process.env.STAFF_EMAIL);
+    const link = `${process.env.APP_URL || "https://round-one-crm.vercel.app"}/champ?chat=${who.chatId}`;
+    const body = `${who.staffName} asked Champ something that breaks Round One's conduct rule (${category}). They were warned the first time, on ${count === 1 ? "an earlier occasion" : `${count} earlier occasions`}.\n\nWhat they asked:\n"${clip(who.question, 1000)}"\n\nChamp refused it. The chat: ${link}\n\nNothing has been said to anyone else.`;
+    for (const addr of to) { const r = await sendEmail(addr, `Champ conduct flag: ${who.staffName}`, body); told ||= r.ok; }
+  }
+  await db().from("champ_flags").insert({ staff_id: who.staffId, staff_name: who.staffName, chat_id: who.chatId, category, question: clip(who.question, 2000), manager_told: told });
+  return first
+    ? "FIRST WARNING. Refuse. Tell them this kind of question isn't acceptable at Round One, and that if it happens again a manager will be told."
+    : told
+      ? "A MANAGER HAS BEEN TOLD. Refuse. Tell them this isn't acceptable at Round One and that, as they were warned, a manager has now been told."
+      : "Refuse. Tell them this isn't acceptable at Round One and that it has been recorded for a manager to see.";
 }
 
 export async function runTool(name: string, input: Block, ctx: Ctx = new Ctx()): Promise<unknown> {
@@ -321,6 +355,8 @@ export async function runTool(name: string, input: Block, ctx: Ctx = new Ctx()):
       const day = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
       return { since: ukDay(r.since), slots: r.classes.map((c) => ({ class: c.name, slot: `${day[c.weekday]} ${String(c.hour).padStart(2, "0")}:${String(c.minute).padStart(2, "0")}`, sessions: c.sessions, averageTickedIn: c.avg, fillPercent: c.fill })) };
     }
+    case "flag_conduct":
+      return await flagConduct(input, ctx);
     case "teamup_lookup": {
       if (!teamupConfigured()) throw new Error("TeamUp isn't connected");
       const path = String(input.path ?? "").trim().replace(/\/+$/, "");
@@ -376,9 +412,9 @@ const textOf = (content: Block[]) => content.filter((b) => b.type === "text").ma
  * new messages to save (the question, each assistant step and each set of
  * tool results, in order), the answer text and the look-ups made.
  */
-export async function askChamp(history: ChampMessage[], question: string, staffName: string): Promise<{ added: ChampMessage[]; answer: string; tools: string[] }> {
+export async function askChamp(history: ChampMessage[], question: string, staffName: string, who?: { staffId: string; chatId: string }): Promise<{ added: ChampMessage[]; answer: string; tools: string[] }> {
   if (!champConfigured()) throw new Error("Champ isn’t set up yet (ANTHROPIC_API_KEY)");
-  const ctx = new Ctx();
+  const ctx = new Ctx(who ? { ...who, staffName, question } : undefined);
   const p = ukParts(ctx.now);
   const nowLine = `[${["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][p.weekday]} ${p.date}, ${String(p.hour).padStart(2, "0")}:${String(p.minute).padStart(2, "0")} UK. Asked by ${staffName}.]`;
   const added: ChampMessage[] = [{ role: "user", content: [{ type: "text", text: `${nowLine}\n${question}` }] }];
