@@ -84,6 +84,12 @@ when staff mark a sale on the pipeline.
 
 ## Work streams
 
+0b. **Inactivity alert and attendance reports** (items 18 and 19, built
+   10/10). Live from tonight's sync. Waiting on Sammy: set a coach on
+   members (contact page) so alerts go to the right person rather than
+   the front desk; check the 20-day threshold on Members after a week.
+
+
 0. **Reports to the managers** (built 08/10, improvement items 12 and 13).
    Waiting on Sammy: the managers' numbers in Reports → Settings; the
    WhatsApp token so the `management_report` template can go to Meta; a

@@ -143,10 +143,16 @@ In place so far:
   Claude's read of them (`readCheckin`) waits on the Accountability screen
   for staff to approve a reply. Mid-week nudges and the silence signal run
   from the same tick. All three emails are off until approved.
-- **Reports** (`src/lib/server/growth.ts`, `reports.ts`): weekly members
-  and monthly growth PDFs (made in-house, `reports` bucket) to the
-  managers' WhatsApp numbers on a schedule from `/api/cron`, off until
-  switched on in Reports → Settings.
+- **Reports** (`src/lib/server/growth.ts`, `reports.ts`): weekly members,
+  monthly growth, unpaid and attendance PDFs (made in-house, `reports`
+  bucket) to the managers' WhatsApp numbers on a schedule from
+  `/api/cron`, off until switched on in Reports → Settings.
+- **Member activity** (`src/lib/server/activity.ts`, the nightly `activity`
+  stage): 60 days of ticked-in TeamUp classes plus Kisi door entries for
+  every active member, one session a day, on `contact.activity`, with
+  per-class stats for Reports. Past the threshold (settings `inactivity`,
+  default 20 days, editable on Members) the member's coach (`coachId`) or
+  the front desk gets a task and an email, once per lapse.
 
 Still to come: Meta Marketing API sync.
 

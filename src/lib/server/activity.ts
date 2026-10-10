@@ -28,20 +28,40 @@ async function listAll(path: string, params: Record<string, string>): Promise<Js
   return out;
 }
 
-/** TeamUp: customer id → UK dates with a ticked-in class, last 60 days. */
-async function teamupDays(sinceMs: number): Promise<Map<string, Set<string>>> {
-  const out = new Map<string, Set<string>>();
-  if (!teamupConfigured()) return out;
+/** One class slot (name + weekday + start time) over the period, for the popular-classes report. */
+export interface ClassStat { name: string; weekday: number; hour: number; minute: number; sessions: number; attended: number; avg: number; capacity?: number; fill?: number }
+
+/** TeamUp: customer id → UK dates with a ticked-in class, last 60 days; plus per-class stats. */
+async function teamupDays(sinceMs: number): Promise<{ days: Map<string, Set<string>>; classes: ClassStat[] }> {
+  const days = new Map<string, Set<string>>();
+  if (!teamupConfigured()) return { days, classes: [] };
   const [events, attended] = await Promise.all([listAll("/events", {}), listAll("/attendances", { status: "attended" })]);
   const when = new Map<string, number>();
-  for (const e of events) { const t = Date.parse(String(e.starts_at ?? "")); if (t) when.set(String(e.id), t); }
+  const slotOf = new Map<string, string>();
+  const slots = new Map<string, ClassStat & { eventIds: Set<string> }>();
+  for (const e of events) {
+    const t = Date.parse(String(e.starts_at ?? ""));
+    if (!t) continue;
+    when.set(String(e.id), t);
+    if (t < sinceMs || t > Date.now() || e.status === "cancelled") continue;
+    const p = ukParts(t);
+    const key = `${String(e.name ?? "Class")}|${p.weekday}|${p.hour}:${String(p.minute).padStart(2, "0")}`;
+    slotOf.set(String(e.id), key);
+    const cur = slots.get(key) ?? { name: String(e.name ?? "Class"), weekday: p.weekday, hour: p.hour, minute: p.minute, sessions: 0, attended: 0, avg: 0, capacity: Number(e.max_occupancy) || undefined, eventIds: new Set() };
+    cur.sessions++;
+    cur.eventIds.add(String(e.id));
+    slots.set(key, cur);
+  }
   for (const a of attended) {
     const t = when.get(String(a.event));
     if (!t || t < sinceMs || t > Date.now()) continue;
     const id = String(a.customer);
-    (out.get(id) ?? out.set(id, new Set()).get(id)!).add(ukParts(t).date);
+    (days.get(id) ?? days.set(id, new Set()).get(id)!).add(ukParts(t).date);
+    const key = slotOf.get(String(a.event));
+    if (key) slots.get(key)!.attended++;
   }
-  return out;
+  const classes = [...slots.values()].map(({ eventIds: _e, ...s }) => ({ ...s, avg: s.sessions ? Math.round((s.attended / s.sessions) * 10) / 10 : 0, fill: s.capacity && s.sessions ? Math.round((s.attended / (s.sessions * s.capacity)) * 100) : undefined })).sort((a, b) => b.avg - a.avg);
+  return { days, classes };
 }
 
 /** Kisi: email → UK dates with a door entry, last 60 days (one org-wide event set). */
@@ -80,7 +100,9 @@ export async function inactiveDays(): Promise<number> {
 /** The nightly "activity" stage: read, record, alert. */
 export async function refreshActivity() {
   const since = Date.now() - DAYS * 86400e3;
-  const [tu, ki, s, days] = await Promise.all([teamupDays(since), kisiDays(since).catch((e) => { console.error("[activity] kisi", e instanceof Error ? e.message : e); return new Map<string, Set<string>>(); }), loadState(), inactiveDays()]);
+  const [{ days: tuDays, classes }, ki, s, days] = await Promise.all([teamupDays(since), kisiDays(since).catch((e) => { console.error("[activity] kisi", e instanceof Error ? e.message : e); return new Map<string, Set<string>>(); }), loadState(), inactiveDays()]);
+  const tu = tuDays;
+  await db().from("sync_payloads").upsert({ key: "activity:classes", value: { since: new Date(since).toISOString(), classes }, updated_at: new Date().toISOString() });
   const byContact = new Map<string, string[]>();
   for (const c of s.contacts) {
     if (c.membership?.status !== "active") continue;
@@ -93,4 +115,10 @@ export async function refreshActivity() {
   const baseline = !s.contacts.some((c) => c.activity);
   const alerted = await applyMany((st) => { recordActivity(st, byContact); return flagInactivity(st, days, { baseline }); });
   return { count: byContact.size, alerted, baseline, inactiveDays: days, teamupPeople: tu.size, kisiPeople: ki.size };
+}
+
+/** The saved per-class stats (last 60 days), for Reports. */
+export async function classStats(): Promise<{ since?: string; classes: ClassStat[] }> {
+  const { data } = await db().from("sync_payloads").select("value").eq("key", "activity:classes").maybeSingle();
+  return (data?.value as { since?: string; classes: ClassStat[] } | null) ?? { classes: [] };
 }

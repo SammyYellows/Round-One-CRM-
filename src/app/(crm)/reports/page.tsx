@@ -12,9 +12,31 @@ interface Weekly { asOf: string; members: number; joined: number; left: number; 
 interface Forecast { months: number; perMonth: number; net: number; members: number }
 interface Unpaid { name: string; membership: string; retries: number; owed: number; since?: string; latest?: string; count: number; contactId: string; email: string; phone: string }
 interface Reconciliation { activeMemberships: number; peopleActive: number; byDates: number; doubles: { customerId: string; name: string; memberships: string[] }[]; lapsedButActive: { customerId: string; name: string; membership: string; ended: string }[] }
-interface Report { kind: "weekly" | "monthly" | "unpaid"; asOf: string; unpaid: Unpaid[]; reconciliation: Reconciliation; weekly: Weekly; months: MonthPoint[]; forecasts: Forecast[]; cancellations: { name: string; noticeAt: string; membership: string; reply?: string }[]; cancellationSummary: string }
+interface ClassStat { name: string; weekday: number; hour: number; minute: number; sessions: number; attended: number; avg: number; capacity?: number; fill?: number }
+interface MemberActivity { contactId: string; name: string; membership: string; last30: number; prev30: number; lastSeenAt?: string; change: number }
+interface AttendanceReport { since?: string; classes: ClassStat[]; top: MemberActivity[]; bottom: MemberActivity[]; declining: MemberActivity[]; activeMembers: number }
+interface Report { kind: "weekly" | "monthly" | "unpaid" | "attendance"; asOf: string; unpaid: Unpaid[]; reconciliation: Reconciliation; attendance: AttendanceReport; weekly: Weekly; months: MonthPoint[]; forecasts: Forecast[]; cancellations: { name: string; noticeAt: string; membership: string; reply?: string }[]; cancellationSummary: string }
 interface Settings { pastDays: number; forecastDays: number; averageDays: number; monthlyMonths: number[]; forecastMonths: number[]; managerNumbers: string[]; weeklyOn: boolean; monthlyOn: boolean; unpaidOn: boolean; lastWeeklyAt?: string; lastMonthlyAt?: string; lastUnpaidAt?: string }
-interface Payload { weekly: Report; monthly: Report; unpaid: Report; settings: Settings; whatsapp: boolean; staffEmail: string | null }
+interface Payload { weekly: Report; monthly: Report; unpaid: Report; attendance: Report; settings: Settings; whatsapp: boolean; staffEmail: string | null }
+const DAYNAME = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const slot = (c: ClassStat) => `${DAYNAME[c.weekday]} ${String(c.hour).padStart(2, "0")}:${String(c.minute).padStart(2, "0")}`;
+
+function MemberList({ title, note, rows }: { title: string; note: string; rows: MemberActivity[] }) {
+  return (
+    <section className="card">
+      <div className="card-head"><h2 className="h h3">{title}</h2><span className="small muted">{note}</span></div>
+      {rows.length === 0 && <div className="pad small muted" style={{ paddingTop: 0 }}>Nothing yet.</div>}
+      {rows.map((m) => (
+        <div key={m.contactId} style={{ borderTop: "1px solid var(--line)", padding: "8px 22px", display: "grid", gridTemplateColumns: "minmax(0, 1.4fr) 60px 60px minmax(0, 1fr)", gap: 10, alignItems: "center" }} className="small">
+          <div><a href={`/contacts/${m.contactId}`} className="strong" style={{ color: "var(--white)" }}>{m.name}</a><div className="faint">{m.membership}</div></div>
+          <div className="num"><span className="strong">{m.last30}</span></div>
+          <div className="num muted">{m.prev30}</div>
+          <div className="muted">{m.lastSeenAt ? `last in ${fmt(m.lastSeenAt)}` : "not in 60 days"}</div>
+        </div>
+      ))}
+    </section>
+  );
+}
 
 const signed = (n: number) => (n > 0 ? `+${n}` : String(n));
 const fmt = (iso: string) => new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short" });
@@ -46,7 +68,7 @@ export default function ReportsPage() {
   const { live } = useStore();
   const [data, setData] = useState<Payload | null>(null);
   const [err, setErr] = useState("");
-  const [tab, setTab] = useState<"weekly" | "monthly" | "unpaid">("weekly");
+  const [tab, setTab] = useState<"weekly" | "monthly" | "unpaid" | "attendance">("weekly");
   const [s, setS] = useState<Settings | null>(null);
   const [numbers, setNumbers] = useState("");
   const [months, setMonths] = useState("");
@@ -87,7 +109,15 @@ export default function ReportsPage() {
     if (action === "send") { const failed = (j.results ?? []).filter((x: { ok: boolean }) => !x.ok); setNote(failed.length ? `Sent, but ${failed.length} failed: ${failed.map((x: { to: string; error?: string }) => `${x.to} (${x.error})`).join("; ")}` : `Sent to ${(j.results ?? []).length} number${(j.results ?? []).length === 1 ? "" : "s"}.`); }
   };
   const owedTotal = r.unpaid.reduce((n, u) => n + u.owed, 0);
-  const tiles = tab === "unpaid"
+  const at = r.attendance;
+  const tiles = tab === "attendance"
+    ? [
+      { label: "Active members", value: String(at.activeMembers), note: "with attendance read last night" },
+      { label: "In during the last 30 days", value: String(at.top.length ? at.activeMembers - at.bottom.filter((m) => m.last30 === 0).length : 0), note: "at least one session" },
+      { label: "Busiest class", value: at.classes[0] ? String(at.classes[0].avg) : "–", note: at.classes[0] ? `${at.classes[0].name}, ${slot(at.classes[0])}, average per session` : "" },
+      { label: "Declining", value: String(at.declining.length), note: "fewer sessions than the 30 days before" },
+    ]
+    : tab === "unpaid"
     ? [
       { label: "Unpaid members", value: String(r.unpaid.length), note: "3 or more failed attempts in TeamUp" },
       { label: "Owed", value: `£${owedTotal.toFixed(0)}`, note: "open and retry-failed invoices" },
@@ -107,8 +137,8 @@ export default function ReportsPage() {
       ...r.forecasts.slice(0, 3).map((f) => ({ label: `Forecast, ${f.months} months`, value: signed(f.net), note: `about ${f.members} members, average ${signed(Math.round(f.perMonth * 10) / 10)} a month` })),
     ];
   const chartPts = tab === "weekly" ? r.months.slice(-4) : r.months;
-  const sched = tab === "weekly" ? s.weeklyOn : tab === "monthly" ? s.monthlyOn : s.unpaidOn;
-  const lastAt = tab === "weekly" ? s.lastWeeklyAt : tab === "monthly" ? s.lastMonthlyAt : s.lastUnpaidAt;
+  const sched = tab === "weekly" ? s.weeklyOn : tab === "monthly" ? s.monthlyOn : tab === "unpaid" ? s.unpaidOn : false;
+  const lastAt = tab === "weekly" ? s.lastWeeklyAt : tab === "monthly" ? s.lastMonthlyAt : tab === "unpaid" ? s.lastUnpaidAt : undefined;
 
   return (
     <>
@@ -118,7 +148,7 @@ export default function ReportsPage() {
           <h1 className="h h1">Reports</h1>
         </div>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-          {(["weekly", "monthly", "unpaid"] as const).map((k) => <button key={k} className={`fchip ${tab === k ? "on" : ""}`} aria-pressed={tab === k} onClick={() => { setTab(k); setConfirming(false); }}>{k === "weekly" ? "Weekly" : k === "monthly" ? "Monthly" : "Unpaid"}</button>)}
+          {(["weekly", "monthly", "unpaid", "attendance"] as const).map((k) => <button key={k} className={`fchip ${tab === k ? "on" : ""}`} aria-pressed={tab === k} onClick={() => { setTab(k); setConfirming(false); }}>{k === "weekly" ? "Weekly" : k === "monthly" ? "Monthly" : k === "unpaid" ? "Unpaid" : "Attendance"}</button>)}
         </div>
       </header>
 
@@ -132,6 +162,54 @@ export default function ReportsPage() {
         ))}
       </div>
 
+      {tab === "attendance" && (
+        <div style={{ marginTop: 16, display: "flex", flexDirection: "column", gap: 16 }}>
+          <section className="card">
+            <div className="card-head"><h2 className="h h2">Classes, last 60 days</h2><span className="small muted">Average ticked in per session · most popular first{at.since ? ` · since ${fmt(at.since)}` : ""}</span></div>
+            <div className="crow thead" style={{ borderTop: 0, gridTemplateColumns: "minmax(0, 2fr) 120px 90px 90px 90px minmax(0, 1fr)" }}><div>Class</div><div>Slot</div><div>Sessions</div><div>Average</div><div>Fill</div><div /></div>
+            {at.classes.length === 0 && <div className="pad small muted" style={{ paddingTop: 0 }}>Nothing yet: the activity sync runs nightly at 03:12.</div>}
+            {at.classes.map((c) => {
+              const max = at.classes[0]?.avg || 1;
+              return (
+                <div key={`${c.name}|${c.weekday}|${c.hour}:${c.minute}`} className="crow" style={{ gridTemplateColumns: "minmax(0, 2fr) 120px 90px 90px 90px minmax(0, 1fr)" }}>
+                  <div className="strong">{c.name}</div>
+                  <div className="muted small">{slot(c)}</div>
+                  <div className="num muted">{c.sessions}</div>
+                  <div className="num strong">{c.avg}</div>
+                  <div className="num muted">{c.fill !== undefined ? `${c.fill}%` : "–"}</div>
+                  <div className="barlist-track" style={{ height: 10 }}><div className="barlist-fill" style={{ width: `${(c.avg / max) * 100}%` }} /></div>
+                </div>
+              );
+            })}
+          </section>
+          <div className="grid cols-dash3">
+            <MemberList title="Top attendance" note="Sessions in the last 30 days · the 30 before" rows={at.top} />
+            <MemberList title="Lowest attendance" note="Active members · fewest sessions first" rows={at.bottom} />
+            <MemberList title="Fastest declining" note="Biggest drop against the 30 days before" rows={at.declining} />
+          </div>
+          <section className="card pad" style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            <h2 className="h h3">This report</h2>
+            <div className="small muted">No schedule for this one yet. Open the PDF or email yourself a copy; sending to the managers works the same as the others.</div>
+            <div className="actions" style={{ gap: 8, flexWrap: "wrap" }}>
+              <button className="btn btn-ghost btn-sm" disabled={busy !== null} onClick={() => post("pdf")}>{busy === "pdf" ? "Making" : "Open the PDF"}</button>
+              <button className="btn btn-ghost btn-sm" disabled={busy !== null} onClick={() => post("email")}>{busy === "email" ? "Sending" : "Email me a copy"}</button>
+              <button className="btn btn-red btn-sm" disabled={busy !== null || !s.managerNumbers.length} onClick={() => setConfirming(true)}>Send to the managers now</button>
+            </div>
+            {confirming && (
+              <div className="enq-confirm" role="alertdialog">
+                <div className="strong">Send the attendance report to {s.managerNumbers.length} number{s.managerNumbers.length === 1 ? "" : "s"} on WhatsApp?</div>
+                <div className="actions" style={{ gap: 8 }}>
+                  <button className="btn btn-red btn-sm" disabled={busy !== null} onClick={() => post("send")}>{busy === "send" ? "Sending" : "Yes, send it"}</button>
+                  <button className="btn btn-ghost btn-sm" onClick={() => setConfirming(false)}>Cancel</button>
+                </div>
+              </div>
+            )}
+            {note && <div className="small muted" aria-live="polite">{note}</div>}
+          </section>
+        </div>
+      )}
+
+      {tab !== "attendance" && (
       <div className="grid cols-dash" style={{ marginTop: 16 }}>
         {tab === "unpaid" ? (
           <section className="card">
@@ -215,7 +293,9 @@ export default function ReportsPage() {
         </div>
       </div>
 
-      {tab !== "unpaid" && (
+      )}
+
+      {tab !== "unpaid" && tab !== "attendance" && (
       <div className="grid cols-dash" style={{ marginTop: 16 }}>
         <section className="card pad">
           <h2 className="h h2" style={{ marginBottom: 8 }}>Cancellations and what people said</h2>

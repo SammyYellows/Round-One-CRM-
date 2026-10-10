@@ -13,13 +13,13 @@ import { whatsappConfigured } from "@/lib/server/whatsapp";
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
-const KINDS: ReportKind[] = ["weekly", "monthly", "unpaid"];
+const KINDS: ReportKind[] = ["weekly", "monthly", "unpaid", "attendance"];
 
 export async function GET() {
   const auth = await requireStaff();
   if ("error" in auth) return auth.error;
-  const [weekly, monthly, unpaid] = await Promise.all([buildReport("weekly"), buildReport("monthly"), buildReport("unpaid")]);
-  return Response.json({ weekly, monthly, unpaid, settings: weekly.settings, whatsapp: whatsappConfigured(), staffEmail: auth.staff.email || process.env.STAFF_EMAIL || null });
+  const [weekly, monthly, unpaid, attendance] = await Promise.all([buildReport("weekly"), buildReport("monthly"), buildReport("unpaid"), buildReport("attendance")]);
+  return Response.json({ weekly, monthly, unpaid, attendance, settings: weekly.settings, whatsapp: whatsappConfigured(), staffEmail: auth.staff.email || process.env.STAFF_EMAIL || null });
 }
 
 export async function PUT(req: Request) {
