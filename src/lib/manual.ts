@@ -26,7 +26,7 @@ export const MANUAL: ManualSection[] = [
 
 ### What you can see
 - **Staff** logins see the day-to-day screens: Today, Champ, Calendar, both pipelines, Contacts, Enquiries, Members, Program members, Cancellations, Accountability and Failed payments.
-- **Owner** and **Manager** logins also see Mailouts, Automations, Reports, Forms, Meta ads, Staff and Teach Champ, and can change messages and settings.
+- **Owner** and **Manager** logins also see Mailouts, Automations, Reports, Forms, Meta ads, Staff and Train Champ, and can change messages and settings.
 
 ### Getting help
 Ask **Champ** (second in the menu). It knows this manual, can look up any member, class or lead for you, and can help with training and sales ideas.`,
@@ -222,7 +222,7 @@ Anyone can reply STOP to stop marketing messages; messages about their own booki
     body: `Owner and Manager logins only.
 
 - **Staff**: add a login (name, email, role) and they get an invite email; **Resend** if they lost it; **Remove** stops their login at once (**Bring back** restores it). Roles: Staff (day-to-day screens) or Owner/Manager (everything).
-- **Teach Champ** (button on Champ): notes and documents (PDF, Word, text) Champ reads before every answer, such as equipment, class formats, sales scripts. Switch entries on or off, edit or remove them.
+- **Train Champ** (button on Champ): notes and documents (PDF, Word, text) Champ reads before every answer, such as equipment, class formats, sales scripts. Switch entries on or off, edit or remove them.
 - **Everyone's** on Champ: read all staff chats. Conduct flags are emailed to management.
 - **Automations**: every automatic message, grouped by job. Read what's sent, edit the wording, and switch messages on or off (with a confirm).
 - **Mailouts**: one email to many people (members, ex-members, old leads). Sends only after **Send** and confirming the count. Every email has an unsubscribe link.

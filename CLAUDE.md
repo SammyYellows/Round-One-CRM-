@@ -185,7 +185,7 @@ In place so far:
   (`/champ?chat=<id>`). Ordinary questions about women, faith, disability
   or age (Ladies Boxfit, Ramadan, adapting for a member) are not flagged.
   Champ's three pictures are `public/champ/champ-1..3.webp` (shrunk from Sammy's originals), one shown above the chat box, changing every 45 minutes by the clock.
-  **Teach Champ** (`/champ/knowledge`, `champKnowledge.ts`, management
+  **Train Champ** (`/champ/train`, `champKnowledge.ts`, management
   only: Owner or Manager staff role): notes and uploaded documents (PDF,
   .docx, text; files go straight to the private `champ-docs` bucket by a
   signed upload, PDFs are read once by Claude, Word files are unzipped in
@@ -195,7 +195,7 @@ In place so far:
 - **Roles and staff logins** (Sammy, 10/10): `src/lib/roles.ts`. Owner and
   Manager staff roles are management and see everything; everyone else
   (role Staff) sees the day-to-day screens only. Management-only screens:
-  Mailouts, Automations, Reports, Forms, Meta ads, Teach Champ, Staff
+  Mailouts, Automations, Reports, Forms, Meta ads, Train Champ, Staff
   (hidden from the sidebar and blocked by `RoleGate`). Management-only
   changes are refused on the server: actions in `MANAGEMENT_ACTIONS`
   (switching or rewording automations, forms, booking hours) and the

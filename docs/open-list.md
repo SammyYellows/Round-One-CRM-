@@ -152,7 +152,7 @@ updates from the import never fire automations.
 
 0d. **Champ** (item 21, built 10/10). Live on the sidebar. Waiting on
    Sammy (photos added 10/10, rotating every 45 minutes): an Equipment note on
-   Teach Champ (Champ → Teach Champ) so class plans use the real kit; the
+   Train Champ (Champ → Train Champ) so class plans use the real kit; the
    separate management logins (Sammy will go into that later; Teach
    Champ is limited by the Owner/Manager staff role until then). Cost runs on the
    Anthropic key (Sonnet 5.5, roughly 2–5p a question); check the spend

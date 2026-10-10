@@ -58,7 +58,7 @@ export default function StaffPage() {
 
       <section className="card pad" style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 16 }}>
         <div className="label" style={{ margin: 0 }}>Add someone</div>
-        <div className="small muted">They get an email from bookings@round1boxfit.co.uk to choose their password (8 characters or more). <strong>Staff</strong> see the day-to-day screens; <strong>Owner</strong> and <strong>Manager</strong> also see Mailouts, Automations, Reports, Forms, Meta ads, Teach Champ, everyone’s Champ chats and this page, and can change messages and settings.</div>
+        <div className="small muted">They get an email from bookings@round1boxfit.co.uk to choose their password (8 characters or more). <strong>Staff</strong> see the day-to-day screens; <strong>Owner</strong> and <strong>Manager</strong> also see Mailouts, Automations, Reports, Forms, Meta ads, Train Champ, everyone’s Champ chats and this page, and can change messages and settings.</div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 8 }}>
           <input className="input" placeholder="Name" value={name} onChange={(e) => setName(e.target.value)} aria-label="Name" />
           <input className="input" type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} aria-label="Email" />

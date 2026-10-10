@@ -118,7 +118,7 @@ export default function ChampPage() {
       <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 260px) minmax(0, 1fr)", gap: 16, alignItems: "start" }} className="champ-grid">
         <aside className="card" style={{ padding: 12, display: "flex", flexDirection: "column", gap: 8 }}>
           <button className="btn btn-red btn-sm" onClick={fresh}>New chat</button>
-          {canSeeAll && <a href="/champ/knowledge" className="btn btn-ghost btn-sm">Teach Champ</a>}
+          {canSeeAll && <a href="/champ/train" className="btn btn-ghost btn-sm">Train Champ</a>}
           {canSeeAll && (
             <div style={{ display: "flex", gap: 6 }}>
               <button className={`fchip fchip-sm ${!everyone ? "on" : ""}`} style={{ flex: 1 }} aria-pressed={!everyone} onClick={() => setEveryone(false)}>Mine</button>
