@@ -116,6 +116,13 @@ const uk = (iso?: string) => {
   const day = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][p.weekday];
   return `${day} ${p.date} ${String(p.hour).padStart(2, "0")}:${String(p.minute).padStart(2, "0")}`;
 };
+/** "Mon 12 Oct, 10:00", for booking cards and the contact's history. */
+const ukWhen = (iso: string) => {
+  const p = ukParts(Date.parse(iso));
+  const [, m, d] = p.date.split("-").map(Number);
+  const mon = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"][m - 1];
+  return `${["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][p.weekday]} ${d} ${mon}, ${String(p.hour).padStart(2, "0")}:${String(p.minute).padStart(2, "0")}`;
+};
 const ukDay = (iso?: string) => (iso ? uk(iso)?.slice(0, 14) : undefined);
 const daysSince = (iso: string | undefined, now: number) => (iso ? Math.floor((now - Date.parse(iso)) / 86400e3) : undefined);
 const clip = (s: string, n: number) => (s.length > n ? `${s.slice(0, n)}…` : s);
@@ -231,8 +238,8 @@ async function proposeBooking(input: Block, ctx: Ctx): Promise<unknown> {
   if (Date.parse(ev.startsAt) < Date.now()) return { booked: false, reason: "That class has already started." };
   const reg = (await fetchJson("/attendances", { event: eventId, customer: String(customerId), page_size: "50" }).catch(() => ({}))) as Block;
   const already = ((reg.results as Block[]) ?? []).some((a) => String(a.customer) === String(customerId) && ["registered", "attended", "waiting"].includes(String(a.status)));
-  if (already) return { booked: false, reason: `${c.name} is already booked on ${ev.name}, ${uk(ev.startsAt)}.` };
-  const label = `${ev.name}, ${uk(ev.startsAt)}`;
+  if (already) return { booked: false, reason: `${c.name} is already booked on ${ev.name}, ${ukWhen(ev.startsAt)}.` };
+  const label = `${ev.name}, ${ukWhen(ev.startsAt)}`;
   const { data: row, error } = await db().from("champ_bookings").insert({ chat_id: who.chatId, staff_id: who.staffId, staff_name: who.staffName, contact_id: c.id, customer_id: String(customerId), event_id: eventId, label: `${c.name} on ${label}` }).select("id").single();
   if (error) throw new Error(error.message);
   if (who.autobook) {
