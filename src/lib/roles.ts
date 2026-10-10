@@ -6,7 +6,7 @@
 export const isManagerRole = (role?: string | null) => /owner|manager/i.test(role ?? "");
 
 /** Screens only management can open. */
-export const MANAGEMENT_PATHS = ["/mailouts", "/automations", "/reports", "/forms", "/ads", "/champ/knowledge", "/staff"];
+export const MANAGEMENT_PATHS = ["/mailouts", "/automations", "/reports", "/forms", "/ads", "/champ/knowledge", "/champ/train", "/staff"];
 export const isManagementPath = (path: string) => MANAGEMENT_PATHS.some((p) => path === p || path.startsWith(`${p}/`));
 
 /** Changes only management can make: what gets sent to customers, and settings. */
