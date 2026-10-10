@@ -19,7 +19,7 @@ export async function GET(req: Request) {
   const secret = process.env.CRON_SECRET;
   if (!secret || req.headers.get("authorization") !== `Bearer ${secret}`) return Response.json({ error: "Forbidden" }, { status: 403 });
 
-  // ?job=teamup&stage=<customers|members|apply|attendance>: one stage of the
+  // ?job=teamup&stage=<customers|members|payments|apply|attendance|activity|safety>: one stage of the
   // nightly members sync (pg_cron calls them a couple of minutes apart so
   // none goes near the 60-second limit). Without a stage, all of them in turn.
   const url = new URL(req.url);

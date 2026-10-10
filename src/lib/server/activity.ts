@@ -10,6 +10,7 @@ import { fetchJson, teamupConfigured } from "./teamup";
 import { kisiConfigured } from "./kisi";
 import { applyMany, loadState } from "./state";
 import { db } from "./supabase";
+import { saveUpcomingEvents } from "./safety";
 
 const DAYS = 60;
 export const DEFAULT_INACTIVE_DAYS = 20;
@@ -36,6 +37,8 @@ async function teamupDays(sinceMs: number): Promise<{ days: Map<string, Set<stri
   const days = new Map<string, Set<string>>();
   if (!teamupConfigured()) return { days, classes: [] };
   const [events, attended] = await Promise.all([listAll("/events", {}), listAll("/attendances", { status: "attended" })]);
+  // The next two days' classes, for the live "who's in the gym" check (safety.ts).
+  await saveUpcomingEvents(events).catch((e) => console.error("[activity] upcoming", e instanceof Error ? e.message : e));
   const when = new Map<string, number>();
   const slotOf = new Map<string, string>();
   const slots = new Map<string, ClassStat & { eventIds: Set<string> }>();

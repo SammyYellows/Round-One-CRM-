@@ -7,6 +7,7 @@ import { describeStep, firstName } from "@/lib/engine";
 import { ago, dayTime, shortDate, time, toLocalInput } from "@/lib/format";
 import { useStore } from "@/lib/store";
 import { LOST_REASONS, STAGES, Stage, apptStatusLabel, sourceLabel, stageLabel } from "@/lib/types";
+import { PRIORITY_LABEL, inactivityAdvice } from "@/lib/inactivity";
 
 const STATUS: Record<string, string> = { queued: "Sending", sent: "Sent", delivered: "Delivered", read: "Read", failed: "Not delivered" };
 
@@ -24,9 +25,12 @@ export default function ContactPage() {
     return toLocalInput(d.getTime());
   });
   const threadRef = useRef<HTMLDivElement>(null);
+  const [inactiveDaysSetting, setInactiveDaysSetting] = useState(20);
+  useEffect(() => { if (live) fetch("/api/members/inactivity", { cache: "no-store" }).then((r) => (r.ok ? r.json() : null)).then((j) => { if (j?.days) setInactiveDaysSetting(j.days); }).catch(() => undefined); }, [live]);
 
   const c = s.contacts.find((x) => x.id === id);
   const msgs = s.messages.filter((m) => m.contactId === id);
+  const advice = c ? inactivityAdvice(c, now, inactiveDaysSetting) : null;
 
   useEffect(() => {
     threadRef.current?.scrollTo({ top: threadRef.current.scrollHeight });
@@ -169,6 +173,32 @@ export default function ContactPage() {
               </div>
             )}
           </dl>
+          {advice && (
+            <div className="answers-strip" style={{ padding: "10px 12px", display: "flex", flexDirection: "column", gap: 4 }}>
+              <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                <span className={`chip ${advice.priority === "high" ? "chip-red" : advice.priority === "medium" ? "chip-light" : ""}`} style={{ height: 20, fontSize: 10 }}>{PRIORITY_LABEL[advice.priority]} priority</span>
+                <span className="small strong">{advice.reason}</span>
+              </div>
+              <div className="small">{advice.action}</div>
+              <div className="small faint">Suggested for staff only; nothing is sent to {firstName(c)} by the CRM.</div>
+            </div>
+          )}
+          {c.safety && (
+            <div style={{ borderTop: "1px solid var(--line)", paddingTop: 12, display: "flex", flexDirection: "column", gap: 4 }}>
+              <div className="label" style={{ margin: 0 }}>Safety (TeamUp)</div>
+              <div className="strong">
+                {c.safety.waiverSignedAt ? `Waiver signed ${shortDate(c.safety.waiverSignedAt)}` : <span style={{ color: "var(--red)" }}>No waiver signed</span>}
+                {c.safety.waiverName && c.safety.waiverSignedAt ? <span className="muted small"> · {c.safety.waiverName}</span> : null}
+              </div>
+              <div className="small">
+                {c.safety.emergencyName || c.safety.emergencyPhone
+                  ? <>Emergency contact: {c.safety.emergencyName ?? "–"}{c.safety.emergencyRelationship ? ` (${c.safety.emergencyRelationship})` : ""}{c.safety.emergencyPhone ? <> · <a className="num" href={`tel:${c.safety.emergencyPhone}`}>{c.safety.emergencyPhone}</a></> : ""}</>
+                  : <span style={{ color: "var(--red)" }}>No emergency contact on file</span>}
+                {c.safety.dateOfBirth ? <span className="muted"> · born {shortDate(c.safety.dateOfBirth)}</span> : null}
+              </div>
+              <div className="small faint">Fix it in TeamUp (their profile → forms and waivers); synced {ago(c.safety.syncedAt, now)}.</div>
+            </div>
+          )}
           {c.membership && (
             <div style={{ borderTop: "1px solid var(--line)", paddingTop: 12, display: "flex", flexDirection: "column", gap: 4 }}>
               <div className="label" style={{ margin: 0 }}>Membership (TeamUp)</div>
