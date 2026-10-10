@@ -9,11 +9,12 @@
 import { BUCKET, MAX_FILE_BYTES, MAX_TOTAL_CHARS, extractText, listKnowledge, totalChars } from "@/lib/server/champKnowledge";
 import { requireStaff, type StaffMember } from "@/lib/server/staff";
 import { db } from "@/lib/server/supabase";
+import { isManagerRole } from "@/lib/roles";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 300; // reading a long PDF takes a while
 
-const isManager = (s: StaffMember) => /owner|manager/i.test(s.role);
+const isManager = (s: StaffMember) => isManagerRole(s.role);
 async function manager() {
   const auth = await requireStaff();
   if ("error" in auth) return auth;

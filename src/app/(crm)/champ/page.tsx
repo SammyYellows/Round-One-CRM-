@@ -1,6 +1,7 @@
 "use client";
 
-import { Fragment, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { Rich } from "@/components/Rich";
 import { ago } from "@/lib/format";
 import { useStore } from "@/lib/store";
 
@@ -28,21 +29,6 @@ const TOOL_LABEL: Record<string, string> = {
   who_is_in_now: "checked who’s in", class_popularity: "checked class numbers", teamup_lookup: "looked in TeamUp",
 };
 
-/** Champ's plain text, with "- " bullets and **bold**. Built as elements, never as HTML. */
-function Rich({ text }: { text: string }) {
-  const bold = (line: string) => line.split(/(\*\*[^*]+\*\*)/g).map((part, i) => (part.startsWith("**") && part.endsWith("**") ? <strong key={i}>{part.slice(2, -2)}</strong> : <Fragment key={i}>{part}</Fragment>));
-  const blocks: React.ReactNode[] = [];
-  let list: string[] = [];
-  const flush = () => { if (list.length) { blocks.push(<ul key={blocks.length} style={{ margin: "4px 0 8px", paddingLeft: 20 }}>{list.map((l, i) => <li key={i}>{bold(l)}</li>)}</ul>); list = []; } };
-  for (const raw of text.split("\n")) {
-    const line = raw.trimEnd();
-    if (/^\s*[-•*]\s+/.test(line)) { list.push(line.replace(/^\s*[-•*]\s+/, "")); continue; }
-    flush();
-    if (line.trim()) blocks.push(<p key={blocks.length} style={{ margin: "0 0 8px" }}>{bold(line)}</p>);
-  }
-  flush();
-  return <>{blocks}</>;
-}
 
 // Champ's pictures (Sammy, 10/10/2026), one at a time, changing every 45
 // minutes. Worked out from the clock, so everyone sees the same one.

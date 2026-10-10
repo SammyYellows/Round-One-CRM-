@@ -82,6 +82,16 @@ when staff mark a sale on the pipeline.
   lists for goal, why now and what you've tried (10/10).
 - **Win-back replies** landing in Enquiries: fine as it is (Sammy, 08/10).
 
+## This week (from 11/10/2026): staff get familiar; WhatsApp moves over
+
+Ads are paused, so no new leads this week (Sammy, 10/10). The GymGrow
+import is paused. Built 10/10 for staff: logins with roles (the Staff page,
+management only), staff see the day-to-day screens only, a manual
+(`/manual`) and Champ trained on it. Waiting on Sammy: the staff list to
+add on the Staff page; the WhatsApp move this week (steps in
+`docs/go-live-day.md` §2) so replies land in the CRM; the other go-live
+jobs (Vercel Pro, the crm. address, privacy page, keys) as and when.
+
 ## Go-live (v1), Sunday 11/10/2026
 
 Full switch-over (Sammy, 10/10; GymGrow is stopped). The day, in order,

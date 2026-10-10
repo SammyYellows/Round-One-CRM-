@@ -1,7 +1,7 @@
 // Put a member's TeamUp membership on hold from the Failed payments screen.
 // Needs confirm:true. TeamUp stays the place to lift it.
 
-import { requireStaff } from "@/lib/server/staff";
+import { requireManager } from "@/lib/server/staff";
 import { db } from "@/lib/server/supabase";
 import { holdMembership, teamupConfigured } from "@/lib/server/teamup";
 import { syncTeamUpCustomer } from "@/lib/server/teamupSync";
@@ -9,7 +9,7 @@ import { syncTeamUpCustomer } from "@/lib/server/teamupSync";
 export const dynamic = "force-dynamic";
 
 export async function POST(req: Request) {
-  const auth = await requireStaff();
+  const auth = await requireManager();
   if ("error" in auth) return auth.error;
   const b = (await req.json().catch(() => ({}))) as { contactId?: string; confirm?: boolean };
   if (b.confirm !== true || !b.contactId) return Response.json({ error: "Confirm first" }, { status: 400 });

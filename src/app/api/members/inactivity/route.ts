@@ -1,7 +1,7 @@
 // The inactivity threshold (days without a session before the coach is told).
 
 import { DEFAULT_INACTIVE_DAYS, inactiveDays } from "@/lib/server/activity";
-import { requireStaff } from "@/lib/server/staff";
+import { requireManager, requireStaff } from "@/lib/server/staff";
 import { db } from "@/lib/server/supabase";
 
 export const dynamic = "force-dynamic";
@@ -13,7 +13,7 @@ export async function GET() {
 }
 
 export async function PUT(req: Request) {
-  const auth = await requireStaff();
+  const auth = await requireManager();
   if ("error" in auth) return auth.error;
   const b = (await req.json().catch(() => ({}))) as { days?: unknown };
   const n = Math.round(Number(b.days));

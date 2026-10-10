@@ -1,5 +1,6 @@
 "use client";
 
+import { useIsManager } from "@/components/StaffContext";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ago } from "@/lib/format";
@@ -33,6 +34,7 @@ const inView = (e: Enquiry, v: View) =>
   v === "open" ? needsReply(e) : v === "sent" ? e.status === "sent" : v === "dismissed" ? e.status === "dismissed" : e.kind === "other" && e.status !== "sent" && e.status !== "dismissed";
 
 export default function EnquiriesPage() {
+  const manager = useIsManager();
   const { now, live } = useStore();
   const [list, setList] = useState<Enquiry[] | null>(null);
   const [facts, setFacts] = useState("");
@@ -143,7 +145,7 @@ export default function EnquiriesPage() {
           <h1 className="h h1">Enquiries</h1>
         </div>
         <div className="actions">
-          <button className="btn btn-ghost" onClick={() => setShowFacts((v) => !v)}>{showFacts ? "Hide gym facts" : "Gym facts"}</button>
+          {manager && <button className="btn btn-ghost" onClick={() => setShowFacts((v) => !v)}>{showFacts ? "Hide gym facts" : "Gym facts"}</button>}
         </div>
       </header>
 
@@ -156,7 +158,7 @@ export default function EnquiriesPage() {
         </div>
       )}
 
-      {showFacts && (
+      {manager && showFacts && (
         <section className="card" style={{ marginBottom: 20 }}>
           <div className="card-head">
             <div>

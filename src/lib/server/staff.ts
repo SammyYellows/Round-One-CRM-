@@ -3,6 +3,7 @@
 import type { User } from "@supabase/supabase-js";
 import { authClient } from "@/lib/supabase/server";
 import { db } from "./supabase";
+import { isManagerRole } from "@/lib/roles";
 
 export interface StaffMember {
   id: string;
@@ -43,4 +44,12 @@ export async function requireStaff(): Promise<{ staff: StaffMember } | { error: 
   const staff = await staffFor(user);
   if (!staff) return { error: Response.json({ error: "Not set up as staff" }, { status: 403 }) };
   return { staff };
+}
+
+/** For management-only API routes: Owner or Manager logins only. */
+export async function requireManager(): Promise<{ staff: StaffMember } | { error: Response }> {
+  const auth = await requireStaff();
+  if ("error" in auth) return auth;
+  if (!isManagerRole(auth.staff.role)) return { error: Response.json({ error: "Only management can do that" }, { status: 403 }) };
+  return auth;
 }

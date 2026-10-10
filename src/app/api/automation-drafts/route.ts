@@ -5,7 +5,7 @@
 
 import { rewriteTemplate } from "@/lib/server/ai";
 import { getFacts } from "@/lib/server/enquiries";
-import { requireStaff } from "@/lib/server/staff";
+import { requireManager, requireStaff } from "@/lib/server/staff";
 import { db } from "@/lib/server/supabase";
 
 export const dynamic = "force-dynamic";
@@ -31,7 +31,7 @@ type Body = { automation?: string; purpose?: string } & (
   | { action: "rewrite"; subject: string; body: string; instruction: string });
 
 export async function POST(req: Request) {
-  const auth = await requireStaff();
+  const auth = await requireManager();
   if ("error" in auth) return auth.error;
   const b = (await req.json().catch(() => ({}))) as Partial<Body>;
   if (b.action === "rewrite") {

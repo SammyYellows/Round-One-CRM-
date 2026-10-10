@@ -4,6 +4,7 @@
 import { SERVER_REFUSES, isActionName } from "@/lib/actions";
 import { applyAction } from "@/lib/server/state";
 import { requireStaff } from "@/lib/server/staff";
+import { MANAGEMENT_ACTIONS, isManagerRole } from "@/lib/roles";
 
 export const dynamic = "force-dynamic";
 
@@ -14,6 +15,8 @@ export async function POST(req: Request) {
   if (!body || !isActionName(body.name) || SERVER_REFUSES.has(body.name) || !Array.isArray(body.args)) {
     return Response.json({ error: "Unknown change" }, { status: 400 });
   }
+  // Messages to customers and settings are management's to change (Sammy, 10/10/2026).
+  if (MANAGEMENT_ACTIONS.has(body.name) && !isManagerRole(auth.staff.role)) return Response.json({ error: "Only management can change that" }, { status: 403 });
   try {
     return Response.json(await applyAction(body.name, body.args as never));
   } catch (e) {

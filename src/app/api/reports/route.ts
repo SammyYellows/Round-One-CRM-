@@ -5,7 +5,7 @@
 //                  "email" (the PDF to the signed-in staff member's email),
 //                  "pdf" (store a fresh PDF and return its link)
 
-import { requireStaff } from "@/lib/server/staff";
+import { requireManager } from "@/lib/server/staff";
 import { growthSettings, saveGrowthSettings, type GrowthSettings } from "@/lib/server/growth";
 import { buildReport, emailReport, renderPdf, sendReport, storeReport, type ReportKind } from "@/lib/server/reports";
 import { whatsappConfigured } from "@/lib/server/whatsapp";
@@ -16,14 +16,14 @@ export const maxDuration = 60;
 const KINDS: ReportKind[] = ["weekly", "monthly", "unpaid", "attendance"];
 
 export async function GET() {
-  const auth = await requireStaff();
+  const auth = await requireManager();
   if ("error" in auth) return auth.error;
   const [weekly, monthly, unpaid, attendance] = await Promise.all([buildReport("weekly"), buildReport("monthly"), buildReport("unpaid"), buildReport("attendance")]);
   return Response.json({ weekly, monthly, unpaid, attendance, settings: weekly.settings, whatsapp: whatsappConfigured(), staffEmail: auth.staff.email || process.env.STAFF_EMAIL || null });
 }
 
 export async function PUT(req: Request) {
-  const auth = await requireStaff();
+  const auth = await requireManager();
   if ("error" in auth) return auth.error;
   const b = (await req.json().catch(() => ({}))) as Partial<GrowthSettings>;
   const int = (v: unknown, lo: number, hi: number, d: number) => { const n = Math.round(Number(v)); return Number.isFinite(n) ? Math.min(hi, Math.max(lo, n)) : d; };
@@ -43,7 +43,7 @@ export async function PUT(req: Request) {
 }
 
 export async function POST(req: Request) {
-  const auth = await requireStaff();
+  const auth = await requireManager();
   if ("error" in auth) return auth.error;
   const b = (await req.json().catch(() => ({}))) as { action?: string; kind?: ReportKind; confirm?: boolean };
   const kind = KINDS.includes(b.kind as ReportKind) ? (b.kind as ReportKind) : "weekly";

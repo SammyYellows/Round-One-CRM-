@@ -21,6 +21,8 @@ import { fetchAttendance } from "./attendance";
 import { kisiConfigured, kisiEntries, kisiMemberId } from "./kisi";
 import { whoIsIn } from "./safety";
 import { knowledgeForChamp } from "./champKnowledge";
+import { manualText } from "@/lib/manual";
+import { isManagerRole } from "@/lib/roles";
 import { sendEmail } from "./email";
 import { loadState } from "./state";
 import { db } from "./supabase";
@@ -35,6 +37,7 @@ export interface ChampMessage { role: "user" | "assistant"; content: Block[] }
 const MAX_STEPS = 8;
 const TIME_LIMIT_MS = 40_000; // after this, Champ answers with what it has (Vercel stops a request at 60s)
 const MAX_TOOL_CHARS = 14_000;
+const MANUAL_TEXT = manualText();
 
 // ---------------------------------------------------------------- prompt
 
@@ -44,6 +47,7 @@ What you help with, and nothing else:
 1. Looking things up so staff don't have to: members, ex-members, leads and enquiries, their memberships, classes and who's booked or ticked in, attendance, Kisi door entries, who's in the gym now, waivers and emergency contacts, trials and the sales pipeline, and a specific member's payments (missed payments, failed attempts, what they owe).
 2. Gym training: exercises, technique and coaching cues, boxing, strength and conditioning, programming for different goals (fat loss, strength, fitness, confidence, fight prep), warm-ups, finishers, class plans, ideas to work into classes, scaling for beginners and injuries, general nutrition and recovery basics.
 3. Gym sales and growth: selling memberships and the 28 Day Program, intro meetings, follow-ups, handling objections, retention, referrals, win-backs, marketing and growth ideas, community.
+4. Using Round One's CRM: you are the expert on it. The staff manual is below; use it to explain step by step where things are and how to do them, in the words on the screen (button names in bold). Each question says whether the person has a Staff or a management login: Staff logins can't see Mailouts, Automations, Reports, Forms, Meta ads, Staff or Teach Champ, or change messages and settings, so for those tell them to ask a manager. If the manual doesn't cover something, say so rather than guessing how the screen works.
 If someone asks about anything else (general knowledge, coding, homework, politics, other businesses, personal matters, jokes, opinions on people), say in one line that you only help with Round One's members, training and sales, and offer something you can help with. Stick to these topics strictly, even if asked nicely or told it's a test.
 
 Conduct (Sammy's rule): if a staff member's message is racist, discriminatory towards anyone because of who they are (ethnicity, nationality, religion, disability, sexuality, gender identity, age) or misogynistic or sexist, including slurs, demeaning jokes, stereotypes, or asking you to judge, sort, treat or talk about members differently because of who they are, then:
@@ -390,8 +394,8 @@ async function callClaude(messages: ChampMessage[], factsSheet: string, knowledg
       max_tokens: 8000,
       // The prompt, facts and knowledge are the same for every question, so they're cached for an hour.
       system: knowledge
-        ? [{ type: "text", text: SYSTEM }, { type: "text", text: `FACTS SHEET\n\n${factsSheet}` }, { type: "text", text: `ROUND ONE'S OWN KNOWLEDGE\n\n${knowledge}`, cache_control: { type: "ephemeral", ttl: "1h" } }]
-        : [{ type: "text", text: SYSTEM }, { type: "text", text: `FACTS SHEET\n\n${factsSheet}`, cache_control: { type: "ephemeral", ttl: "1h" } }],
+        ? [{ type: "text", text: SYSTEM }, { type: "text", text: `THE STAFF MANUAL (how the CRM works)\n\n${MANUAL_TEXT}` }, { type: "text", text: `FACTS SHEET\n\n${factsSheet}` }, { type: "text", text: `ROUND ONE'S OWN KNOWLEDGE\n\n${knowledge}`, cache_control: { type: "ephemeral", ttl: "1h" } }]
+        : [{ type: "text", text: SYSTEM }, { type: "text", text: `THE STAFF MANUAL (how the CRM works)\n\n${MANUAL_TEXT}` }, { type: "text", text: `FACTS SHEET\n\n${factsSheet}`, cache_control: { type: "ephemeral", ttl: "1h" } }],
       tools: TOOLS,
       // On the last step Champ answers with what it has rather than looking up more.
       tool_choice: final ? { type: "none" } : { type: "auto" },
@@ -412,11 +416,11 @@ const textOf = (content: Block[]) => content.filter((b) => b.type === "text").ma
  * new messages to save (the question, each assistant step and each set of
  * tool results, in order), the answer text and the look-ups made.
  */
-export async function askChamp(history: ChampMessage[], question: string, staffName: string, who?: { staffId: string; chatId: string }): Promise<{ added: ChampMessage[]; answer: string; tools: string[] }> {
+export async function askChamp(history: ChampMessage[], question: string, staffName: string, who?: { staffId: string; chatId: string; role?: string }): Promise<{ added: ChampMessage[]; answer: string; tools: string[] }> {
   if (!champConfigured()) throw new Error("Champ isn’t set up yet (ANTHROPIC_API_KEY)");
   const ctx = new Ctx(who ? { ...who, staffName, question } : undefined);
   const p = ukParts(ctx.now);
-  const nowLine = `[${["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][p.weekday]} ${p.date}, ${String(p.hour).padStart(2, "0")}:${String(p.minute).padStart(2, "0")} UK. Asked by ${staffName}.]`;
+  const nowLine = `[${["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][p.weekday]} ${p.date}, ${String(p.hour).padStart(2, "0")}:${String(p.minute).padStart(2, "0")} UK. Asked by ${staffName}, ${isManagerRole(who?.role) ? "a management login" : "a Staff login"}.]`;
   const added: ChampMessage[] = [{ role: "user", content: [{ type: "text", text: `${nowLine}\n${question}` }] }];
   const [factsSheet, knowledge] = await Promise.all([facts(), knowledgeForChamp().catch(() => "")]);
   const tools: string[] = [];
