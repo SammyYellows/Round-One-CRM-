@@ -121,7 +121,8 @@ async function deliverEmails(before: State, after: State) {
     let address: string | undefined;
     let text: string | undefined;
     if (to === "staff") {
-      address = process.env.STAFF_EMAIL || "info@round1boxfit.co.uk";
+      // A particular staff member (e.g. the member's coach), else the front desk.
+      address = e.data!.address || process.env.STAFF_EMAIL || "info@round1boxfit.co.uk";
       text = [body, staffBody(after, e.contactId)].filter(Boolean).join("\n\n");
     } else if (contact?.email && body) {
       address = contact.email;

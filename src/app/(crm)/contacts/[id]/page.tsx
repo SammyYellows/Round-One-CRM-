@@ -148,6 +148,26 @@ export default function ContactPage() {
               </div>
             )}
             <div className="field"><dt>Added</dt><dd>{ago(c.createdAt, now)}</dd></div>
+            {c.membership && (
+              <div className="field">
+                <dt>Coach</dt>
+                <dd>
+                  <select className="select" style={{ height: 36 }} aria-label="Coach" value={c.coachId ?? ""} onChange={(e) => act("setCoach", c.id, e.target.value)}>
+                    <option value="">Nobody yet</option>
+                    {s.staff.map((st) => <option key={st.id} value={st.id}>{st.name}</option>)}
+                  </select>
+                </dd>
+              </div>
+            )}
+            {c.activity && (
+              <div className="field">
+                <dt>Last in</dt>
+                <dd>
+                  {c.activity.lastSeenAt ? `${shortDate(c.activity.lastSeenAt)} · ${ago(c.activity.lastSeenAt, now)}` : "Not seen in 60 days"}
+                  <div className="small faint">{c.activity.last30} session{c.activity.last30 === 1 ? "" : "s"} in 30 days, {c.activity.prev30} the 30 before{c.activity.alertedAt ? ` · coach told ${ago(c.activity.alertedAt, now)}` : ""}</div>
+                </dd>
+              </div>
+            )}
           </dl>
           {c.membership && (
             <div style={{ borderTop: "1px solid var(--line)", paddingTop: 12, display: "flex", flexDirection: "column", gap: 4 }}>

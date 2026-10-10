@@ -780,6 +780,73 @@ export function flagSilence(s: State) {
   return n;
 }
 
+// ---- Member activity and the inactivity alert (improvement item 18) --------
+
+/** Staff set (or clear) a member's coach. */
+export function setCoach(s: State, contactId: string, staffId: string) {
+  const c = s.contacts.find((x) => x.id === contactId);
+  if (!c) return;
+  const coach = s.staff.find((x) => x.id === staffId);
+  c.coachId = coach ? coach.id : undefined;
+  log(s, "stage.changed", c.id, coach ? `${c.name}’s coach is now ${coach.name}` : `${c.name} has no coach assigned`);
+}
+
+/**
+ * Last night's sessions for every active member, from the bulk reads (TeamUp
+ * ticked-in attendances plus Kisi door entries), already reduced to one
+ * session per UK day. Quiet: no events. Someone who comes back after an
+ * alert has their lapse cleared so the next one can fire.
+ */
+export function recordActivity(s: State, byContact: Map<string, string[]>) {
+  const now = nowMs(s);
+  const cutoff30 = now - 30 * 86400e3, cutoff60 = now - 60 * 86400e3;
+  for (const c of s.contacts) {
+    if (c.membership?.status !== "active") continue;
+    const days = [...new Set(byContact.get(c.id) ?? [])].filter((d) => Date.parse(d) >= cutoff60).sort().reverse();
+    const last30 = days.filter((d) => Date.parse(d) >= cutoff30).length;
+    const prev30 = days.length - last30;
+    const lastSeenAt = days[0];
+    const prevAlert = c.activity?.alertedAt;
+    const cameBack = prevAlert && lastSeenAt && Date.parse(lastSeenAt) > Date.parse(prevAlert);
+    c.activity = { days, lastSeenAt, last30, prev30, syncedAt: nowIso(s), alertedAt: cameBack ? undefined : prevAlert };
+  }
+}
+
+/**
+ * Members who haven't been in for `days` days (or never, since a membership
+ * that started that long ago): one task and one email to their coach (the
+ * front desk if none), once per lapse.
+ */
+export function flagInactivity(s: State, days: number, opts: { baseline?: boolean } = {}) {
+  const now = nowMs(s);
+  let n = 0;
+  for (const c of s.contacts) {
+    const a = c.activity;
+    const m = c.membership;
+    if (!a || !m || m.status !== "active" || a.alertedAt) continue;
+    const since = a.lastSeenAt ?? m.startedAt;
+    if (!since || now - Date.parse(since) < days * 86400e3) continue;
+    const gap = Math.floor((now - Date.parse(since)) / 86400e3);
+    const coach = c.coachId ? s.staff.find((x) => x.id === c.coachId) : undefined;
+    const text = a.lastSeenAt ? `${c.name} hasn’t been in for ${gap} days (${m.name}). Worth a message.` : `${c.name} started ${m.name} ${gap} days ago and hasn’t been in yet. Worth a message.`;
+    c.activity = { ...a, alertedAt: nowIso(s) };
+    // The very first run would alert about everyone already lapsed at once:
+    // they're marked and shown in red on Members, but nobody is emailed.
+    if (opts.baseline) { n++; continue; }
+    s.tasks.unshift({ id: uid(), contactId: c.id, text, done: false, at: nowIso(s) });
+    log(s, "task.created", c.id, text);
+    log(s, "member.inactive", c.id, `${text}${coach ? ` Told ${coach.name}.` : " Told the front desk."}`);
+    log(s, "email.sent", c.id, `Not been in: ${c.name}${coach ? ` to ${coach.name}` : " to the front desk"}`, {
+      to: "staff", subject: `${c.name} hasn’t been in for ${gap} days`, body: `${text}
+
+Last in: ${a.lastSeenAt ? a.lastSeenAt : "never"}. Sessions in the last 30 days: ${a.last30}; the 30 before: ${a.prev30}.`,
+      ...(coach?.email ? { address: coach.email } : {}),
+    });
+    n++;
+  }
+  return n;
+}
+
 /** The server's Claude read of a contact's WhatsApp replies. Quiet: no event. */
 export function setInsight(s: State, contactId: string, insight: { summary: string; suggestedReply?: string; fromMessages: number }) {
   const c = s.contacts.find((x) => x.id === contactId);
