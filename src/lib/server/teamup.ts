@@ -66,6 +66,9 @@ async function list(path: string, params: Record<string, string> = {}): Promise<
   return out;
 }
 
+/** Every page of a TeamUp list (four pages at a time). */
+export const listAll = (path: string, params: Record<string, string> = {}) => list(path, params);
+
 // TeamUp objects come back as an id or, when expanded, the object itself.
 const idOf = (v: unknown): string => (v && typeof v === "object" ? String((v as Json).id ?? "") : v == null ? "" : String(v));
 const obj = (v: unknown): Json => (v && typeof v === "object" ? (v as Json) : {});

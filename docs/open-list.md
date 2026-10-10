@@ -110,6 +110,11 @@ when staff mark a sale on the pipeline.
    are fixed in TeamUp, not here. Nothing waiting on Sammy.
 
 
+0d. **Champ** (item 21, built 10/10). Live on the sidebar. Waiting on
+   Sammy: the Champ photos for above the chat box. Cost runs on the
+   Anthropic key (Sonnet 5.5, roughly 2–5p a question); check the spend
+   in the Anthropic console after the first week.
+
 0. **Reports to the managers** (built 08/10, improvement items 12 and 13).
    Waiting on Sammy: the managers' numbers in Reports → Settings; the
    WhatsApp token so the `management_report` template can go to Meta; a
