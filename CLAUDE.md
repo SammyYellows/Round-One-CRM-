@@ -275,6 +275,11 @@ values.
 - Buttons and labels: uppercase, letter-spaced.
 - The public form is light (white and cream) with the black logo bar.
 - Respect `prefers-reduced-motion`.
+- **The desktop layout is signed off (Sammy, 10/10/2026: "don't change
+  normal desktop, it looks good").** Phone fixes go only inside the
+  `@media (max-width: 800px)` rules at the bottom of `globals.css`; under
+  800px the sidebar is a top bar with a Menu button. Check a desktop
+  screenshot is unchanged before pushing any layout change.
 
 ## Copy voice
 
