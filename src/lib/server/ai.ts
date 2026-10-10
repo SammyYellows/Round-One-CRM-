@@ -246,3 +246,42 @@ export async function readCheckin(input: { first: string; floor: number; stretch
   const out = JSON.parse(json.content.find((c) => c.type === "text")?.text ?? "{}") as Partial<CheckinRead>;
   return { status: out.status ?? "slipping", sentiment: out.sentiment ?? "flat", flagCoach: !!out.flagCoach, reply: String(out.reply ?? "").trim(), adjust: out.adjust ?? "keep", note: String(out.note ?? "").trim() };
 }
+
+/**
+ * Reads what a contact has said in their WhatsApp replies and writes a short
+ * note for staff plus a suggested reply (improvement item 16). The reply is
+ * only ever sent by a person; this never argues, sells hard or promises.
+ */
+export async function readReplies(input: { name: string; stage: string; membership?: string; trialAt?: string; answers: { question: string; answer: string }[]; thread: { dir: "in" | "out"; text: string; at: string }[]; facts: string }): Promise<{ summary: string; suggestedReply: string }> {
+  const key = process.env.ANTHROPIC_API_KEY;
+  if (!key) throw new Error("ANTHROPIC_API_KEY isn’t set");
+  const res = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: { "x-api-key": key, "anthropic-version": "2023-06-01", "content-type": "application/json" },
+    body: JSON.stringify({
+      model: MODEL,
+      max_tokens: 800,
+      system: [
+        { type: "text", text: VOICE },
+        { type: "text", text: `FACTS SHEET\n\n${input.facts}`, cache_control: { type: "ephemeral" } },
+      ],
+      output_config: {
+        effort: "medium",
+        format: { type: "json_schema", schema: { type: "object", properties: {
+          summary: { type: "string", description: "For staff: what this person has told us across their messages. Goals, worries, timing, constraints, anything to remember. Their own words where it helps. 2 to 5 short lines. Empty string if they've said nothing of substance." },
+          suggestedReply: { type: "string", description: "A reply to their latest message for a staff member to send, in the gym's voice, at most 60 words. If their last message needs no reply (e.g. 'thanks'), or if replying would mean arguing or negotiating, an empty string." },
+        }, required: ["summary", "suggestedReply"], additionalProperties: false } },
+      },
+      messages: [{ role: "user", content:
+        `Contact: ${input.name}. Pipeline stage: ${input.stage}.${input.membership ? ` Membership: ${input.membership}.` : ""}${input.trialAt ? ` Intro meeting booked: ${input.trialAt}.` : ""}\n` +
+        (input.answers.length ? `Questionnaire: ${input.answers.map((a) => `${a.question} ${a.answer}`).join(" | ")}\n` : "") +
+        `WhatsApp thread, oldest first (OUT is us, IN is them):\n${input.thread.map((m) => `${m.dir === "in" ? "IN" : "OUT"} ${m.at.slice(0, 16)}: ${m.text}`).join("\n")}\n\n` +
+        `Write the staff note from what THEY said (the IN messages). Then suggest a reply to their latest message. The reply must not argue, haggle, defend the gym, or make offers that aren't on the facts sheet; if the right move is a human conversation, say so briefly and warmly and leave it there. A staff member decides whether to send it.` }],
+    }),
+  });
+  if (!res.ok) { const err = (await res.json().catch(() => ({}))) as { error?: { message?: string } }; throw new Error(err.error?.message || `Anthropic said ${res.status}`); }
+  const json = (await res.json()) as { stop_reason?: string; content: { type: string; text?: string }[] };
+  if (json.stop_reason === "refusal") throw new Error("The AI declined");
+  const out = JSON.parse(json.content.find((c) => c.type === "text")?.text ?? "{}") as { summary?: string; suggestedReply?: string };
+  return { summary: String(out.summary ?? "").trim(), suggestedReply: String(out.suggestedReply ?? "").trim() };
+}

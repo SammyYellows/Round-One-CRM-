@@ -219,6 +219,28 @@ export default function ContactPage() {
               </dl>
             </section>
           )}
+          {c.insight?.summary && (
+            <section className="card" style={{ borderLeft: "3px solid var(--red)" }}>
+              <div className="card-head">
+                <div>
+                  <div className="eyebrow">What they’ve told us · read from {c.insight.fromMessages} message{c.insight.fromMessages === 1 ? "" : "s"}, {ago(c.insight.updatedAt, now)}</div>
+                  <h2 className="h h3">In their words</h2>
+                </div>
+              </div>
+              <div className="pad" style={{ paddingTop: 0, whiteSpace: "pre-wrap", fontSize: 14, lineHeight: 1.55 }}>{c.insight.summary}</div>
+              {c.insight.suggestedReply && !c.insight.replyUsedAt && !c.insight.replyDismissedAt && (
+                <div style={{ margin: "0 22px 18px", padding: "12px 14px", background: "var(--char)", display: "flex", flexDirection: "column", gap: 8 }}>
+                  <div className="label" style={{ margin: 0 }}>Suggested reply · nothing goes until you send it</div>
+                  <div className="small" style={{ whiteSpace: "pre-wrap" }}>{c.insight.suggestedReply}</div>
+                  <div className="actions" style={{ gap: 8 }}>
+                    <button className="btn btn-ghost btn-sm" disabled={!windowOpen} title={windowOpen ? "Puts it in the message box to edit and send" : "Their 24-hour reply window has closed; only templates can go"} onClick={() => { setDraft(c.insight!.suggestedReply!); act("settleInsightReply", c.id, true); }}>Use it</button>
+                    <button className="btn btn-ghost btn-sm" onClick={() => act("settleInsightReply", c.id, false)}>No reply needed</button>
+                    {!windowOpen && <span className="small faint">Reply window closed.</span>}
+                  </div>
+                </div>
+              )}
+            </section>
+          )}
         <section className="card">
           <div className="card-head" style={{ alignItems: "center" }}>
             <h2 className="h" style={{ fontSize: 24 }}>WhatsApp</h2>

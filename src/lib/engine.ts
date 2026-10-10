@@ -780,6 +780,20 @@ export function flagSilence(s: State) {
   return n;
 }
 
+/** The server's Claude read of a contact's WhatsApp replies. Quiet: no event. */
+export function setInsight(s: State, contactId: string, insight: { summary: string; suggestedReply?: string; fromMessages: number }) {
+  const c = s.contacts.find((x) => x.id === contactId);
+  if (!c) return;
+  c.insight = { ...insight, updatedAt: nowIso(s) };
+}
+
+/** Staff decided about the suggested reply: sent it (through sendMessage) or dropped it. */
+export function settleInsightReply(s: State, contactId: string, used: boolean) {
+  const c = s.contacts.find((x) => x.id === contactId);
+  if (!c?.insight) return;
+  c.insight = { ...c.insight, ...(used ? { replyUsedAt: nowIso(s) } : { replyDismissedAt: nowIso(s) }) };
+}
+
 /** Staff end someone's place on the programme (or they asked to stop). */
 export function leaveAccountability(s: State, contactId: string, reason = "") {
   const c = s.contacts.find((x) => x.id === contactId);

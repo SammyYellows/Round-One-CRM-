@@ -70,17 +70,16 @@ when staff mark a sale on the pipeline.
   block in TeamUp that keeps billing going, not a hold. **Reminder: Sammy
   will send a screenshot of where he blocks someone in TeamUp**; Claude
   then finds the API for it. Kisi is not needed for this (08/10).
-- **Summary on the contact of what they said in replies** (improvement item
-  16): Sammy wants reminding; not started.
 - **Two-way TeamUp actions** (item 9): Sammy wants reminding; the hold
   button is the first one, built 08/10.
 - **Test log run** (`docs/test-log.md`): Sammy wants reminding to pick a
   time.
-- **Program messages days 1–28:** Sammy said the wording is good as it is
-  (08/10). They stay off until he presses Approve on each card on Program
-  members, or tells Claude to switch them all on. Switching on affects
-  new Program starts only, nobody retrospectively.
+- **Program messages days 1–28:** wording approved (08/10). **Sammy, 10/10:
+  keep them off until Meta has approved the WhatsApp templates**, so email
+  and WhatsApp start together. That needs the WhatsApp token.
 - **Route 2 schedule:** still listening for Sammy's description.
+- **Tick boxes on the questionnaire (item 10):** Sammy will send the option
+  lists for goal, why now and what you've tried (10/10).
 - **Win-back replies** landing in Enquiries: fine as it is (Sammy, 08/10).
 
 ## Work streams

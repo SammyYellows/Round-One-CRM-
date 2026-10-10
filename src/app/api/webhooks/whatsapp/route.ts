@@ -4,6 +4,8 @@
 
 import crypto from "node:crypto";
 import { applyAction } from "@/lib/server/state";
+import { afterResponse } from "@/lib/server/background";
+import { readContactReplies } from "@/lib/server/insights";
 import { db } from "@/lib/server/supabase";
 
 export const dynamic = "force-dynamic";
@@ -72,7 +74,10 @@ export async function POST(req: Request) {
         for (const m of v.messages ?? []) {
           const text = m.text?.body ?? m.button?.text ?? m.interactive?.button_reply?.title ?? `[${m.type}]`;
           const name = v.contacts?.find((c) => c.wa_id === m.from)?.profile?.name;
-          await applyAction("receiveWhatsApp", [{ id: `wa_${m.id}`, phone: `+${m.from}`, name, text: text.slice(0, 4000) }]);
+          const after = await applyAction("receiveWhatsApp", [{ id: `wa_${m.id}`, phone: `+${m.from}`, name, text: text.slice(0, 4000) }]);
+          // Claude reads what they've said and leaves a note + suggested reply for staff (never sent by itself).
+          const who = after.messages.find((x) => x.id === `wa_${m.id}`)?.contactId;
+          if (who) await afterResponse(readContactReplies(who).catch((e) => console.error("[insight]", e instanceof Error ? e.message : e)));
         }
         for (const st of v.statuses ?? []) {
           const err = st.errors?.[0];
