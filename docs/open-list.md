@@ -111,7 +111,7 @@ when staff mark a sale on the pipeline.
 
 
 0d. **Champ** (item 21, built 10/10). Live on the sidebar. Waiting on
-   Sammy: the Champ photos for above the chat box; an Equipment note on
+   Sammy (photos added 10/10, rotating every 45 minutes): an Equipment note on
    Teach Champ (Champ → Teach Champ) so class plans use the real kit; the
    separate management logins (Sammy will go into that later; Teach
    Champ is limited by the Owner/Manager staff role until then). Cost runs on the
