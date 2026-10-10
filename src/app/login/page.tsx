@@ -1,5 +1,6 @@
 import { AuthShell, Notice } from "@/components/AuthShell";
 import { lastEmail } from "@/lib/server/lastEmail";
+import { PasswordInput } from "@/components/ShowPasswords";
 
 export const dynamic = "force-dynamic";
 
@@ -23,7 +24,7 @@ export default function LoginPage({ searchParams }: { searchParams: { error?: st
         </div>
         <div>
           <label className="label" htmlFor="password">Password</label>
-          <input id="password" name="password" type="password" className="input" autoComplete="current-password" required autoFocus={!!email} />
+          <PasswordInput id="password" name="password" autoComplete="current-password" autoFocus={!!email} />
         </div>
         <button className="btn btn-red">Log in</button>
       </form>
