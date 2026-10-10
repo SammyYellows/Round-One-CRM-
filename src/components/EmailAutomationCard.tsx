@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useStore } from "@/lib/store";
+import { useIsManager } from "@/components/StaffContext";
 
 // One automation's email, editable and approvable from a screen: the wording,
 // named saved drafts, an AI rewrite from an instruction, and a switch with a
@@ -11,6 +12,7 @@ interface Draft { id: string; name: string; subject: string; body: string; saved
 
 export function EmailAutomationCard({ automationId, title, purpose, when, startOpen = true }: { automationId: string; title: string; purpose: string; when: string; startOpen?: boolean }) {
   const { s, act, live } = useStore();
+  const manager = useIsManager();
   const automation = s.automations.find((a) => a.id === automationId);
   const emailIndex = automation?.steps.findIndex((st) => st.kind === "email" && st.to === "contact") ?? -1;
   const emailStep = emailIndex >= 0 ? automation!.steps[emailIndex] : undefined;
@@ -126,6 +128,9 @@ export function EmailAutomationCard({ automationId, title, purpose, when, startO
             </div>
             {showLive && <div className="enq-mail" style={{ margin: "6px 0 0", maxHeight: 260 }}>{liveBody || "(empty)"}</div>}
           </div>
+          {!manager ? (
+            <div className="small faint">Only management can change this message or switch it on or off.</div>
+          ) : (<>
           <div className="label" style={{ marginTop: 4 }}>
             Editing{dirty ? (currentDraft && currentDraft.subject === subject && currentDraft.body === body ? ` · draft “${currentDraft.name}” loaded, not live` : " · changed, not live yet") : " · same as live"}
           </div>
@@ -199,6 +204,7 @@ export function EmailAutomationCard({ automationId, title, purpose, when, startO
               </div>
             </div>
           )}
+          </>)}
         </div>
       )}
     </section>

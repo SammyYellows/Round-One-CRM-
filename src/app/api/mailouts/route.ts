@@ -2,12 +2,12 @@
 // to pick from, and today's allowance. POST makes a new draft.
 
 import { createMailout, dailyLimit, listMailouts, membershipCategories } from "@/lib/server/mailouts";
-import { requireStaff } from "@/lib/server/staff";
+import { requireManager } from "@/lib/server/staff";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
-  const auth = await requireStaff();
+  const auth = await requireManager();
   if ("error" in auth) return auth.error;
   const [mailouts, categories] = await Promise.all([listMailouts(), membershipCategories()]);
   const limit = dailyLimit();
@@ -15,7 +15,7 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
-  const auth = await requireStaff();
+  const auth = await requireManager();
   if ("error" in auth) return auth.error;
   const body = (await req.json().catch(() => ({}))) as { subject?: string; body?: string; audience?: Record<string, unknown> };
   const id = await createMailout({ subject: body.subject ?? "", body: body.body ?? "", audience: body.audience ?? {} }, auth.staff.name);

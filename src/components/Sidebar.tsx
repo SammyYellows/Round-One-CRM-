@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useStore } from "@/lib/store";
 import { PAYMENT_FAILED_AT } from "@/lib/types";
+import { isManagementPath, isManagerRole } from "@/lib/roles";
 
 const NAV = [
   { href: "/", label: "Today", icon: <path d="M3 11 12 4l9 7v9H3z" /> },
@@ -26,7 +27,7 @@ const NAV = [
   { href: "/ads", label: "Meta ads", icon: <path d="M5 20V11M11 20V5M17 20v-6M3 21h18" /> },
 ];
 
-export function Sidebar({ staff }: { staff?: { name: string } }) {
+export function Sidebar({ staff }: { staff?: { name: string; role: string } }) {
   const path = usePathname();
   const { s, now, act, reset, live } = useStore();
 
@@ -73,11 +74,14 @@ export function Sidebar({ staff }: { staff?: { name: string } }) {
     : href === "/payments" ? { fresh: freshFailing, waiting: failing.length, what: `with ${PAYMENT_FAILED_AT}+ failed payment attempts` }
     : { fresh: 0, waiting: 0, what: "" };
 
+  // Staff logins see the day-to-day screens; management sees everything plus Staff (Sammy, 10/10/2026).
+  const manager = !staff || isManagerRole(staff.role);
+  const nav = [...NAV.filter((n) => manager || !isManagementPath(n.href)), ...(manager && staff ? [{ href: "/staff", label: "Staff", icon: <><circle cx="12" cy="7" r="3.5" /><path d="M5 21c1-4 3.5-6 7-6s6 2 7 6" /><path d="M19 4l2 2-4 4" /></> }] : [])];
   const isOn = (href: string) => (href === "/" || href === "/pipeline" ? path === href : path.startsWith(href));
   // Phones: the sidebar is a top bar with a Menu button (Sammy, 10/10/2026). Closes when you pick a page.
   const [open, setOpen] = useState(false);
   useEffect(() => { setOpen(false); }, [path]);
-  const newCount = NAV.reduce((n, x) => n + (path === x.href ? 0 : marks(x.href).fresh), 0);
+  const newCount = nav.reduce((n, x) => n + (path === x.href ? 0 : marks(x.href).fresh), 0);
   const shift = (hours: number) => act("shiftClock", hours);
 
   return (
@@ -93,7 +97,7 @@ export function Sidebar({ staff }: { staff?: { name: string } }) {
         </button>
       </div>
       <div id="main-nav" className="nav-list">
-      {NAV.map((n) => (
+      {nav.map((n) => (
         <Link key={n.href} href={n.href} className={`nav ${isOn(n.href) ? "on" : ""}`} aria-current={isOn(n.href) ? "page" : undefined}>
           <svg className="ico" viewBox="0 0 24 24" aria-hidden="true">{n.icon}</svg>
           {n.label}
@@ -107,6 +111,10 @@ export function Sidebar({ staff }: { staff?: { name: string } }) {
         </Link>
       ))}
       <div style={{ flex: 1 }} />
+      <Link href="/manual" className={`nav ${path.startsWith("/manual") ? "on" : ""}`} aria-current={path.startsWith("/manual") ? "page" : undefined}>
+        <svg className="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h7a3 3 0 0 1 3 3v13a2 2 0 0 0-2-2H4z" /><path d="M20 4h-6v16a2 2 0 0 1 2-2h4z" /></svg>
+        Manual
+      </Link>
       </div>
       {staff && (
         <form method="post" action="/auth/logout" className="clock" style={{ display: "flex", flexDirection: "column", gap: 8 }}>

@@ -8,6 +8,7 @@ import { useStore } from "@/lib/store";
 import { Contact, Membership } from "@/lib/types";
 import { PRIORITY_LABEL, byPriority, inactivityAdvice } from "@/lib/inactivity";
 import WhoIsIn from "@/components/WhoIsIn";
+import { useIsManager } from "@/components/StaffContext";
 
 // Everyone with a TeamUp membership, synced nightly. TeamUp stays the place
 // to change memberships; this is for seeing who's on what and messaging them.
@@ -19,6 +20,7 @@ const TEAMUP_STATUS: Record<string, string> = { prospect: "Prospect", prospect_d
 
 export default function MembersPage() {
   const { s, now, live } = useStore();
+  const manager = useIsManager();
   const [q, setQ] = useState("");
   const [category, setCategory] = useState("all");
   const [status, setStatus] = useState<"all" | Membership["status"] | "never">("active");
@@ -98,8 +100,8 @@ export default function MembersPage() {
           {live && (
             <div className="small muted" style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
               <span>{inactiveCount} not in for {inactiveDays}+ days{highCount ? `, ${highCount} high priority` : ""}.</span>
-              <label style={{ display: "flex", gap: 6, alignItems: "center" }}>Tell the coach after <input className="input" style={{ width: 70, height: 32 }} type="number" min={3} max={365} value={daysDraft} onChange={(e) => setDaysDraft(e.target.value)} /> days</label>
-              <button className="btn btn-ghost btn-sm" style={{ height: 32 }} disabled={!daysDraft || Number(daysDraft) === inactiveDays} onClick={saveDays}>Save</button>
+              {manager && <label style={{ display: "flex", gap: 6, alignItems: "center" }}>Tell the coach after <input className="input" style={{ width: 70, height: 32 }} type="number" min={3} max={365} value={daysDraft} onChange={(e) => setDaysDraft(e.target.value)} /> days</label>}
+              {manager && <button className="btn btn-ghost btn-sm" style={{ height: 32 }} disabled={!daysDraft || Number(daysDraft) === inactiveDays} onClick={saveDays}>Save</button>}
               {daysNote && <span className="faint">{daysNote}</span>}
             </div>
           )}

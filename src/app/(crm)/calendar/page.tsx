@@ -1,5 +1,6 @@
 "use client";
 
+import { useIsManager } from "@/components/StaffContext";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { firstName, uid } from "@/lib/engine";
@@ -63,6 +64,7 @@ function layoutDay(items: Appointment[]) {
 }
 
 export default function CalendarPage() {
+  const manager = useIsManager(); // booking hours are a management setting
   const { s, now, act } = useStore();
   const [view, setView] = useState<"week" | "day" | "list">("week");
   const [anchor, setAnchor] = useState(() => startOfDay(now));
@@ -139,7 +141,7 @@ export default function CalendarPage() {
           <h1 className="h h1">Calendar</h1>
         </div>
         <div className="actions">
-          <button className="btn btn-ghost" onClick={() => setPanel({ kind: "hours" })}>Booking hours</button>
+          {manager && <button className="btn btn-ghost" onClick={() => setPanel({ kind: "hours" })}>Booking hours</button>}
           <button className="btn btn-red" onClick={() => {
             const d = new Date(now + 3600e3);
             d.setMinutes(d.getMinutes() < 30 ? 30 : 60, 0, 0);

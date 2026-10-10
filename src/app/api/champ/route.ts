@@ -6,12 +6,13 @@
 import { askChamp, champConfigured, type ChampMessage } from "@/lib/server/champ";
 import { requireStaff, type StaffMember } from "@/lib/server/staff";
 import { db } from "@/lib/server/supabase";
+import { isManagerRole } from "@/lib/roles";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
 const MAX_ROWS = 160; // a long chat gets slow and costly; start a new one
-const isOwner = (s: StaffMember) => /owner|manager/i.test(s.role);
+const isOwner = (s: StaffMember) => isManagerRole(s.role);
 
 async function chatFor(id: string, staff: StaffMember) {
   const { data } = await db().from("champ_chats").select("id, staff_id, staff_name, title, updated_at").eq("id", id).maybeSingle();
@@ -67,7 +68,7 @@ export async function POST(req: Request) {
 
   let result;
   try {
-    result = await askChamp(history, text, auth.staff.name, { staffId: auth.staff.id, chatId });
+    result = await askChamp(history, text, auth.staff.name, { staffId: auth.staff.id, chatId, role: auth.staff.role });
   } catch (e) {
     console.error("[champ]", e instanceof Error ? e.message : e);
     if (isNew) await db().from("champ_chats").delete().eq("id", chatId);

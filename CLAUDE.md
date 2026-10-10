@@ -192,6 +192,24 @@ In place so far:
   code). Every active entry is added to Champ's system prompt (cached an
   hour), capped at 400,000 characters.
 
+- **Roles and staff logins** (Sammy, 10/10): `src/lib/roles.ts`. Owner and
+  Manager staff roles are management and see everything; everyone else
+  (role Staff) sees the day-to-day screens only. Management-only screens:
+  Mailouts, Automations, Reports, Forms, Meta ads, Teach Champ, Staff
+  (hidden from the sidebar and blocked by `RoleGate`). Management-only
+  changes are refused on the server: actions in `MANAGEMENT_ACTIONS`
+  (switching or rewording automations, forms, booking hours) and the
+  routes using `requireManager()` (reports, mailouts, automation drafts,
+  gym facts, TeamUp hold, the inactivity setting, staff, Champ
+  knowledge). Message cards on staff screens are read-only for staff.
+  **Staff** page (`/staff`, `/api/staff`): management add a login (name,
+  email, role) and Supabase sends the invite; removing sets
+  `staff.active = false`, which stops the login at once.
+- **Manual** (`src/lib/manual.ts`, `/manual`, linked at the bottom of the
+  menu): one section per area; the management section is hidden from
+  staff. Champ reads the whole manual and is the expert on the CRM; keep
+  the manual true to the screens whenever a screen changes.
+
 Still to come: Meta Marketing API sync.
 
 ## How the code is laid out
