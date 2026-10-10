@@ -172,7 +172,12 @@ In place so far:
   ask about members, leads, classes, attendance, door entries, waivers and
   a member's own payments, or for training and sales ideas. **Rules (Sammy,
   10/10):** read-only (its tools only read the CRM, TeamUp and Kisi; it
-  can't change or send anything); gym training and gym sales only; a
+  can't change or send anything) **with one exception: `book_class`
+  books a member into a TeamUp class** (`POST /events/<id>/register`,
+  nothing else is ever written). Staff confirm each booking with a Book
+  button in the chat (`champ_bookings`, `/api/champ/book`); management
+  logins can tick Auto-book (`staff.champ_autobook`) so Champ books
+  straight away. Each booking logs a `class.booked` event on the contact; gym training and gym sales only; a
   member's payments yes, gym-wide money (revenue, totals owed) never;
   TeamUp invoices and payment endpoints are not reachable from it. Chats
   are saved (`champ_chats`, `champ_messages`, exact API content blocks so a
