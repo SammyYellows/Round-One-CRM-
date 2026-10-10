@@ -101,9 +101,10 @@ import quietly (source GymGrow, original dates, tag gymgrow-import, no
 messages, no automations), tag the 88 existing contacts only.
 **Never import the 683 rows created on 7 May 2026 with no tag and no
 email: they are Sammy's personal phone contacts that synced into GymGrow
-(confirmed 10/10).** The 82 added individually (some look like phone
-contacts too, some are people who messaged the WhatsApp number): Sammy to
-decide, at the preview.
+(confirmed 10/10).** **Never import the 82 rows with no tag added
+individually from May to October either: also personal contacts (Sammy,
+10/10).** Only the 685 rows tagged "lead" (questionnaire enquiries) come
+in.
 
 ## Work streams
 
