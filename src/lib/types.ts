@@ -81,6 +81,19 @@ export interface Contact {
   // On the accountability programme (docs/accountability.md): their own
   // commitment, from the /f/accountability form. Staff can end it.
   accountability?: Accountability;
+  // What they've told us in their WhatsApp replies, read by Claude after
+  // each one (improvement item 16, Sammy 09/10/2026): a short note for
+  // staff, and a suggested reply that only goes if staff press Send.
+  insight?: Insight;
+}
+
+export interface Insight {
+  summary: string; // goals, worries, timing, anything staff should know; their words only
+  suggestedReply?: string; // for staff to send, edit or drop; never sent on its own
+  fromMessages: number; // how many incoming messages it was read from
+  updatedAt: string;
+  replyUsedAt?: string; // staff sent (a version of) the suggested reply
+  replyDismissedAt?: string;
 }
 
 export interface Accountability {
