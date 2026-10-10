@@ -14,11 +14,22 @@ import { ukTime } from "@/lib/time";
 import { GYM } from "@/lib/gym";
 import { PAYMENT_FAILED_AT } from "@/lib/types";
 import { reconcile, type Reconciliation } from "@/lib/server/growth";
+import { classStats, type ClassStat } from "@/lib/server/activity";
 import { day, growthSettings, loadMemberships, monthly, monthlyForecast, saveGrowthSettings, weekly, type GrowthSettings, type MonthPoint, type MonthlyForecast, type Weekly } from "@/lib/server/growth";
 
-export type ReportKind = "weekly" | "monthly" | "unpaid";
+export type ReportKind = "weekly" | "monthly" | "unpaid" | "attendance";
 
 export interface CancellationNote { name: string; noticeAt: string; membership: string; reply?: string }
+
+export interface MemberActivity { contactId: string; name: string; membership: string; last30: number; prev30: number; lastSeenAt?: string; change: number }
+export interface AttendanceReport {
+  since?: string;
+  classes: ClassStat[]; // best average attendance first
+  top: MemberActivity[]; // most sessions in 30 days
+  bottom: MemberActivity[]; // fewest (active members only), including never
+  declining: MemberActivity[]; // biggest drop, last 30 vs the 30 before
+  activeMembers: number;
+}
 
 export interface Unpaid { name: string; membership: string; retries: number; owed: number; since?: string; latest?: string; count: number; contactId: string; email: string; phone: string }
 
@@ -26,6 +37,7 @@ export interface ReportData {
   kind: ReportKind;
   unpaid: Unpaid[]; // people over the failed-payment threshold, worst first
   reconciliation: Reconciliation; // why TeamUp's count and ours differ
+  attendance: AttendanceReport; // classes and members (improvement item 19)
   asOf: string;
   settings: GrowthSettings;
   weekly: Weekly;
@@ -77,8 +89,23 @@ async function unpaidList(): Promise<Unpaid[]> {
   return out.sort((a, b) => (b.latest ?? "").localeCompare(a.latest ?? "") || b.retries - a.retries || a.name.localeCompare(b.name));
 }
 
+async function attendanceReport(): Promise<AttendanceReport> {
+  const [{ since, classes }, { data }] = await Promise.all([classStats(), db().from("contacts").select("id, name, membership, activity").not("activity", "is", null)]);
+  const members: MemberActivity[] = [];
+  for (const c of data ?? []) {
+    const m = c.membership as { name?: string; status?: string } | null;
+    const a = c.activity as { last30: number; prev30: number; lastSeenAt?: string } | null;
+    if (!m || m.status !== "active" || !a) continue;
+    members.push({ contactId: c.id as string, name: String(c.name), membership: m.name ?? "", last30: a.last30, prev30: a.prev30, lastSeenAt: a.lastSeenAt, change: a.last30 - a.prev30 });
+  }
+  const byMost = [...members].sort((x, y) => y.last30 - x.last30 || y.prev30 - x.prev30 || x.name.localeCompare(y.name));
+  const byLeast = [...members].sort((x, y) => x.last30 - y.last30 || (x.lastSeenAt ?? "").localeCompare(y.lastSeenAt ?? "") || x.name.localeCompare(y.name));
+  const declining = members.filter((x) => x.prev30 >= 3 && x.change < 0).sort((x, y) => x.change - y.change || y.prev30 - x.prev30);
+  return { since, classes, top: byMost.slice(0, 15), bottom: byLeast.slice(0, 15), declining: declining.slice(0, 15), activeMembers: members.length };
+}
+
 export async function buildReport(kind: ReportKind): Promise<ReportData> {
-  const [rows, settings, unpaid] = await Promise.all([loadMemberships(), growthSettings(), unpaidList().catch(() => [] as Unpaid[])]);
+  const [rows, settings, unpaid, attendance] = await Promise.all([loadMemberships(), growthSettings(), unpaidList().catch(() => [] as Unpaid[]), attendanceReport().catch(() => ({ classes: [], top: [], bottom: [], declining: [], activeMembers: 0 } as AttendanceReport))]);
   const today = day(Date.now());
   const w = weekly(rows, today, settings);
   const longest = Math.max(...settings.monthlyMonths, 1);
@@ -95,7 +122,7 @@ export async function buildReport(kind: ReportKind): Promise<ReportData> {
       ? `${cancellations.length} gave notice. ${withReplies.length ? `${withReplies.length} replied to the win-back email.` : "No replies to the win-back email yet."}`
       : "Nobody gave notice in this period.";
   }
-  return { kind, asOf: today, settings, weekly: w, months, forecasts, cancellations, cancellationSummary, unpaid, reconciliation: reconcile(rows, today) };
+  return { kind, asOf: today, settings, weekly: w, months, forecasts, cancellations, cancellationSummary, unpaid, reconciliation: reconcile(rows, today), attendance };
 }
 
 // ---- The PDF ----------------------------------------------------------------
@@ -154,8 +181,46 @@ function renderUnpaid(r: ReportData): Uint8Array {
   return pdf.bytes();
 }
 
+const DAYNAME = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const slotLabel = (c: ClassStat) => `${DAYNAME[c.weekday]} ${String(c.hour).padStart(2, "0")}:${String(c.minute).padStart(2, "0")}`;
+
+function renderAttendance(r: ReportData): Uint8Array {
+  const pdf = new Pdf();
+  const L = 48, R = pdf.pageWidth - 48;
+  const head = () => pdf.rect(0, 0, pdf.pageWidth, 6, RED);
+  head();
+  pdf.text(L, pdf.y, GYM.name.toUpperCase(), 10, { bold: true, color: MUTED }); pdf.y += 18;
+  pdf.text(L, pdf.y, "Classes and attendance", 24, { bold: true, color: INK }); pdf.y += 30;
+  pdf.text(L, pdf.y, `As of ${fmtDate(r.asOf)}, the last 60 days. Classes are TeamUp sessions with people ticked in; member sessions also count Kisi door entries, one a day.`, 9, { color: MUTED }); pdf.y += 24;
+  const table = (title: string, cols: number[], headers: string[], rows: string[][]) => {
+    if (pdf.y > 700) { pdf.newPage(); head(); }
+    pdf.text(L, pdf.y, title, 13, { bold: true, color: INK }); pdf.y += 18;
+    headers.forEach((h, i) => pdf.text(cols[i], pdf.y, h.toUpperCase(), 7.5, { bold: true, color: MUTED })); pdf.y += 13;
+    if (!rows.length) { pdf.text(L, pdf.y, "Nothing yet.", 10, { color: MUTED }); pdf.y += 16; }
+    for (const row of rows) {
+      if (pdf.y > 790) { pdf.newPage(); head(); }
+      pdf.line(L, pdf.y - 3, R, pdf.y - 3, 0.5, [0.9, 0.9, 0.9]);
+      row.forEach((v, i) => pdf.text(cols[i], pdf.y, v, 9.5, { color: i === 0 ? INK : MUTED, bold: i === 0 }));
+      pdf.y += 14;
+    }
+    pdf.y += 14;
+  };
+  const a = r.attendance;
+  const cl = (c: ClassStat) => [c.name.slice(0, 34), slotLabel(c), String(c.sessions), String(c.avg), c.fill !== undefined ? `${c.fill}%` : ""];
+  table("Most popular classes (average ticked in per session)", [L, L + 230, L + 320, L + 380, L + 440], ["Class", "Slot", "Sessions", "Average", "Fill"], a.classes.slice(0, 15).map(cl));
+  table("Least popular classes", [L, L + 230, L + 320, L + 380, L + 440], ["Class", "Slot", "Sessions", "Average", "Fill"], [...a.classes].filter((c) => c.sessions >= 3).sort((x, y) => x.avg - y.avg).slice(0, 10).map(cl));
+  const me = (m: MemberActivity) => [m.name.slice(0, 30), m.membership.slice(0, 28), String(m.last30), String(m.prev30), m.lastSeenAt ? fmtDate(m.lastSeenAt) : "not in 60 days"];
+  const mcols = [L, L + 170, L + 330, L + 380, L + 430];
+  const mhead = ["Member", "Membership", "Last 30", "30 before", "Last in"];
+  table("Top attendance, last 30 days", mcols, mhead, a.top.map(me));
+  table("Lowest attendance (active members)", mcols, mhead, a.bottom.map(me));
+  table("Fastest declining (last 30 days against the 30 before)", mcols, mhead, a.declining.map(me));
+  return pdf.bytes();
+}
+
 export function renderPdf(r: ReportData): Uint8Array {
   if (r.kind === "unpaid") return renderUnpaid(r);
+  if (r.kind === "attendance") return renderAttendance(r);
   const pdf = new Pdf();
   const L = 48, R = pdf.pageWidth - 48, CW = R - L;
   pdf.rect(0, 0, pdf.pageWidth, 6, RED);
@@ -250,11 +315,15 @@ export async function storeReport(kind: ReportKind, bytes: Uint8Array): Promise<
   return { path, url: data.publicUrl };
 }
 
-export const reportName = (kind: ReportKind) => (kind === "weekly" ? "Weekly members report" : kind === "monthly" ? "Monthly growth report" : "Unpaid memberships");
+export const reportName = (kind: ReportKind) => (kind === "weekly" ? "Weekly members report" : kind === "monthly" ? "Monthly growth report" : kind === "unpaid" ? "Unpaid memberships" : "Classes and attendance");
 const fileName = (kind: ReportKind, asOf: string) => `round-one-${kind}-report-${asOf}.pdf`;
 
 function headline(r: ReportData) {
   const w = r.weekly;
+  if (r.kind === "attendance") {
+    const a = r.attendance;
+    return `${a.activeMembers} active members. Busiest class: ${a.classes[0] ? `${a.classes[0].name} ${slotLabel(a.classes[0])} (${a.classes[0].avg} a session)` : "none yet"}. ${a.declining.length} declining.`;
+  }
   if (r.kind === "unpaid") {
     const total = r.unpaid.reduce((n, u) => n + u.owed, 0);
     const top = r.unpaid.slice(0, 5).map((u) => `${u.name} (${u.count} missed${u.owed ? `, £${u.owed.toFixed(0)}` : ""})`).join(", ");
