@@ -133,7 +133,7 @@ export default function ChampPage() {
               <button className={`fchip fchip-sm ${everyone ? "on" : ""}`} style={{ flex: 1 }} aria-pressed={everyone} onClick={() => setEveryone(true)}>Everyone’s</button>
             </div>
           )}
-          <div style={{ display: "flex", flexDirection: "column", maxHeight: "60vh", overflowY: "auto" }}>
+          <div className="champ-list" style={{ display: "flex", flexDirection: "column", maxHeight: "60vh", overflowY: "auto" }}>
             {chats.map((c) => (
               <button key={c.id} onClick={() => open(c.id)} className="link-btn" style={{ textAlign: "left", padding: "8px 6px", borderTop: "1px solid var(--line)", background: c.id === chatId ? "var(--line)" : "transparent" }}>
                 <div className="small strong" style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.title || "Chat"}</div>
@@ -145,18 +145,18 @@ export default function ChampPage() {
         </aside>
 
         <section className="card" style={{ display: "flex", flexDirection: "column", minHeight: "70vh" }}>
-          <div style={{ flex: 1, padding: "16px 22px", overflowY: "auto", maxHeight: "62vh" }}>
+          <div className="champ-thread" style={{ flex: 1, padding: "16px 22px", overflowY: "auto", maxHeight: "62vh" }}>
             {msgs.length === 0 && !busy && (
               <div className="small muted" style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                 <div>Ask about a member, a class, who’s in, a missed payment, or for training and sales ideas. Try:</div>
                 <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                  {STARTERS.map((q) => <button key={q} className="fchip fchip-sm" style={{ textTransform: "none", letterSpacing: 0 }} onClick={() => ask(q)}>{q}</button>)}
+                  {STARTERS.map((q) => <button key={q} className="fchip fchip-sm" style={{ textTransform: "none", letterSpacing: 0, height: "auto", minHeight: 36, padding: "8px 12px", textAlign: "left", lineHeight: 1.35 }} onClick={() => ask(q)}>{q}</button>)}
                 </div>
               </div>
             )}
             {msgs.map((m) => (
               <div key={m.id} style={{ display: "flex", justifyContent: m.role === "user" ? "flex-end" : "flex-start", margin: "10px 0" }}>
-                <div style={{ maxWidth: "80%", padding: "10px 14px", background: m.role === "user" ? "var(--line)" : "transparent", borderLeft: m.role === "assistant" ? "3px solid var(--red)" : undefined, fontSize: 14, lineHeight: 1.55 }}>
+                <div className="champ-bubble" style={{ maxWidth: "80%", padding: "10px 14px", background: m.role === "user" ? "var(--line)" : "transparent", borderLeft: m.role === "assistant" ? "3px solid var(--red)" : undefined, fontSize: 14, lineHeight: 1.55 }}>
                   {m.role === "assistant" ? <Rich text={m.text} /> : <div style={{ whiteSpace: "pre-wrap" }}>{m.text}</div>}
                   {m.role === "assistant" && m.tools && m.tools.length > 0 && <div className="faint" style={{ fontSize: 11, marginTop: 4 }}>Champ {m.tools.map((t) => TOOL_LABEL[t] ?? t).join(", ")}</div>}
                 </div>

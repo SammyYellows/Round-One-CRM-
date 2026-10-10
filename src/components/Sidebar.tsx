@@ -74,14 +74,25 @@ export function Sidebar({ staff }: { staff?: { name: string } }) {
     : { fresh: 0, waiting: 0, what: "" };
 
   const isOn = (href: string) => (href === "/" || href === "/pipeline" ? path === href : path.startsWith(href));
+  // Phones: the sidebar is a top bar with a Menu button (Sammy, 10/10/2026). Closes when you pick a page.
+  const [open, setOpen] = useState(false);
+  useEffect(() => { setOpen(false); }, [path]);
+  const newCount = NAV.reduce((n, x) => n + (path === x.href ? 0 : marks(x.href).fresh), 0);
   const shift = (hours: number) => act("shiftClock", hours);
 
   return (
-    <nav className="sidebar" aria-label="Main">
-      <Link href="/" className="logo">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/brand/logo.avif" alt="Round One" width={116} style={{ display: "block", height: "auto" }} />
-      </Link>
+    <nav className={`sidebar ${open ? "open" : ""}`} aria-label="Main">
+      <div className="sidebar-top">
+        <Link href="/" className="logo">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/brand/logo.avif" alt="Round One" width={116} style={{ display: "block", height: "auto" }} />
+        </Link>
+        <button type="button" className="menu-btn" aria-expanded={open} aria-controls="main-nav" onClick={() => setOpen((v) => !v)}>
+          {open ? "Close" : "Menu"}
+          {!open && newCount > 0 && <span className="nav-badge" style={{ marginLeft: 8 }}>{newCount}</span>}
+        </button>
+      </div>
+      <div id="main-nav" className="nav-list">
       {NAV.map((n) => (
         <Link key={n.href} href={n.href} className={`nav ${isOn(n.href) ? "on" : ""}`} aria-current={isOn(n.href) ? "page" : undefined}>
           <svg className="ico" viewBox="0 0 24 24" aria-hidden="true">{n.icon}</svg>
@@ -96,6 +107,7 @@ export function Sidebar({ staff }: { staff?: { name: string } }) {
         </Link>
       ))}
       <div style={{ flex: 1 }} />
+      </div>
       {staff && (
         <form method="post" action="/auth/logout" className="clock" style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           <div className="eyebrow">Signed in</div>
