@@ -81,8 +81,14 @@ Ask **Champ** (second in the menu). It knows this manual, can look up any member
 - "How do I handle 'it's too expensive' in an intro meeting?"
 - "How do I book a trial in the CRM?"
 
+### Booking someone into a class
+- Ask Champ, for example "Book Sarah Jones onto tomorrow's 6pm Boxfit". It finds the person and the class and shows a **Class booking** card with a **Book** button. Nothing is booked in TeamUp until you press **Book** (**Don't book** drops it).
+- If TeamUp says no (their membership doesn't cover that class, it's full, or they're already on it), the card says why.
+- Managers can tick **Auto-book** on the Champ screen, and Champ then books straight away for them.
+- TeamUp may send the member its usual booking confirmation.
+
 ### What Champ won't do
-- Change anything. It can't book, cancel, edit, message or take payments; it tells you where to do it.
+- Change anything apart from booking someone into a class. It can't cancel a booking, mark attendance, edit anyone, message anyone or take payments; it tells you where to do it (cancelling and attendance are in TeamUp).
 - Talk about anything outside gym training, gym sales and the CRM.
 - Give gym-wide money figures (revenue, totals owed). It will tell you about a named member's payments.
 - Answer racist, discriminatory or misogynistic questions. The first time it warns you; after that a manager is told.

@@ -28,16 +28,20 @@ export async function GET(req: Request) {
   if (chatId) {
     const chat = await chatFor(chatId, auth.staff);
     if (!chat) return Response.json({ error: "Chat not found" }, { status: 404 });
-    const { data, error } = await db().from("champ_messages").select("id, role, text, tools, created_at").eq("chat_id", chatId).neq("text", "").order("id");
+    const [{ data, error }, { data: bookings }] = await Promise.all([
+      db().from("champ_messages").select("id, role, text, tools, created_at").eq("chat_id", chatId).neq("text", "").order("id"),
+      db().from("champ_bookings").select("id, label, status, error, created_at").eq("chat_id", chatId).order("created_at"),
+    ]);
     if (error) return Response.json({ error: error.message }, { status: 500 });
-    return Response.json({ chat, mine: chat.staff_id === auth.staff.id, messages: data ?? [] });
+    return Response.json({ chat, mine: chat.staff_id === auth.staff.id, messages: data ?? [], bookings: bookings ?? [] });
   }
   const all = url.searchParams.get("all") === "1" && isOwner(auth.staff);
   let q = db().from("champ_chats").select("id, staff_id, staff_name, title, updated_at").order("updated_at", { ascending: false }).limit(100);
   if (!all) q = q.eq("staff_id", auth.staff.id);
   const { data, error } = await q;
   if (error) return Response.json({ error: error.message }, { status: 500 });
-  return Response.json({ chats: data ?? [], canSeeAll: isOwner(auth.staff), configured: champConfigured() });
+  const { data: me } = await db().from("staff").select("champ_autobook").eq("id", auth.staff.id).maybeSingle();
+  return Response.json({ chats: data ?? [], canSeeAll: isOwner(auth.staff), configured: champConfigured(), autobook: isOwner(auth.staff) && Boolean(me?.champ_autobook) });
 }
 
 export async function POST(req: Request) {
@@ -68,7 +72,9 @@ export async function POST(req: Request) {
 
   let result;
   try {
-    result = await askChamp(history, text, auth.staff.name, { staffId: auth.staff.id, chatId, role: auth.staff.role });
+    // Auto-book is for management logins only, and only when they've switched it on (Sammy, 10/10/2026).
+    const { data: me } = await db().from("staff").select("champ_autobook").eq("id", auth.staff.id).maybeSingle();
+    result = await askChamp(history, text, auth.staff.name, { staffId: auth.staff.id, chatId, role: auth.staff.role, autobook: isOwner(auth.staff) && Boolean(me?.champ_autobook) });
   } catch (e) {
     console.error("[champ]", e instanceof Error ? e.message : e);
     if (isNew) await db().from("champ_chats").delete().eq("id", chatId);
@@ -85,5 +91,6 @@ export async function POST(req: Request) {
   const { error } = await db().from("champ_messages").insert(rows);
   if (error) console.error("[champ] saving", error.message);
   await db().from("champ_chats").update({ updated_at: new Date().toISOString() }).eq("id", chatId);
-  return Response.json({ chatId, answer: result.answer, tools: [...new Set(result.tools)] });
+  const { data: bookings } = await db().from("champ_bookings").select("id, label, status, error, created_at").eq("chat_id", chatId).order("created_at");
+  return Response.json({ chatId, answer: result.answer, tools: [...new Set(result.tools)], bookings: bookings ?? [] });
 }

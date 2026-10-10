@@ -59,7 +59,8 @@ Don't flag ordinary questions that mention who people are: a Ladies Boxfit class
 Looking things up:
 - Always use your tools for facts about people, classes and attendance. Never guess or invent a name, date, number or booking. If a look-up finds nothing, say so and suggest how to check (spelling, email, TeamUp).
 - If several people match a name, list them briefly and ask which one.
-- You can't change anything. You can't book, cancel, edit, message, sign waivers or take payments. When a staff member needs to do something, tell them where: memberships, bookings, payments, waivers and customer details are done in TeamUp; messages, leads, trials and tasks are in the CRM.
+- You can change exactly one thing: you can book a member into a TeamUp class with book_class. First find the person (find_people) and the class (classes, which gives the class id), and be sure of both; if there's any doubt about which person or which class, ask. Then call book_class once. It either books straight away or puts a Book button under your answer for the staff member to press; say which, using what the tool tells you. If TeamUp refuses (for example their membership doesn't cover that class, or it's full), pass on the reason.
+- Nothing else. You can't cancel a booking, mark attendance, edit anyone, message anyone, sign waivers or take payments. When a staff member needs one of those, tell them where: memberships, cancelling bookings, attendance, payments, waivers and customer details are done in TeamUp; messages, leads, trials and tasks are in the CRM.
 - TeamUp and Kisi data the CRM syncs overnight may be a day old; live look-ups (classes, attendees, who's in, door entries) are current.
 - Times are UK time. Write dates like "Sat 10 Oct" and times like "18:00".
 
@@ -101,6 +102,7 @@ const TOOLS: Block[] = [
   { name: "who_is_in_now", description: "Who's in the gym now: ticked into a class that's on, or through the door in the last 1.5 hours, with waiver and emergency contact.", input_schema: { type: "object", properties: {} } },
   { name: "class_popularity", description: "Each regular class slot over the last 60 days: sessions run, average ticked in, fill against capacity. Busiest first.", input_schema: { type: "object", properties: {} } },
   { name: "flag_conduct", description: "Record a racist, discriminatory or misogynistic message from the staff member, under Round One's conduct rule. Call once, before replying. Returns what to tell them.", input_schema: { type: "object", properties: { category: { type: "string", enum: ["racism", "discrimination", "misogyny"] }, quote: { type: "string", description: "A short quote of what they said" } }, required: ["category", "quote"] } },
+  { name: "book_class", description: "Book one member into one TeamUp class. The only change Champ can make. Use the contact id from find_people and the class id from classes. Returns whether it was booked, or is waiting for the staff member to press Book, or why TeamUp refused.", input_schema: { type: "object", properties: { contact_id: { type: "string" }, event_id: { type: "string" } }, required: ["contact_id", "event_id"] } },
   { name: "teamup_lookup", description: "Read anything else from TeamUp's API (read-only). Allowed paths: /customers, /customers/<id>, /customer_memberships, /memberships, /membership_categories, /events, /events/<id>, /attendances, /waivers, /waiver_agreements, /customer_forms, /customer_fields, /customer_form_submissions, /instructors, /venues, /venue_rooms, /offering_types. Filters that work: customer, event, status, expand, page, page_size. TeamUp ignores date filters on lists.", input_schema: { type: "object", properties: { path: { type: "string" }, params: { type: "object", additionalProperties: { type: "string" } } }, required: ["path"] } },
 ];
 
@@ -167,8 +169,77 @@ const stripUrls = (o: unknown): unknown => Array.isArray(o) ? o.map(stripUrls) :
 class Ctx {
   private st?: Promise<State>;
   now = Date.now();
-  constructor(public who?: { staffId: string; staffName: string; chatId: string; question: string }) {}
+  constructor(public who?: { staffId: string; staffName: string; chatId: string; question: string; autobook?: boolean }) {}
   state() { return (this.st ??= loadState()); }
+}
+
+// ---- Booking into a class: the one write Champ may make ----
+
+async function teamupPost(path: string, body: Record<string, unknown>): Promise<{ ok: boolean; status: number; json: Block }> {
+  const res = await fetch(`https://goteamup.com/api/v2${path}`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${process.env.TEAMUP_M2M_TOKEN}`, "Teamup-Provider-ID": process.env.TEAMUP_PROVIDER_ID ?? "", Accept: "application/json", "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+    cache: "no-store",
+  });
+  const json = (await res.json().catch(() => ({}))) as Block;
+  return { ok: res.ok, status: res.status, json };
+}
+
+/** TeamUp's refusal in plain words. */
+function bookingRefusal(j: Block): string {
+  const code = String(j.code ?? "");
+  if (code === "purchase_required") return "Their membership doesn't cover this class (TeamUp says a purchase is needed). Book it in TeamUp if they're paying separately.";
+  if (/full|capacity/i.test(code + String(j.message ?? ""))) return "The class is full.";
+  if (/already/i.test(code + String(j.message ?? ""))) return "They're already booked on it.";
+  const fields = j.field_errors ? Object.values(j.field_errors as Record<string, string[]>).flat().join(" ") : "";
+  return `TeamUp said no: ${String(j.message || fields || code || "unknown reason")}`;
+}
+
+/** Makes a booking that's been agreed (by the Book button, or Auto-book). Records it on the contact. */
+export async function performBooking(bookingId: string, byName: string): Promise<{ ok: boolean; message: string }> {
+  const { data: b } = await db().from("champ_bookings").select("*").eq("id", bookingId).maybeSingle();
+  if (!b) return { ok: false, message: "That booking isn't there any more." };
+  if (b.status !== "pending") return { ok: b.status === "booked", message: b.status === "booked" ? "Already booked." : `This booking was ${b.status}.` };
+  const now = new Date().toISOString();
+  // Claim it first, so a double press can't book twice.
+  const { data: claimed } = await db().from("champ_bookings").update({ decided_at: now }).eq("id", bookingId).eq("status", "pending").is("decided_at", null).select("id");
+  if (!claimed?.length) return { ok: false, message: "That booking is already being made." };
+  const r = await teamupPost(`/events/${encodeURIComponent(String(b.event_id))}/register`, { customer: Number(b.customer_id) });
+  if (!r.ok) {
+    const why = bookingRefusal(r.json);
+    await db().from("champ_bookings").update({ status: "failed", error: why, decided_at: now }).eq("id", bookingId);
+    return { ok: false, message: why };
+  }
+  await db().from("champ_bookings").update({ status: "booked", decided_at: now }).eq("id", bookingId);
+  if (b.contact_id) await db().from("events").insert({ id: crypto.randomUUID(), type: "class.booked", contact_id: b.contact_id, detail: `Class booked in TeamUp: ${b.label}, by ${byName} through Champ`, data: { event: String(b.event_id), booking: bookingId } });
+  return { ok: true, message: `Booked: ${b.label}.` };
+}
+
+async function proposeBooking(input: Block, ctx: Ctx): Promise<unknown> {
+  const who = ctx.who;
+  if (!who) throw new Error("No staff member on record for this chat");
+  if (!teamupConfigured()) throw new Error("TeamUp isn't connected");
+  const s = await ctx.state();
+  const c = findContact(s, String(input.contact_id));
+  const customerId = c.teamup?.customerId ?? c.membership?.customerId;
+  if (!customerId) return { booked: false, reason: `${c.name} has no TeamUp account, so they can't be booked into a class. They need to be set up in TeamUp first.` };
+  const eventId = String(input.event_id ?? "").replace(/\D/g, "");
+  const ev = (await teamupEvents()).find((e) => e.id === eventId);
+  if (!ev) return { booked: false, reason: "That class wasn't found. Look it up with the classes tool and use its id." };
+  if (ev.status === "cancelled") return { booked: false, reason: "That class is cancelled." };
+  if (Date.parse(ev.startsAt) < Date.now()) return { booked: false, reason: "That class has already started." };
+  const reg = (await fetchJson("/attendances", { event: eventId, customer: String(customerId), page_size: "50" }).catch(() => ({}))) as Block;
+  const already = ((reg.results as Block[]) ?? []).some((a) => String(a.customer) === String(customerId) && ["registered", "attended", "waiting"].includes(String(a.status)));
+  if (already) return { booked: false, reason: `${c.name} is already booked on ${ev.name}, ${uk(ev.startsAt)}.` };
+  const label = `${ev.name}, ${uk(ev.startsAt)}`;
+  const { data: row, error } = await db().from("champ_bookings").insert({ chat_id: who.chatId, staff_id: who.staffId, staff_name: who.staffName, contact_id: c.id, customer_id: String(customerId), event_id: eventId, label: `${c.name} on ${label}` }).select("id").single();
+  if (error) throw new Error(error.message);
+  if (who.autobook) {
+    const r = await performBooking(row.id as string, who.staffName);
+    return r.ok ? { booked: true, message: `Done: ${c.name} is booked on ${label}. TeamUp may send them its usual booking confirmation.` } : { booked: false, reason: r.message };
+  }
+  return { booked: false, waiting_for_staff: true, message: `Ready to book ${c.name} on ${label}. Tell them to press Book under your answer to confirm; nothing is booked until they do.` };
 }
 
 /** The conduct rule: first time a warning, then a manager is told (email to Owner/Manager staff, else STAFF_EMAIL). */
@@ -361,6 +432,8 @@ export async function runTool(name: string, input: Block, ctx: Ctx = new Ctx()):
     }
     case "flag_conduct":
       return await flagConduct(input, ctx);
+    case "book_class":
+      return await proposeBooking(input, ctx);
     case "teamup_lookup": {
       if (!teamupConfigured()) throw new Error("TeamUp isn't connected");
       const path = String(input.path ?? "").trim().replace(/\/+$/, "");
@@ -416,7 +489,7 @@ const textOf = (content: Block[]) => content.filter((b) => b.type === "text").ma
  * new messages to save (the question, each assistant step and each set of
  * tool results, in order), the answer text and the look-ups made.
  */
-export async function askChamp(history: ChampMessage[], question: string, staffName: string, who?: { staffId: string; chatId: string; role?: string }): Promise<{ added: ChampMessage[]; answer: string; tools: string[] }> {
+export async function askChamp(history: ChampMessage[], question: string, staffName: string, who?: { staffId: string; chatId: string; role?: string; autobook?: boolean }): Promise<{ added: ChampMessage[]; answer: string; tools: string[] }> {
   if (!champConfigured()) throw new Error("Champ isn’t set up yet (ANTHROPIC_API_KEY)");
   const ctx = new Ctx(who ? { ...who, staffName, question } : undefined);
   const p = ukParts(ctx.now);

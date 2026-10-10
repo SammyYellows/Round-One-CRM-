@@ -244,6 +244,7 @@ export type EventType =
   | "accountability.nudge" // the mid-week nudge went out
   | "accountability.silent" // no check-in and no sessions two weeks running: coaches told
   | "safety.checked" // staff spoke to someone in the gym without a waiver or emergency contact
+  | "class.booked" // booked into a TeamUp class through Champ
   | "appointment.booked"
   | "appointment.updated";
 

@@ -12,6 +12,7 @@ import { useStore } from "@/lib/store";
 
 interface Chat { id: string; staff_id: string | null; staff_name: string; title: string; updated_at: string }
 interface Msg { id: number | string; role: "user" | "assistant"; text: string; tools?: string[]; created_at?: string }
+interface Booking { id: string; label: string; status: "pending" | "booked" | "failed" | "dismissed"; error?: string | null }
 
 const STARTERS = [
   "Who’s in the gym right now?",
@@ -20,13 +21,14 @@ const STARTERS = [
   "Who owes money at the moment?",
   "Give me a 45-minute beginners’ boxing class plan",
   "How do I handle “it’s too expensive” in an intro meeting?",
+  "Book Sarah onto tomorrow’s 6pm Boxfit",
 ];
 
 const TOOL_LABEL: Record<string, string> = {
   find_people: "searched people", person_details: "opened a profile", list_members: "listed members", member_numbers: "counted members",
   list_leads: "listed leads", pipeline_overview: "checked the pipeline", trials: "checked trials", classes: "checked classes",
   class_attendees: "checked a class register", person_classes: "checked class bookings", person_door_entries: "checked door entries",
-  who_is_in_now: "checked who’s in", class_popularity: "checked class numbers", teamup_lookup: "looked in TeamUp",
+  who_is_in_now: "checked who’s in", class_popularity: "checked class numbers", teamup_lookup: "looked in TeamUp", book_class: "set up a class booking",
 };
 
 
@@ -59,6 +61,9 @@ export default function ChampPage() {
   const [chatId, setChatId] = useState<string | null>(null);
   const [mine, setMine] = useState(true);
   const [msgs, setMsgs] = useState<Msg[]>([]);
+  const [bookings, setBookings] = useState<Booking[]>([]);
+  const [autobook, setAutobook] = useState(false);
+  const [bookBusy, setBookBusy] = useState("");
   const [draft, setDraft] = useState("");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
@@ -67,7 +72,7 @@ export default function ChampPage() {
   const loadChats = async (all = everyone) => {
     const r = await fetch(`/api/champ${all ? "?all=1" : ""}`, { cache: "no-store" });
     const j = await r.json().catch(() => ({}));
-    if (r.ok) { setChats(j.chats); setCanSeeAll(j.canSeeAll); setConfigured(j.configured); }
+    if (r.ok) { setChats(j.chats); setCanSeeAll(j.canSeeAll); setConfigured(j.configured); setAutobook(Boolean(j.autobook)); }
   };
   useEffect(() => { if (live) loadChats(); }, [live, everyone]); // eslint-disable-line react-hooks/exhaustive-deps
   // Opened from a link (the manager's conduct email): /champ?chat=<id>
@@ -82,9 +87,21 @@ export default function ChampPage() {
     setErr(""); setChatId(id);
     const r = await fetch(`/api/champ?chat=${id}`, { cache: "no-store" });
     const j = await r.json().catch(() => ({}));
-    if (r.ok) { setMsgs(j.messages); setMine(j.mine); } else setErr(j.error ?? "Couldn’t open that chat");
+    if (r.ok) { setMsgs(j.messages); setMine(j.mine); setBookings(j.bookings ?? []); } else setErr(j.error ?? "Couldn’t open that chat");
   };
-  const fresh = () => { setChatId(null); setMsgs([]); setMine(true); setErr(""); };
+  const fresh = () => { setChatId(null); setMsgs([]); setBookings([]); setMine(true); setErr(""); };
+  // The Book button: nothing goes into TeamUp until it's pressed.
+  const decide = async (b: Booking, action: "book" | "dismiss") => {
+    setBookBusy(b.id); setErr("");
+    const r = await fetch("/api/champ/book", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: b.id, action }) });
+    const j = await r.json().catch(() => ({}));
+    setBookings((all) => all.map((x) => (x.id === b.id ? { ...x, status: r.ok ? (action === "book" ? "booked" : "dismissed") : "failed", error: r.ok ? null : j.message ?? j.error } : x)));
+    setBookBusy("");
+  };
+  const toggleAuto = async (on: boolean) => {
+    const r = await fetch("/api/champ/book", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ autobook: on }) });
+    if (r.ok) setAutobook(on);
+  };
 
   const ask = async (q: string) => {
     const text = q.trim();
@@ -97,6 +114,7 @@ export default function ChampPage() {
       if (!r.ok) throw new Error(j.error ?? "Champ couldn’t answer just now");
       setChatId(j.chatId);
       setMsgs((m) => [...m, { id: `a${Date.now()}`, role: "assistant", text: j.answer, tools: j.tools }]);
+      setBookings(j.bookings ?? []);
       loadChats();
     } catch (e) {
       setErr(e instanceof Error ? e.message : String(e));
@@ -119,6 +137,12 @@ export default function ChampPage() {
         <aside className="card" style={{ padding: 12, display: "flex", flexDirection: "column", gap: 8 }}>
           <button className="btn btn-red btn-sm" onClick={fresh}>New chat</button>
           {canSeeAll && <a href="/champ/train" className="btn btn-ghost btn-sm">Train Champ</a>}
+          {canSeeAll && (
+            <label className="small" style={{ display: "flex", gap: 8, alignItems: "flex-start", padding: "4px 2px" }} title="Management only">
+              <input type="checkbox" checked={autobook} onChange={(e) => toggleAuto(e.target.checked)} style={{ marginTop: 3 }} />
+              <span>Auto-book<br /><span className="faint" style={{ fontSize: 11 }}>Champ books classes for you without the Book button</span></span>
+            </label>
+          )}
           {canSeeAll && (
             <div style={{ display: "flex", gap: 6 }}>
               <button className={`fchip fchip-sm ${!everyone ? "on" : ""}`} style={{ flex: 1 }} aria-pressed={!everyone} onClick={() => setEveryone(false)}>Mine</button>
@@ -154,6 +178,25 @@ export default function ChampPage() {
                 </div>
               </div>
             ))}
+            {bookings.length > 0 && (
+              <div style={{ display: "flex", flexDirection: "column", gap: 8, margin: "10px 0" }}>
+                {bookings.map((b) => (
+                  <div key={b.id} className="enq-confirm" style={{ borderColor: b.status === "booked" ? "var(--line)" : undefined }}>
+                    <div className="small"><span className="label" style={{ margin: 0 }}>Class booking</span> {b.label}</div>
+                    {b.status === "pending" && mine && (
+                      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                        <button className="btn btn-red btn-sm" disabled={bookBusy === b.id} onClick={() => decide(b, "book")}>{bookBusy === b.id ? "Booking…" : "Book"}</button>
+                        <button className="btn btn-ghost btn-sm" disabled={bookBusy === b.id} onClick={() => decide(b, "dismiss")}>Don’t book</button>
+                      </div>
+                    )}
+                    {b.status === "pending" && !mine && <div className="small faint">Waiting for them to press Book.</div>}
+                    {b.status === "booked" && <div className="small">Booked in TeamUp ✓</div>}
+                    {b.status === "dismissed" && <div className="small faint">Not booked.</div>}
+                    {b.status === "failed" && <div className="small" style={{ color: "var(--red)" }}>Not booked: {b.error}</div>}
+                  </div>
+                ))}
+              </div>
+            )}
             {busy && <div className="small muted" style={{ margin: "10px 0", borderLeft: "3px solid var(--red)", padding: "10px 14px" }} aria-live="polite">Champ is on it…</div>}
             <div ref={endRef} />
           </div>
