@@ -88,6 +88,13 @@ when staff mark a sale on the pipeline.
    10/10). Live from tonight's sync. Waiting on Sammy: set a coach on
    members (contact page) so alerts go to the right person rather than
    the front desk; check the 20-day threshold on Members after a week.
+   **The Attendance report has no schedule** (Sammy, 10/10: save that
+   point): it's on-demand only from Reports → Attendance until he wants
+   one. **Rule from Sammy, 10/10: nothing about lapsed members is ever
+   sent to the member automatically.** The inactivity alert tells staff
+   only; any contact with the member is a human decision, because a
+   reminder can remind someone they're paying for a gym they don't use.
+   Research on that trade-off: `docs/reference/sleeping-members.md`.
 
 
 0. **Reports to the managers** (built 08/10, improvement items 12 and 13).
