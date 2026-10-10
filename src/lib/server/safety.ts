@@ -19,7 +19,8 @@
 import { recordSafety } from "@/lib/engine";
 import type { Contact, Safety } from "@/lib/types";
 import { kisiConfigured } from "./kisi";
-import { applyMany, loadState } from "./state";
+import { applyMany } from "./state";
+import { ukParts } from "@/lib/time";
 import { db } from "./supabase";
 import { fetchJson, teamupConfigured } from "./teamup";
 
@@ -93,6 +94,14 @@ export const hasWaiver = (c: Contact) => Boolean(c.safety?.waiverSignedAt);
 export const hasEmergency = (c: Contact) => Boolean(c.safety?.emergencyPhone || c.safety?.emergencyName);
 
 // ---- Who's in the gym now ----
+//
+// Sammy, 10/10/2026: the point is to tell whoever has the CRM open that
+// someone is in the gym without a waiver (or emergency contact), so they can
+// go and talk to them, then tick "Spoke to them" and the alert clears. The
+// window is at most 1.5 hours: Kisi logs people coming in, not leaving.
+
+export const MAX_WINDOW_HOURS = 1.5;
+const CACHE_MS = 2 * 60e3; // TeamUp and Kisi are read at most every two minutes, however many screens are open
 
 export interface UpcomingEvent { id: string; name: string; startsAt: string; endsAt: string }
 
@@ -109,56 +118,34 @@ export async function saveUpcomingEvents(events: Json[]) {
   return upcoming.length;
 }
 
-async function eventsNow(windowMs: number): Promise<UpcomingEvent[]> {
+async function eventsNow(): Promise<UpcomingEvent[]> {
   const { data } = await db().from("sync_payloads").select("value, updated_at").eq("key", "activity:upcoming").maybeSingle();
   let events = (data?.value as UpcomingEvent[] | null) ?? [];
   const fresh = data && Date.now() - Date.parse(data.updated_at as string) < 30 * 3600e3;
   if (!fresh) {
-    // No nightly copy (or a stale one): read the whole list now. Slower (a few seconds) but right.
+    // No nightly copy (or a stale one): read the whole list now. A few seconds, once.
     const all = await listAll("/events");
     await saveUpcomingEvents(all);
     events = all.map((e) => ({ id: String(e.id), name: String(e.name ?? "Class"), startsAt: new Date(Date.parse(String(e.starts_at ?? "")) || 0).toISOString(), endsAt: new Date(Date.parse(String(e.ends_at ?? "")) || 0).toISOString() })).filter((e) => Date.parse(e.startsAt) > 0);
   }
   const now = Date.now();
-  // Classes that started within the window and haven't been over for more than 20 minutes, plus ones starting in the next 15 minutes.
-  return events.filter((e) => Date.parse(e.startsAt) <= now + 15 * 60e3 && Date.parse(e.endsAt) >= now - 20 * 60e3 && Date.parse(e.startsAt) >= now - windowMs);
+  // On now: started (or starts within 15 minutes) and not over by more than 20 minutes.
+  return events.filter((e) => Date.parse(e.startsAt) <= now + 15 * 60e3 && Date.parse(e.endsAt) >= now - 20 * 60e3);
 }
 
-export interface PersonIn {
-  contactId?: string;
-  name: string;
-  phone?: string;
-  via: { kind: "class"; event: string; at: string; status: "attended" | "registered" }[] | { kind: "door"; at: string }[] | ({ kind: "class"; event: string; at: string; status: "attended" | "registered" } | { kind: "door"; at: string })[];
-  waiver?: string; // signed at
-  emergency?: { name?: string; phone?: string; relationship?: string };
-  missing: ("waiver" | "emergency")[];
-  unknown?: string; // not matched to a CRM contact: the TeamUp id or Kisi email
-}
+type Via = { kind: "class"; event: string; at: string; status: "attended" | "registered" } | { kind: "door"; at: string };
+/** Who came in, before joining to the CRM's contacts. Cached for two minutes. */
+interface Presence { key: string; customerId?: string; email?: string; name: string; via: Via[] }
 
-/** Everyone who came in within the window (default 3 hours), worst gaps first. */
-export async function whoIsIn(windowHours = 3): Promise<{ people: PersonIn[]; classes: UpcomingEvent[]; window: number; kisi: boolean; teamup: boolean }> {
+async function presence(windowHours: number): Promise<{ list: Presence[]; classes: UpcomingEvent[]; kisi: boolean; at: string }> {
+  const cacheKey = `safety:in_now:${windowHours}`;
+  const { data: cached } = await db().from("sync_payloads").select("value, updated_at").eq("key", cacheKey).maybeSingle();
+  if (cached && Date.now() - Date.parse(cached.updated_at as string) < CACHE_MS) return cached.value as { list: Presence[]; classes: UpcomingEvent[]; kisi: boolean; at: string };
+
   const windowMs = windowHours * 3600e3;
-  const [s, classes] = await Promise.all([loadState(), teamupConfigured() ? eventsNow(windowMs) : Promise.resolve([] as UpcomingEvent[])]);
-  const byCustomer = new Map<string, Contact>();
-  const byEmail = new Map<string, Contact>();
-  for (const c of s.contacts) {
-    const cid = c.teamup?.customerId ?? c.membership?.customerId;
-    if (cid) byCustomer.set(cid, c);
-    if (c.email) byEmail.set(c.email.toLowerCase(), c);
-  }
-  const people = new Map<string, PersonIn>();
-  const person = (key: string, c: Contact | undefined, unknown: string) => {
-    const cur = people.get(key);
-    if (cur) return cur;
-    const p: PersonIn = c
-      ? { contactId: c.id, name: c.name, phone: c.phone || undefined, via: [], waiver: c.safety?.waiverSignedAt, emergency: c.safety ? { name: c.safety.emergencyName, phone: c.safety.emergencyPhone, relationship: c.safety.emergencyRelationship } : undefined, missing: [] }
-      : { name: unknown, via: [], missing: [], unknown };
-    if (!p.waiver) p.missing.push("waiver");
-    if (!p.emergency?.phone && !p.emergency?.name) p.missing.push("emergency");
-    people.set(key, p);
-    return p;
-  };
-  // Ticked in (or booked) to classes on now.
+  const people = new Map<string, Presence>();
+  const at = (key: string, init: Omit<Presence, "key" | "via">) => people.get(key) ?? people.set(key, { key, ...init, via: [] }).get(key)!;
+  const classes = teamupConfigured() ? await eventsNow() : [];
   if (classes.length) {
     const pages = await Promise.all(classes.map((e) => fetchJson("/attendances", { event: e.id, page_size: "100" }) as Promise<Json>));
     classes.forEach((e, i) => {
@@ -166,29 +153,23 @@ export async function whoIsIn(windowHours = 3): Promise<{ people: PersonIn[]; cl
         const status = String(a.status ?? "");
         if (status !== "attended" && status !== "registered") continue;
         const cid = String(a.customer ?? "");
-        const c = byCustomer.get(cid);
-        const p = person(c ? `c:${c.id}` : `tu:${cid}`, c, `TeamUp customer ${cid}`);
-        (p.via as { kind: "class"; event: string; at: string; status: "attended" | "registered" }[]).push({ kind: "class", event: e.name, at: e.startsAt, status });
+        at(`tu:${cid}`, { customerId: cid, name: `TeamUp customer ${cid}` }).via.push({ kind: "class", event: e.name, at: e.startsAt, status });
       }
     });
   }
-  // Through the door.
-  let kisi = false;
-  if (kisiConfigured()) {
-    kisi = true;
+  const kisi = kisiConfigured();
+  if (kisi) {
     const H = { Authorization: `KISI-LOGIN ${process.env.KISI_API_KEY}`, Accept: "application/json", "Content-Type": "application/json" };
     const from = new Date(Date.now() - windowMs).toISOString(), to = new Date().toISOString();
     type Set_ = { id: number; cursor?: string | null; events?: { success?: boolean; created_at: string; actor_email?: string | null; actor_name?: string | null }[] };
     const res = await fetch("https://api.kisi.io/event_sets", { method: "POST", headers: H, body: JSON.stringify({ event_set: { interval: `${from}/${to}`, event_type: "lock.unlock", event_success: true } }), cache: "no-store" });
-    if (!res.ok) throw new Error(`Kisi ${res.status} reading today's door entries`);
+    if (!res.ok) throw new Error(`Kisi ${res.status} reading door entries`);
     let page = (await res.json()) as Set_;
     for (let n = 0; n < 20; n++) {
       for (const e of page.events ?? []) {
         if (e.success === false) continue;
         const email = (e.actor_email ?? "").toLowerCase();
-        const c = email ? byEmail.get(email) : undefined;
-        const p = person(c ? `c:${c.id}` : `k:${email || e.actor_name || "?"}`, c, e.actor_name || email || "Unknown fob");
-        (p.via as { kind: "door"; at: string }[]).push({ kind: "door", at: new Date(e.created_at).toISOString() });
+        at(`k:${email || e.actor_name || "unknown"}`, { email: email || undefined, name: e.actor_name || email || "Unknown fob" }).via.push({ kind: "door", at: new Date(e.created_at).toISOString() });
       }
       if (!page.cursor || !page.events?.length) break;
       const prev = page.cursor;
@@ -198,6 +179,73 @@ export async function whoIsIn(windowHours = 3): Promise<{ people: PersonIn[]; cl
       if (page.cursor === prev) break;
     }
   }
-  const list = [...people.values()].sort((a, b) => b.missing.length - a.missing.length || a.name.localeCompare(b.name));
-  return { people: list, classes, window: windowHours, kisi, teamup: teamupConfigured() };
+  const value = { list: [...people.values()], classes, kisi, at: new Date().toISOString() };
+  await db().from("sync_payloads").upsert({ key: cacheKey, value, updated_at: value.at });
+  return value;
+}
+
+type ContactRow = { id: string; name: string; phone: string | null; email: string | null; teamup: { customerId?: string } | null; membership: { customerId?: string } | null; safety: Safety | null };
+async function contactRows(): Promise<ContactRow[]> {
+  const rows: ContactRow[] = [];
+  for (let from = 0; ; from += 1000) {
+    const { data, error } = await db().from("contacts").select("id, name, phone, email, teamup, membership, safety").range(from, from + 999);
+    if (error) throw new Error(`Loading contacts: ${error.message}`);
+    rows.push(...((data ?? []) as ContactRow[]));
+    if (!data || data.length < 1000) break;
+  }
+  return rows;
+}
+
+/** Ticks for people who aren't CRM contacts (a TeamUp customer or Kisi fob we can't match), for today only. */
+async function acksToday(): Promise<string[]> {
+  const { data } = await db().from("sync_payloads").select("value").eq("key", "safety:acks").maybeSingle();
+  const v = data?.value as { date?: string; keys?: string[] } | null;
+  return v?.date === ukParts(Date.now()).date ? v.keys ?? [] : [];
+}
+export async function ackUnknown(key: string) {
+  const keys = await acksToday();
+  await db().from("sync_payloads").upsert({ key: "safety:acks", value: { date: ukParts(Date.now()).date, keys: [...new Set([...keys, key])] }, updated_at: new Date().toISOString() });
+}
+
+export interface PersonIn {
+  key: string;
+  contactId?: string;
+  name: string;
+  phone?: string;
+  via: Via[];
+  waiver?: string; // signed at
+  emergency?: { name?: string; phone?: string; relationship?: string };
+  missing: ("waiver" | "emergency")[];
+  checkedAt?: string; // staff spoke to them today
+  unknown?: boolean; // not matched to a CRM contact
+}
+
+/** Everyone in the gym now (class on, or through the door within the window), gaps first. */
+export async function whoIsIn(windowHours = MAX_WINDOW_HOURS): Promise<{ people: PersonIn[]; classes: UpcomingEvent[]; window: number; kisi: boolean; teamup: boolean; at: string }> {
+  const w = Math.min(MAX_WINDOW_HOURS, Math.max(0.25, windowHours));
+  const [p, rows, acks] = await Promise.all([presence(w), contactRows(), acksToday()]);
+  const byCustomer = new Map<string, ContactRow>(), byEmail = new Map<string, ContactRow>();
+  for (const c of rows) {
+    const cid = c.teamup?.customerId ?? c.membership?.customerId;
+    if (cid) byCustomer.set(cid, c);
+    if (c.email) byEmail.set(c.email.toLowerCase(), c);
+  }
+  const today = ukParts(Date.now()).date;
+  const merged = new Map<string, PersonIn>();
+  for (const x of p.list) {
+    const c = (x.customerId && byCustomer.get(x.customerId)) || (x.email && byEmail.get(x.email)) || undefined;
+    const key = c ? `c:${c.id}` : x.key;
+    const cur = merged.get(key);
+    if (cur) { cur.via.push(...x.via); continue; }
+    const s = c?.safety ?? undefined;
+    const person: PersonIn = c
+      ? { key, contactId: c.id, name: c.name, phone: c.phone || undefined, via: [...x.via], waiver: s?.waiverSignedAt, emergency: s ? { name: s.emergencyName, phone: s.emergencyPhone, relationship: s.emergencyRelationship } : undefined, missing: [], checkedAt: s?.checkedAt && ukParts(Date.parse(s.checkedAt)).date === today ? s.checkedAt : undefined }
+      : { key, name: x.name, via: [...x.via], missing: [], unknown: true, checkedAt: acks.includes(key) ? "today" : undefined };
+    if (!person.waiver) person.missing.push("waiver");
+    if (!person.emergency?.phone && !person.emergency?.name) person.missing.push("emergency");
+    merged.set(key, person);
+  }
+  const rank = (x: PersonIn) => (x.missing.length && !x.checkedAt ? 0 : x.missing.length ? 1 : 2);
+  const people = [...merged.values()].sort((a, b) => rank(a) - rank(b) || a.name.localeCompare(b.name));
+  return { people, classes: p.classes, window: w, kisi: p.kisi, teamup: teamupConfigured(), at: p.at };
 }

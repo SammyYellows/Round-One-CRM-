@@ -825,10 +825,19 @@ export function recordSafety(s: State, byCustomer: Map<string, Omit<Safety, "syn
     const cid = c.teamup?.customerId ?? c.membership?.customerId;
     if (!cid) continue;
     const v = byCustomer.get(cid);
-    c.safety = { ...(v ?? {}), syncedAt: nowIso(s) };
+    c.safety = { ...(v ?? {}), syncedAt: nowIso(s), ...(c.safety?.checkedAt ? { checkedAt: c.safety.checkedAt } : {}) };
     n++;
   }
   return n;
+}
+
+/** Staff spoke to someone flagged in the gym without a waiver or emergency contact: off the alert for today. */
+export function markSafetyChecked(s: State, contactId: string) {
+  const c = s.contacts.find((x) => x.id === contactId);
+  if (!c) return;
+  const missing = [!c.safety?.waiverSignedAt && "waiver", !(c.safety?.emergencyPhone || c.safety?.emergencyName) && "emergency contact"].filter(Boolean).join(" and ");
+  c.safety = { ...(c.safety ?? { syncedAt: nowIso(s) }), checkedAt: nowIso(s) };
+  log(s, "safety.checked", c.id, `Spoke to ${c.name} in the gym about their missing ${missing || "details"}`);
 }
 
 /**

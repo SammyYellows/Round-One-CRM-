@@ -103,10 +103,11 @@ when staff mark a sale on the pipeline.
 
 0c. **Waiver and emergency contact; who's in the gym** (item 20, built
    10/10 after a medical emergency). Live from tonight's `safety` sync
-   stage (03:14). Members → "Who's in" reads TeamUp and Kisi live. Waiting
-   on Sammy: run it once during a busy class and tell Claude if anyone
-   shows as "not in the CRM" (a TeamUp or Kisi email that doesn't match)
-   or if the 3-hour window is wrong. Gaps are fixed in TeamUp, not here.
+   stage (03:14). A red alert at the top of every staff screen names
+   anyone in the gym (class on now, or through the door in the last 1.5
+   hours) without a waiver or emergency contact; "Spoke to them" clears
+   them for the day. Members → "In the gym now" has the full list. Gaps
+   are fixed in TeamUp, not here. Nothing waiting on Sammy.
 
 
 0. **Reports to the managers** (built 08/10, improvement items 12 and 13).

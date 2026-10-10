@@ -107,6 +107,9 @@ export interface Safety {
   dateOfBirth?: string; // YYYY-MM-DD
   formAt?: string; // when the sign-up form was last answered
   syncedAt: string;
+  // Staff ticked "Spoke to them" on the in-the-gym alert. Hides them for the
+  // rest of that UK day; if TeamUp still has no waiver next visit, they show again.
+  checkedAt?: string;
 }
 
 export interface Activity {
@@ -240,6 +243,7 @@ export type EventType =
   | "accountability.replied" // staff approved Claude's suggested reply and it went
   | "accountability.nudge" // the mid-week nudge went out
   | "accountability.silent" // no check-in and no sessions two weeks running: coaches told
+  | "safety.checked" // staff spoke to someone in the gym without a waiver or emergency contact
   | "appointment.booked"
   | "appointment.updated";
 

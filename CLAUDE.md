@@ -159,9 +159,11 @@ In place so far:
   `docs/reference/sleeping-members.md`.
 - **Safety** (`src/lib/server/safety.ts`, the nightly `safety` stage):
   the signed waiver and emergency contact from TeamUp on
-  `contact.safety`; Members → "Who's in" reads TeamUp's classes on now
-  and Kisi's door entries live (`/api/safety/now`) and shows who's in
-  without a waiver or emergency contact. Fixes happen in TeamUp.
+  `contact.safety`. `/api/safety/now` reads TeamUp's classes on now and
+  Kisi's door entries (at most 1.5 hours back, cached two minutes); a red
+  alert on every staff screen (`SafetyAlert`) names anyone in without a
+  waiver or emergency contact until staff tick "Spoke to them"
+  (`markSafetyChecked`, clears for the day). Fixes happen in TeamUp.
 
 Still to come: Meta Marketing API sync.
 
