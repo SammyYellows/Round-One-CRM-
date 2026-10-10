@@ -43,7 +43,7 @@ function ChampPortrait() {
     return () => clearInterval(id);
   }, []);
   return (
-    <div style={{ display: "flex", alignItems: "flex-end", gap: 12 }}>
+    <div className="champ-portrait" style={{ display: "flex", alignItems: "flex-end", gap: 12 }}>
       <img src={src} alt="Champ, Round One’s assistant" style={{ height: 160, width: "auto", display: "block" }} />
       <div style={{ fontFamily: "var(--display)", fontSize: 32, textTransform: "uppercase", color: "var(--red)", lineHeight: 1, paddingBottom: 6 }}>Champ</div>
     </div>

@@ -373,4 +373,19 @@ table.sr-only { display: block; } /* a table ignores width: 1px, which made phon
   .crow { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); padding: 12px 16px; row-gap: 4px; }
   .crow.thead { display: none; }
   .card-head, .pad { padding: 16px; }
+  /* 10/10 second pass, from Sammy's phone screenshots */
+  .sidebar .clock { display: none !important; }
+  .sidebar.open .clock { display: flex !important; }
+  .main { overflow-wrap: break-word; }
+  .main > *, .grid > *, .enq > * { min-width: 0; }
+  .enq-row .small { white-space: normal !important; overflow: visible !important; }
+  .enq-row, .enq-mail, .enq-detail .h3 { overflow-wrap: anywhere; }
+  .enq-mail { margin: 0 16px 16px; padding: 14px; }
+  .enq-detail > div > div[style*="22px"] { padding-left: 16px !important; padding-right: 16px !important; }
+  .acc-row { grid-template-columns: minmax(0, 1fr) auto !important; padding: 14px 16px !important; row-gap: 6px !important; }
+  .acc-row > :nth-child(2), .acc-row > :nth-child(4) { grid-column: 1 / -1; }
+  .champ-portrait img { height: 96px !important; }
+  .champ-portrait > div { font-size: 26px !important; }
+  .champ-grid textarea { min-height: 84px; }
+  input.input, textarea.input, select.select { font-size: 16px; }
 }
