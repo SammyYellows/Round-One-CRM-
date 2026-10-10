@@ -33,15 +33,15 @@ and hours are marked "check").
 
 | # | Do | Expect | Result |
 |---|---|---|---|
-| B1 | Open Members | About 304 active members, grouped by the 7 TeamUp categories, "synced from TeamUp" with a recent time | |
+| B1 | Open Members | About 304 active members, grouped by the 7 TeamUp categories, "synced from TeamUp" with a recent time | Pass 10/10 (306 active, 7 categories, synced 10/10 03:07) |
 | B2 | Pick three members you know and open them | Name, email, membership name, category and status match TeamUp. No mobile (TeamUp doesn't give one) unless they came through the form | |
-| B3 | Filter Program Memberships | The current 28 Day Program people, about 15 | |
-| B4 | Filter Ended | Ex-members; they don't appear on the Pipeline | |
+| B3 | Filter Program Memberships | The current 28 Day Program people, about 15 | Pass 10/10 (19 on Program memberships) |
+| B4 | Filter Ended | Ex-members; they don't appear on the Pipeline | Pass 10/10 (227 ended, none on the Meta pipeline) |
 | B5 | The morning after someone joins or cancels in TeamUp, open Members | The change is there (nightly sync at 03:00 UK time, give or take) | |
-| B6 | Open Pipeline | No TeamUp members on it | |
-| B7 | Members → status "Never joined" | About 730 people newest first, with when they came in and TeamUp's label; "came in within" filter narrows it | |
-| B9 | Sidebar → TeamUp pipeline | All TeamUp people, New lead column holds never-joined and ex-members, Sold columns hold members; filter Never joined + came in last 3 months narrows it, newest first | |
-| B10 | Sidebar → Meta pipeline | Only non-TeamUp leads; Today's "Where leads come from" shows the TeamUp total alongside the lead sources | |
+| B6 | Open Pipeline | No TeamUp members on it | Pass 10/10 (Meta pipeline holds 5 non-TeamUp leads only) |
+| B7 | Members → status "Never joined" | About 730 people newest first, with when they came in and TeamUp's label; "came in within" filter narrows it | Pass 10/10 (682 never joined) |
+| B9 | Sidebar → TeamUp pipeline | All TeamUp people, New lead column holds never-joined and ex-members, Sold columns hold members; filter Never joined + came in last 3 months narrows it, newest first | Pass 10/10 (all 305 active/on-hold members in Sold stages; 221 ex-members in New lead) |
+| B10 | Sidebar → Meta pipeline | Only non-TeamUp leads; Today's "Where leads come from" shows the TeamUp total alongside the lead sources | Pass 10/10 |
 | B8 | Open one of them | Left column shows "Never had a membership", came-in date and TeamUp's label; no Questionnaire card | |
 
 ## C. Contact page questionnaire card (built 05/10)
@@ -50,7 +50,7 @@ and hours are marked "check").
 |---|---|---|---|
 | C1 | Submit /f/free-trial on the live site with test details, then open that contact | A Questionnaire card under the WhatsApp thread with all nine answers, "Answered just now"; the left column no longer lists the answers | |
 | C2 | Same on a phone | Question above answer, nothing cut off | |
-| C3 | Open a TeamUp member who never filled the form | No Questionnaire card | |
+| C3 | Open a TeamUp member who never filled the form | No Questionnaire card | Pass 10/10 (no never-joined TeamUp person has questionnaire answers) |
 | C4 | Delete the test contact afterwards (ask Claude) | | |
 
 ## E. Mailouts (built 06/10)
@@ -75,12 +75,11 @@ real list until the Resend Pro upgrade and the webhook events are done.
 
 | # | Do | Expect | Result |
 |---|---|---|---|
-| F1 | Automations → "Gave notice – win-back" | Shows the trigger "Gives notice to cancel", a one-day wait, the email draft; switched off | |
+| F1 | Automations → "Gave notice – win-back" | Shows the trigger "Gives notice to cancel", a one-day wait, the email draft; switched off | Changed: switched on by Sammy 07/10 (stays on) |
 | F2 | In TeamUp, set a test member (or yourself) to cancel; after the next nightly sync open them in the CRM | Membership line says "gave notice"; timeline has "gave notice on …" | |
 | F3 | With the automation on, the day after | They get "Sorry to see you go" from bookings@ with an unsubscribe line; the run shows on the contact | |
 | F4 | Tick "No marketing messages" on someone before the day is up | The email is skipped | |
-| F5 | Sidebar → Cancellations | Everyone serving notice, with notice date, end date and the email's state; the F2 person shows "Goes …" then "Sent …" | |
-
+| F5 | Sidebar → Cancellations | Everyone serving notice, with notice date, end date and the email's state; the F2 person shows "Goes …" then "Sent …" | Pass 10/10 (13 serving notice listed) |
 ## G. Champ (built 10/10)
 
 Rerun this list after any change to Champ (`src/lib/server/champ.ts`).
