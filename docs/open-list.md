@@ -221,6 +221,14 @@ updates from the import never fire automations.
 9. **Delete the full-access Resend key** in Resend → API Keys. Claude has
    finished with it. Sammy's call.
 
+10. **Staff Access has "no allotment set" in TeamUp** (membership 246352).
+    TeamUp refuses to book anyone on it into a class ("purchase required").
+    Found when testing Champ's booking on Sammy's account (10/10); nothing
+    was booked. Waiting on Sammy: set an allotment in TeamUp, or leave it.
+11. **Champ booking: does TeamUp email the member?** To check on the first
+    real booking (Champ tells staff TeamUp "may" send its usual
+    confirmation).
+
 ## Done and off the list (08–09/10/2026)
 
 Two routes (CRM vs direct TeamUp); first and last name; repeat form
