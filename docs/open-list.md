@@ -3,6 +3,10 @@
 Everything in progress and what each item is waiting on. Sammy picks from
 this; Claude keeps it current. Last updated 10/10/2026.
 
+**Wrap-up day, Sunday 11/10:** every open item below is on one sheet,
+`docs/wrap-up-day.md`, as a job or a yes/no to close it. After that, only
+the GymGrow import stays open.
+
 ## Switched off, waiting for Sammy's approval
 
 Each is built and drafted, and does nothing until Sammy presses "Approve
@@ -24,17 +28,7 @@ list comes up, until each is on or dropped.
 | Accountability welcome, weekly check-in, mid-week nudge | Accountability | Joining, their slot each week, Thursday 17:00 |
 | Weekly members, monthly growth and unpaid reports | Reports | Mondays and the 1st at 08:00 |
 
-**Fixed 08/10 (PR #83): failed payments missed (Romel Rodriques).** Romel flags after the next nightly sync. Still for Sammy: check in TeamUp whether he really has three Full Facility Access memberships. Original note:
-TeamUp's invoices have a `retry_failed` status the sync doesn't read (it
-only counts `open`), and a person with more than one active membership
-is checked on their newest one only. Romel's 5 Oct £34.99 is retry_failed
-with 5 attempts on an older membership, so he never flagged. Live count:
-105 retry_failed invoices across 54 people. Fix: worst retry count across
-all of a person's memberships, and retry_failed invoices counted as owed.
-Waiting on Sammy's go (he also asked whether to show all memberships on
-the contact page). Separately, Romel has three active Full Facility
-Access memberships billed on the 5th, 15th and 23rd: Sammy to check in
-TeamUp.
+**Done 08/10:** failed payments missed (Romel Rodriques) fixed. Still for Sammy: check in TeamUp whether he really has three Full Facility Access memberships (wrap-up #21).
 
 **Task: Program route 2 schedule** (people who sign up straight in
 TeamUp, never through the questionnaire). Built so far: only the day-1
@@ -199,7 +193,7 @@ updates from the import never fire automations.
    screen with named drafts and an AI rewrite. **Found switched on at
    23:00 on 06/10 with Sammy's edited subject**, so it is live unless
    Sammy switches it off there.
-   Waiting on Sammy: confirm on or off.
+   Decided: stays on (Sammy, 08/10).
 
 ## Testing
 
@@ -213,13 +207,12 @@ updates from the import never fire automations.
 
 ## Before go-live (`docs/before-go-live.md`)
 
-5. **Privacy policy.** Waiting on Sammy: add the Wix privacy page and send
-   its URL. Then Claude writes the CRM paragraphs and the consent line on
-   the form.
+5. **Privacy policy.** Paragraphs written (`docs/privacy-paragraphs.md`)
+   and the consent line built (shows once `PRIVACY_URL` is set). Waiting
+   on Sammy: publish the Wix page and send its address (wrap-up #7).
 6. **Pre-live test checklist**, the full one. Waiting on Sammy: say when.
-7. **Go-live switch-over.** Waiting on Sammy: live database decision,
-   Vercel Pro, Resend Pro, the crm.round1boxfit.co.uk CNAME at SiteGround,
-   and the day to move the WhatsApp number off GymGrow. Key rotation then.
+7. **Go-live switch-over.** Database decided (`round1-dev` is the live
+   one). The rest is wrap-up Part 1 (#1–9).
 
 ## Small open items
 
