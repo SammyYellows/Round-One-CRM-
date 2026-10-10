@@ -177,7 +177,7 @@ In place so far:
   TeamUp invoices and payment endpoints are not reachable from it. Chats
   are saved (`champ_chats`, `champ_messages`, exact API content blocks so a
   chat carries on unchanged); owners and managers (staff role) can read
-  everyone's. Champ's picture goes in `public/champ/champ.png`.
+  everyone's. Champ's three pictures are `public/champ/champ-1..3.webp` (shrunk from Sammy's originals), one shown above the chat box, changing every 45 minutes by the clock.
   **Teach Champ** (`/champ/knowledge`, `champKnowledge.ts`, management
   only: Owner or Manager staff role): notes and uploaded documents (PDF,
   .docx, text; files go straight to the private `champ-docs` bucket by a

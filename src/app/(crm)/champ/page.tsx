@@ -44,6 +44,26 @@ function Rich({ text }: { text: string }) {
   return <>{blocks}</>;
 }
 
+// Champ's pictures (Sammy, 10/10/2026), one at a time, changing every 45
+// minutes. Worked out from the clock, so everyone sees the same one.
+const PHOTOS = ["/champ/champ-1.webp", "/champ/champ-2.webp", "/champ/champ-3.webp"];
+const ROTATE_MS = 45 * 60e3;
+const photoNow = () => PHOTOS[Math.floor(Date.now() / ROTATE_MS) % PHOTOS.length];
+
+function ChampPortrait() {
+  const [src, setSrc] = useState(photoNow);
+  useEffect(() => {
+    const id = setInterval(() => setSrc(photoNow()), 60e3);
+    return () => clearInterval(id);
+  }, []);
+  return (
+    <div style={{ display: "flex", alignItems: "flex-end", gap: 12 }}>
+      <img src={src} alt="Champ, Round One’s assistant" style={{ height: 160, width: "auto", display: "block" }} />
+      <div style={{ fontFamily: "var(--display)", fontSize: 32, textTransform: "uppercase", color: "var(--red)", lineHeight: 1, paddingBottom: 6 }}>Champ</div>
+    </div>
+  );
+}
+
 export default function ChampPage() {
   const { now, live } = useStore();
   const [chats, setChats] = useState<Chat[]>([]);
@@ -147,11 +167,7 @@ export default function ChampPage() {
           </div>
 
           <div style={{ borderTop: "1px solid var(--line)", padding: "14px 22px", display: "flex", flexDirection: "column", gap: 10 }}>
-            {/* Champ's picture goes here (Sammy is sending the photos). Until then, the name. */}
-            <div className="champ-portrait" aria-hidden="true">
-              <img src="/champ/champ.png" alt="" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; (e.currentTarget.nextElementSibling as HTMLElement).style.display = "block"; }} style={{ maxHeight: 120, display: "block" }} />
-              <div style={{ display: "none", fontFamily: "var(--display)", fontSize: 32, textTransform: "uppercase", color: "var(--red)", lineHeight: 1 }}>Champ</div>
-            </div>
+            <ChampPortrait />
             {err && <div className="small" style={{ color: "var(--red)" }} role="alert">{err}</div>}
             {!configured && <div className="small" style={{ color: "var(--red)" }}>Champ isn’t switched on yet: the Claude API key is missing.</div>}
             {mine ? (
