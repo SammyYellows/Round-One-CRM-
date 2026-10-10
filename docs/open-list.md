@@ -104,7 +104,13 @@ email: they are Sammy's personal phone contacts that synced into GymGrow
 (confirmed 10/10).** **Never import the 82 rows with no tag added
 individually from May to October either: also personal contacts (Sammy,
 10/10).** Only the 685 rows tagged "lead" (questionnaire enquiries) come
-in.
+in. **Sammy's choice (10/10):** he tries the Opportunities export on
+go-live day; if he can't get it, import with the dates rule (last 30 days
+→ Contacted for staff follow-up, older → Nurture; the ~87 already known
+from TeamUp only get a tag). Keep each person's GymGrow contact ID so a
+later Opportunities export can update stages: only people still at their
+imported stage change, clashes are shown to Sammy first, and stage
+updates from the import never fire automations.
 
 ## Work streams
 
