@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { AuthShell, Notice } from "@/components/AuthShell";
 import { Sidebar } from "@/components/Sidebar";
 import { BackButton } from "@/components/BackButton";
+import { SafetyAlert } from "@/components/WhoIsIn";
 import { StoreProvider } from "@/lib/store";
 import { currentUser, staffFor } from "@/lib/server/staff";
 import { supabaseConfigured } from "@/lib/supabase/env";
@@ -32,7 +33,7 @@ export default async function CrmLayout({ children }: { children: React.ReactNod
     <StoreProvider>
       <div className="app">
         <Sidebar staff={staff} />
-        <main className="main"><BackButton />{children}</main>
+        <main className="main"><BackButton /><SafetyAlert />{children}</main>
       </div>
     </StoreProvider>
   );
