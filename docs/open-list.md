@@ -84,6 +84,9 @@ when staff mark a sale on the pipeline.
 
 ## This week (from 11/10/2026): staff get familiar; WhatsApp moves over
 
+**Sammy does the setup on Sunday 11/10; gym staff start using the CRM on
+Monday 12/10.**
+
 Ads are paused, so no new leads this week (Sammy, 10/10). The GymGrow
 import is paused. Built 10/10 for staff: logins with roles (the Staff page,
 management only), staff see the day-to-day screens only, a manual
