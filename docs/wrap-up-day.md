@@ -50,6 +50,8 @@ Full steps for each are in `docs/go-live-day.md`.
 | 24 | Mobile numbers for TeamUp-only Program members | Staff add them as they see people, or drop it |
 | 25 | Resend Pro (before the first big mailout) | Later, when a mailout is planned |
 | 26 | Test log: the email, form and mailout tests still owed | Run during step 4, or close as covered by Monday's real use |
+| 27 | Staff Access membership in TeamUp has "no allotment set", so TeamUp won't book staff into classes (found testing Champ's booking, 10/10) | Set an allotment in TeamUp, or leave it |
+| 28 | Champ booking: does TeamUp email the member when Champ books them? | Check on the first real booking |
 
 ## Stays open
 
