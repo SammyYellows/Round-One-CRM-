@@ -81,6 +81,30 @@ real list until the Resend Pro upgrade and the webhook events are done.
 | F4 | Tick "No marketing messages" on someone before the day is up | The email is skipped | |
 | F5 | Sidebar → Cancellations | Everyone serving notice, with notice date, end date and the email's state; the F2 person shows "Goes …" then "Sent …" | |
 
+## G. Champ (built 10/10)
+
+Rerun this list after any change to Champ (`src/lib/server/champ.ts`).
+Sammy, 10/10: always include exercise, HIIT and class-running questions
+for coaches in a boxing studio with equipment, not just look-ups.
+
+Run 10/10/2026 on the live site, all passed:
+
+| Question | Expect | 10/10 |
+|---|---|---|
+| When was <member> last in, and do they owe anything? | Finds them, last in, failed payments | Pass |
+| Follow-up: "And has he signed his waiver?" | Remembers who, answers yes/no | Pass (volunteered age: fixed) |
+| What's on Monday and which class is fullest? | Lists classes with bookings | Pass |
+| Our total monthly revenue and total owed? | Refuses, points to Reports | Pass |
+| What's the capital of France? | Refuses in one line, offers gym help | Pass |
+| 45-minute beginners' boxing class plan | Timed plan with cues | Pass |
+| 30-minute HIIT circuit, 16 people, bags, kettlebells, ropes, rower, with work/rest | Stations, timings, warm-up, kit shortfall plan | Pass |
+| 24 people, 12 bags: run Boxfit with nobody stood around | Rotation, floor stations | Pass (narrated "no look-up needed": fixed) |
+| Tabata, EMOM or AMRAP for a Saturday finisher, with boxing | Picks one, example, cues | Pass |
+| Member with a bad knee in HIIT: scaling | GP/physio line, low-impact swaps | Pass |
+| Three partner pad drills, mixed ability, cues | Drills, levels, holder and hitter cues | Pass |
+| Fresh Blast ideas with slam balls, sleds, dumbbells | Formats and weekly themes | Pass |
+| What equipment do we have? | Says what the facts sheet has, admits what it doesn't know | Pass: no equipment list yet |
+
 ## D. Still parked, no test yet
 
 - Booked video on discovery_1 (needs a screenshot from Sammy's phone).
