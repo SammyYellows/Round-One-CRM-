@@ -4,10 +4,11 @@
 // routes and the automation part moves to a job runner (Inngest / Trigger.dev).
 
 import {
-  Accountability, Appointment, Automation, Checkin, Availability, Membership, Contact, CrmEvent, EventType, Form, Run, Source, Stage, State, Step, apptStatusLabel, stageLabel, PAYMENT_FAILED_AT, viaOf } from "./types";
+  Accountability, Appointment, Automation, Checkin, Availability, Membership, Contact, CrmEvent, EventType, Form, Run, Safety, Source, Stage, State, Step, apptStatusLabel, stageLabel, PAYMENT_FAILED_AT, viaOf } from "./types";
 import { GYM } from "./gym";
 import { samePhone } from "./phone";
 import { ukParts, ukTime, ukWeekStart } from "./time";
+import { inactivityAdvice, PRIORITY_LABEL } from "./inactivity";
 
 // Random ids. Contact ids also make the private link to someone's booking
 // page (/book/<id>), so they come from a proper random source.
@@ -813,6 +814,24 @@ export function recordActivity(s: State, byContact: Map<string, string[]>) {
 }
 
 /**
+ * What TeamUp holds for safety (improvement item 20, Sammy 10/10/2026): the
+ * signed waiver and the emergency contact from the sign-up form, keyed by
+ * TeamUp customer id. Quiet: no events. Everyone TeamUp knows gets a record,
+ * so "no waiver" is a fact we checked, not a gap in the sync.
+ */
+export function recordSafety(s: State, byCustomer: Map<string, Omit<Safety, "syncedAt">>) {
+  let n = 0;
+  for (const c of s.contacts) {
+    const cid = c.teamup?.customerId ?? c.membership?.customerId;
+    if (!cid) continue;
+    const v = byCustomer.get(cid);
+    c.safety = { ...(v ?? {}), syncedAt: nowIso(s) };
+    n++;
+  }
+  return n;
+}
+
+/**
  * Members who haven't been in for `days` days (or never, since a membership
  * that started that long ago): one task and one email to their coach (the
  * front desk if none), once per lapse.
@@ -828,7 +847,9 @@ export function flagInactivity(s: State, days: number, opts: { baseline?: boolea
     if (!since || now - Date.parse(since) < days * 86400e3) continue;
     const gap = Math.floor((now - Date.parse(since)) / 86400e3);
     const coach = c.coachId ? s.staff.find((x) => x.id === c.coachId) : undefined;
-    const text = a.lastSeenAt ? `${c.name} hasn’t been in for ${gap} days (${m.name}). Worth a message.` : `${c.name} started ${m.name} ${gap} days ago and hasn’t been in yet. Worth a message.`;
+    const advice = inactivityAdvice(c, now, days);
+    const head = a.lastSeenAt ? `${c.name} hasn’t been in for ${gap} days (${m.name}).` : `${c.name} started ${m.name} ${gap} days ago and hasn’t been in yet.`;
+    const text = advice ? `${head} ${PRIORITY_LABEL[advice.priority]} priority: ${advice.reason.toLowerCase()}. ${advice.action}` : `${head} Worth a message.`;
     c.activity = { ...a, alertedAt: nowIso(s) };
     // The very first run would alert about everyone already lapsed at once:
     // they're marked and shown in red on Members, but nobody is emailed.
@@ -837,8 +858,9 @@ export function flagInactivity(s: State, days: number, opts: { baseline?: boolea
     log(s, "task.created", c.id, text);
     log(s, "member.inactive", c.id, `${text}${coach ? ` Told ${coach.name}.` : " Told the front desk."}`);
     log(s, "email.sent", c.id, `Not been in: ${c.name}${coach ? ` to ${coach.name}` : " to the front desk"}`, {
-      to: "staff", subject: `${c.name} hasn’t been in for ${gap} days`, body: `${text}
+      to: "staff", subject: `${advice ? `${PRIORITY_LABEL[advice.priority]} priority: ` : ""}${c.name} hasn’t been in for ${gap} days`, body: `${text}
 
+Nothing goes to the member from the CRM: whether and how to get in touch is your call.
 Last in: ${a.lastSeenAt ? a.lastSeenAt : "never"}. Sessions in the last 30 days: ${a.last30}; the 30 before: ${a.prev30}.`,
       ...(coach?.email ? { address: coach.email } : {}),
     });

@@ -1,7 +1,7 @@
 # Open list
 
 Everything in progress and what each item is waiting on. Sammy picks from
-this; Claude keeps it current. Last updated 09/10/2026.
+this; Claude keeps it current. Last updated 10/10/2026.
 
 ## Switched off, waiting for Sammy's approval
 
@@ -95,6 +95,18 @@ when staff mark a sale on the pipeline.
    only; any contact with the member is a human decision, because a
    reminder can remind someone they're paying for a gym they don't use.
    Research on that trade-off: `docs/reference/sleeping-members.md`.
+   **10/10 later:** every lapsed member now carries a priority (High /
+   Medium / Low) and a suggested action for staff (Members → "Lapsed"
+   filter, the contact page, the coach's task). Sammy's call from the
+   research: contact is by a person, newest members and regulars who
+   stopped first, long-standing occasional trainers left alone.
+
+0c. **Waiver and emergency contact; who's in the gym** (item 20, built
+   10/10 after a medical emergency). Live from tonight's `safety` sync
+   stage (03:14). Members → "Who's in" reads TeamUp and Kisi live. Waiting
+   on Sammy: run it once during a busy class and tell Claude if anyone
+   shows as "not in the CRM" (a TeamUp or Kisi email that doesn't match)
+   or if the 3-hour window is wrong. Gaps are fixed in TeamUp, not here.
 
 
 0. **Reports to the managers** (built 08/10, improvement items 12 and 13).

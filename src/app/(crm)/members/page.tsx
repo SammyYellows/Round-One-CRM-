@@ -6,6 +6,8 @@ import { waitingOnUs } from "@/lib/contactQuery";
 import { ago, dayTime, shortDate } from "@/lib/format";
 import { useStore } from "@/lib/store";
 import { Contact, Membership } from "@/lib/types";
+import { PRIORITY_LABEL, byPriority, inactivityAdvice } from "@/lib/inactivity";
+import WhoIsIn from "@/components/WhoIsIn";
 
 // Everyone with a TeamUp membership, synced nightly. TeamUp stays the place
 // to change memberships; this is for seeing who's on what and messaging them.
@@ -23,6 +25,9 @@ export default function MembersPage() {
   const [ending, setEnding] = useState<Ending>("all");
   const [cameIn, setCameIn] = useState<CameIn>("all");
   const [optedOut, setOptedOut] = useState(false);
+  const [lapsed, setLapsed] = useState(false); // lapsed members only, worst first
+  const [noWaiver, setNoWaiver] = useState(false);
+  const [inactiveDays, setInactiveDays] = useState(20);
 
   const members = useMemo(() => s.contacts.filter((c): c is Contact & { membership: Membership } => !!c.membership), [s.contacts]);
   const categories = useMemo(() => [...new Set(members.map((m) => m.membership.category))].sort(), [members]);
@@ -47,13 +52,18 @@ export default function MembersPage() {
       if (status !== "all" && m.status !== status) return false;
       if (ending !== "all" && !(m.endsAt && Date.parse(m.endsAt) - now < Number(ending) * 86400e3 && Date.parse(m.endsAt) >= now)) return false;
       if (optedOut && !c.marketingOptOut) return false;
+      if (lapsed && !inactivityAdvice(c, now, inactiveDays)) return false;
+      if (noWaiver && (!c.safety || c.safety.waiverSignedAt)) return false;
       if (q.trim()) {
         const hay = `${c.name} ${c.email} ${c.phone} ${m.name} ${m.category}`.toLowerCase();
         if (!q.trim().toLowerCase().split(/\s+/).every((t) => hay.includes(t))) return false;
       }
       return true;
     })
-    .sort((a, b) => (a.membership.endsAt ? Date.parse(a.membership.endsAt) : Infinity) - (b.membership.endsAt ? Date.parse(b.membership.endsAt) : Infinity) || a.name.localeCompare(b.name));
+    .sort((a, b) => {
+      if (lapsed) return byPriority(inactivityAdvice(a, now, inactiveDays)!, inactivityAdvice(b, now, inactiveDays)!);
+      return (a.membership.endsAt ? Date.parse(a.membership.endsAt) : Infinity) - (b.membership.endsAt ? Date.parse(b.membership.endsAt) : Infinity) || a.name.localeCompare(b.name);
+    });
 
   const byCategory = categories.map((k) => ({ k, n: members.filter((m) => m.membership.category === k && m.membership.status === "active").length }));
   const synced = members.length ? Math.max(...members.map((m) => Date.parse(m.membership.syncedAt))) : 0;
@@ -63,7 +73,6 @@ export default function MembersPage() {
     ? ["customers", "members", "payments", "apply", "attendance", "activity"].map((k) => { const st = sync.stages![k]; return st ? `${k} ${st.ok ? `${(st.ms / 1000).toFixed(0)}s` : "failed"}` : `${k} –`; }).join(" · ")
     : "";
   const slowest = sync?.stages ? Math.max(0, ...Object.values(sync.stages).map((s) => s.ms)) : 0;
-  const [inactiveDays, setInactiveDays] = useState(20);
   const [daysDraft, setDaysDraft] = useState("");
   const [daysNote, setDaysNote] = useState("");
   useEffect(() => { if (live) fetch("/api/members/inactivity", { cache: "no-store" }).then((r) => (r.ok ? r.json() : null)).then((j) => { if (j) { setInactiveDays(j.days); setDaysDraft(String(j.days)); } }).catch(() => undefined); }, [live]);
@@ -72,7 +81,11 @@ export default function MembersPage() {
     const j = await r.json().catch(() => ({}));
     if (r.ok) { setInactiveDays(j.days); setDaysNote(`Saved. Coaches are told after ${j.days} days without a session, from tonight's sync.`); } else setDaysNote(j.error ?? "Couldn’t save");
   };
-  const inactiveCount = members.filter((c) => c.membership.status === "active" && c.activity && (c.activity.lastSeenAt ? now - Date.parse(c.activity.lastSeenAt) : Infinity) >= inactiveDays * 86400e3).length;
+  const lapsedAdvice = members.map((c) => inactivityAdvice(c, now, inactiveDays)).filter((a): a is NonNullable<typeof a> => !!a);
+  const inactiveCount = lapsedAdvice.length;
+  const highCount = lapsedAdvice.filter((a) => a.priority === "high").length;
+  const noWaiverCount = members.filter((c) => c.membership.status === "active" && c.safety && !c.safety.waiverSignedAt).length;
+  const safetySynced = members.some((c) => c.safety);
 
   return (
     <>
@@ -84,7 +97,7 @@ export default function MembersPage() {
           </div>
           {live && (
             <div className="small muted" style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-              <span>{inactiveCount} not in for {inactiveDays}+ days.</span>
+              <span>{inactiveCount} not in for {inactiveDays}+ days{highCount ? `, ${highCount} high priority` : ""}.</span>
               <label style={{ display: "flex", gap: 6, alignItems: "center" }}>Tell the coach after <input className="input" style={{ width: 70, height: 32 }} type="number" min={3} max={365} value={daysDraft} onChange={(e) => setDaysDraft(e.target.value)} /> days</label>
               <button className="btn btn-ghost btn-sm" style={{ height: 32 }} disabled={!daysDraft || Number(daysDraft) === inactiveDays} onClick={saveDays}>Save</button>
               {daysNote && <span className="faint">{daysNote}</span>}
@@ -98,6 +111,8 @@ export default function MembersPage() {
           <h1 className="h h1">Members</h1>
         </div>
       </header>
+
+      {live && <WhoIsIn />}
 
       {byCategory.length > 0 && (
         <div className="actions" style={{ gap: 8, flexWrap: "wrap" }}>
@@ -138,6 +153,8 @@ export default function MembersPage() {
             </select>
           )}
           <button className={`fchip fchip-sm ${optedOut ? "on" : ""}`} aria-pressed={optedOut} onClick={() => setOptedOut((v) => !v)}>Opted out of marketing</button>
+          {status !== "never" && <button className={`fchip fchip-sm ${lapsed ? "on" : ""}`} aria-pressed={lapsed} onClick={() => setLapsed((v) => !v)} title="Members past the inactivity threshold, highest priority first">Lapsed · {inactiveCount}</button>}
+          {status !== "never" && safetySynced && <button className={`fchip fchip-sm ${noWaiver ? "on" : ""}`} aria-pressed={noWaiver} onClick={() => setNoWaiver((v) => !v)} title="Active members with no signed waiver in TeamUp">No waiver · {noWaiverCount}</button>}
           <span className="small muted" style={{ marginLeft: "auto" }} aria-live="polite">
             {status === "never" ? `${neverList.length} of ${never.length} who never joined` : `${list.length} of ${members.length} members`}
           </span>
@@ -172,6 +189,7 @@ export default function MembersPage() {
           const m = c.membership;
           const act_ = c.activity;
           const gapDays = act_?.lastSeenAt ? Math.floor((now - Date.parse(act_.lastSeenAt)) / 86400e3) : act_ ? 61 : undefined;
+          const advice = inactivityAdvice(c, now, inactiveDays);
           return (
             <Link key={c.id} href={`/contacts/${c.id}`} className="crow">
               <div style={{ minWidth: 0 }}>
@@ -183,10 +201,12 @@ export default function MembersPage() {
               <div className="small" style={{ color: gapDays !== undefined && gapDays >= inactiveDays ? "var(--red)" : undefined }}>
                 {act_ ? (act_.lastSeenAt ? `${ago(act_.lastSeenAt, now)}` : "Not in 60 days") : <span className="muted">{m.startedAt ? shortDate(m.startedAt) : "–"}</span>}
                 {act_ && <div className="faint" style={{ fontSize: 11 }}>{act_.last30} in 30d{act_.alertedAt ? " · coach told" : ""}</div>}
+                {advice && <div title={`${advice.reason}. ${advice.action}`}><span className={`chip ${advice.priority === "high" ? "chip-red" : advice.priority === "medium" ? "chip-light" : ""}`} style={{ height: 18, fontSize: 9, marginTop: 2 }}>{PRIORITY_LABEL[advice.priority]} priority</span></div>}
               </div>
               <div className="muted small">{m.endsAt ? `${shortDate(m.endsAt)} (${ago(m.endsAt, now)})` : "–"}</div>
               <div>
                 {STATUS_LABEL[m.status]}{m.cancelling && m.status !== "ended" ? " · gave notice" : ""}
+                {c.safety && !c.safety.waiverSignedAt && m.status === "active" && <span className="chip chip-red" style={{ height: 20, fontSize: 10, marginLeft: 6 }}>No waiver</span>}
                 {c.marketingOptOut && <span className="chip" style={{ height: 20, fontSize: 10, marginLeft: 6 }}>No marketing</span>}
                 {waitingOnUs(s, c) && <span className="chip chip-light" style={{ height: 20, fontSize: 10, marginLeft: 6 }}>Reply</span>}
               </div>

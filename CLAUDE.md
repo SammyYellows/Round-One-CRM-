@@ -152,7 +152,16 @@ In place so far:
   every active member, one session a day, on `contact.activity`, with
   per-class stats for Reports. Past the threshold (settings `inactivity`,
   default 20 days, editable on Members) the member's coach (`coachId`) or
-  the front desk gets a task and an email, once per lapse.
+  the front desk gets a task and an email, once per lapse, with a priority
+  and suggested action from `src/lib/inactivity.ts`. **Rule (Sammy,
+  10/10): nothing about a lapsed member is ever sent to the member
+  automatically; staff decide.** Why, with sources:
+  `docs/reference/sleeping-members.md`.
+- **Safety** (`src/lib/server/safety.ts`, the nightly `safety` stage):
+  the signed waiver and emergency contact from TeamUp on
+  `contact.safety`; Members → "Who's in" reads TeamUp's classes on now
+  and Kisi's door entries live (`/api/safety/now`) and shows who's in
+  without a waiver or emergency contact. Fixes happen in TeamUp.
 
 Still to come: Meta Marketing API sync.
 

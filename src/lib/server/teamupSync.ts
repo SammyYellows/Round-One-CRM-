@@ -10,6 +10,7 @@
 //               on the saved payloads, keep the raw copy
 //   attendance  this week's sessions for the accountability programme
 //   activity    sessions for every active member (60 days) + inactivity alert
+//   safety      signed waivers and emergency contacts (docs: improvement item 20)
 //
 // `?job=teamup` with no stage runs them all in turn (manual runs, and the
 // old schedule). Each stage records how long it took in settings
@@ -22,8 +23,9 @@ import { applyMany } from "./state";
 import { db } from "./supabase";
 import { refreshAttendance } from "./accountability";
 import { refreshActivity } from "./activity";
+import { refreshSafety } from "./safety";
 
-export const STAGES = ["customers", "members", "payments", "apply", "attendance", "activity"] as const;
+export const STAGES = ["customers", "members", "payments", "apply", "attendance", "activity", "safety"] as const;
 export type Stage = (typeof STAGES)[number];
 
 type RawRow = { id: string; customer_id: string; raw: Record<string, unknown> };
@@ -94,6 +96,8 @@ export async function runStage(stage: Stage): Promise<Record<string, unknown>> {
       result.count = (result.refreshed as number) ?? 0;
     } else if (stage === "activity") {
       result = await refreshActivity();
+    } else if (stage === "safety") {
+      result = await refreshSafety();
     }
     const ms = Date.now() - t0;
     await recordStage(stage, { at, ms, ok: true, count: result.count as number | undefined }, stage === "apply" ? { lastRun: at, ok: true, ...result } : {});

@@ -91,6 +91,22 @@ export interface Contact {
   // Sessions from TeamUp (ticked in) and Kisi (door entries), one a day at
   // most, for the last 60 days, refreshed nightly for every active member.
   activity?: Activity;
+  // Safety details from TeamUp (improvement item 20): whether they've signed
+  // the waiver, and the emergency contact from the sign-up form. For
+  // reading in an emergency and for the "in the gym now" check. Updated
+  // nightly; never sent anywhere.
+  safety?: Safety;
+}
+
+export interface Safety {
+  waiverSignedAt?: string; // the newest signed waiver agreement in TeamUp
+  waiverName?: string;
+  emergencyName?: string;
+  emergencyPhone?: string;
+  emergencyRelationship?: string;
+  dateOfBirth?: string; // YYYY-MM-DD
+  formAt?: string; // when the sign-up form was last answered
+  syncedAt: string;
 }
 
 export interface Activity {
