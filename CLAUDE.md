@@ -163,7 +163,9 @@ In place so far:
   Kisi's door entries (at most 1.5 hours back, cached two minutes); a red
   alert on every staff screen (`SafetyAlert`) names anyone in without a
   waiver or emergency contact until staff tick "Spoke to them"
-  (`markSafetyChecked`, clears for the day). Fixes happen in TeamUp.
+  (`markSafetyChecked`, clears for the day). Its "List everyone" button
+  opens `/safety` (deliberately not on the sidebar): who's in now, plus
+  every active member with a gap. Fixes happen in TeamUp.
 
 Still to come: Meta Marketing API sync.
 

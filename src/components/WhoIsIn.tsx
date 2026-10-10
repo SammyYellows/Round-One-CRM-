@@ -17,6 +17,7 @@ interface Person { key: string; contactId?: string; name: string; phone?: string
 interface Result { people: Person[]; classes: { id: string; name: string; startsAt: string }[]; window: number; kisi: boolean; teamup: boolean; at: string }
 
 const POLL_MS = 3 * 60e3;
+const SHOWN = 3; // names in the alert itself; the rest are on /safety
 export const WINDOWS = [0.5, 1, 1.5];
 const windowLabel = (h: number) => (h < 1 ? `${h * 60} minutes` : h === 1 ? "1 hour" : `${h} hours`);
 
@@ -82,7 +83,7 @@ function Row({ p, onTick, compact }: { p: Person; onTick: (p: Person) => void; c
 export function SafetyAlert() {
   const { live } = useStore();
   const path = usePathname();
-  const onMembers = path?.startsWith("/members");
+  const onMembers = path?.startsWith("/members") || path?.startsWith("/safety"); // both show the full list
   const { res, tick } = useWhoIsIn(1.5, live && !onMembers);
   const open = (res?.people ?? []).filter((p) => p.missing.length && !p.checkedAt);
   if (!live || onMembers || open.length === 0) return null;
@@ -91,8 +92,12 @@ export function SafetyAlert() {
       <div className="label" style={{ margin: 0, color: "var(--red)" }}>
         {open.length === 1 ? "1 person" : `${open.length} people`} in the gym without a waiver or emergency contact
       </div>
-      <div className="small faint">Have a word, get it sorted in TeamUp, then tick them off. Came in within the last 1.5 hours.</div>
-      {open.map((p) => <Row key={p.key} p={p} onTick={tick} compact />)}
+      <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+        <span className="small faint">Have a word, get it sorted in TeamUp, then tick them off. Came in within the last 1.5 hours.</span>
+        <Link href="/safety" className="btn btn-red btn-sm" style={{ height: 32, marginLeft: "auto" }}>List everyone</Link>
+      </div>
+      {open.slice(0, SHOWN).map((p) => <Row key={p.key} p={p} onTick={tick} compact />)}
+      {open.length > SHOWN && <div className="small muted" style={{ borderTop: "1px solid var(--line)", paddingTop: 10 }}>And {open.length - SHOWN} more. <Link href="/safety">List everyone</Link></div>}
     </section>
   );
 }
