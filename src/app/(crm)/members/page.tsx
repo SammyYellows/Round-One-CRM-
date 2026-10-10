@@ -60,9 +60,19 @@ export default function MembersPage() {
   const [sync, setSync] = useState<{ stages?: Record<string, { at: string; ms: number; ok: boolean; count?: number; error?: string }> } | null>(null);
   useEffect(() => { if (live) fetch("/api/teamup/sync", { cache: "no-store" }).then((r) => (r.ok ? r.json() : null)).then(setSync).catch(() => undefined); }, [live]);
   const stageLine = sync?.stages
-    ? ["customers", "members", "payments", "apply", "attendance"].map((k) => { const st = sync.stages![k]; return st ? `${k} ${st.ok ? `${(st.ms / 1000).toFixed(0)}s` : "failed"}` : `${k} –`; }).join(" · ")
+    ? ["customers", "members", "payments", "apply", "attendance", "activity"].map((k) => { const st = sync.stages![k]; return st ? `${k} ${st.ok ? `${(st.ms / 1000).toFixed(0)}s` : "failed"}` : `${k} –`; }).join(" · ")
     : "";
   const slowest = sync?.stages ? Math.max(0, ...Object.values(sync.stages).map((s) => s.ms)) : 0;
+  const [inactiveDays, setInactiveDays] = useState(20);
+  const [daysDraft, setDaysDraft] = useState("");
+  const [daysNote, setDaysNote] = useState("");
+  useEffect(() => { if (live) fetch("/api/members/inactivity", { cache: "no-store" }).then((r) => (r.ok ? r.json() : null)).then((j) => { if (j) { setInactiveDays(j.days); setDaysDraft(String(j.days)); } }).catch(() => undefined); }, [live]);
+  const saveDays = async () => {
+    const r = await fetch("/api/members/inactivity", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ days: Number(daysDraft) }) });
+    const j = await r.json().catch(() => ({}));
+    if (r.ok) { setInactiveDays(j.days); setDaysNote(`Saved. Coaches are told after ${j.days} days without a session, from tonight's sync.`); } else setDaysNote(j.error ?? "Couldn’t save");
+  };
+  const inactiveCount = members.filter((c) => c.membership.status === "active" && c.activity && (c.activity.lastSeenAt ? now - Date.parse(c.activity.lastSeenAt) : Infinity) >= inactiveDays * 86400e3).length;
 
   return (
     <>
@@ -72,6 +82,14 @@ export default function MembersPage() {
             {members.filter((m) => m.membership.status === "active").length} active members
             {synced ? ` · synced from TeamUp ${ago(new Date(synced).toISOString(), now)}` : " · not synced from TeamUp yet"}
           </div>
+          {live && (
+            <div className="small muted" style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+              <span>{inactiveCount} not in for {inactiveDays}+ days.</span>
+              <label style={{ display: "flex", gap: 6, alignItems: "center" }}>Tell the coach after <input className="input" style={{ width: 70, height: 32 }} type="number" min={3} max={365} value={daysDraft} onChange={(e) => setDaysDraft(e.target.value)} /> days</label>
+              <button className="btn btn-ghost btn-sm" style={{ height: 32 }} disabled={!daysDraft || Number(daysDraft) === inactiveDays} onClick={saveDays}>Save</button>
+              {daysNote && <span className="faint">{daysNote}</span>}
+            </div>
+          )}
           {stageLine && (
             <div className="small faint" title="How long each stage of last night's sync took. The limit is 60 seconds per stage.">
               Sync stages: {stageLine}{slowest > 40000 ? " · getting close to the 60s limit" : ""}
@@ -148,10 +166,12 @@ export default function MembersPage() {
       ) : (
       <section className="card">
         <div className="crow thead" style={{ borderTop: 0 }}>
-          <div>Name</div><div>Membership</div><div>Category</div><div>Started</div><div>Ends or renews</div><div>Status</div>
+          <div>Name</div><div>Membership</div><div>Category</div><div>Last in</div><div>Ends or renews</div><div>Status</div>
         </div>
         {list.map((c) => {
           const m = c.membership;
+          const act_ = c.activity;
+          const gapDays = act_?.lastSeenAt ? Math.floor((now - Date.parse(act_.lastSeenAt)) / 86400e3) : act_ ? 61 : undefined;
           return (
             <Link key={c.id} href={`/contacts/${c.id}`} className="crow">
               <div style={{ minWidth: 0 }}>
@@ -160,7 +180,10 @@ export default function MembersPage() {
               </div>
               <div>{m.name}</div>
               <div className="muted">{m.category}</div>
-              <div className="muted small">{m.startedAt ? shortDate(m.startedAt) : "–"}</div>
+              <div className="small" style={{ color: gapDays !== undefined && gapDays >= inactiveDays ? "var(--red)" : undefined }}>
+                {act_ ? (act_.lastSeenAt ? `${ago(act_.lastSeenAt, now)}` : "Not in 60 days") : <span className="muted">{m.startedAt ? shortDate(m.startedAt) : "–"}</span>}
+                {act_ && <div className="faint" style={{ fontSize: 11 }}>{act_.last30} in 30d{act_.alertedAt ? " · coach told" : ""}</div>}
+              </div>
               <div className="muted small">{m.endsAt ? `${shortDate(m.endsAt)} (${ago(m.endsAt, now)})` : "–"}</div>
               <div>
                 {STATUS_LABEL[m.status]}{m.cancelling && m.status !== "ended" ? " · gave notice" : ""}

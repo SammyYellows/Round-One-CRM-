@@ -85,6 +85,22 @@ export interface Contact {
   // each one (improvement item 16, Sammy 09/10/2026): a short note for
   // staff, and a suggested reply that only goes if staff press Send.
   insight?: Insight;
+  // Their coach (a staff id), set on the contact page. The inactivity alert
+  // goes to them (improvement item 18, Sammy 10/10/2026).
+  coachId?: string;
+  // Sessions from TeamUp (ticked in) and Kisi (door entries), one a day at
+  // most, for the last 60 days, refreshed nightly for every active member.
+  activity?: Activity;
+}
+
+export interface Activity {
+  days: string[]; // UK dates with a session, newest first, up to 60 days back
+  lastSeenAt?: string; // the newest of those
+  last30: number;
+  prev30: number; // the 30 days before that, for "declining"
+  syncedAt: string;
+  // The inactivity alert for the current lapse: set when it fires, cleared when they come back.
+  alertedAt?: string;
 }
 
 export interface Insight {
@@ -202,6 +218,7 @@ export type EventType =
   | "accountability.joined" // they filled in the commitment form
   | "accountability.left" // staff ended it, or they asked to stop
   | "membership.held" // staff put a membership on hold in TeamUp from the CRM
+  | "member.inactive" // a member passed the inactivity threshold; their coach was told
   | "accountability.checkin" // the weekly check-in went out
   | "accountability.checkin_received" // they answered it
   | "accountability.replied" // staff approved Claude's suggested reply and it went
@@ -401,6 +418,7 @@ export interface Staff {
   id: string;
   name: string;
   role: string;
+  email?: string; // where their alerts go
 }
 
 export interface Appointment {

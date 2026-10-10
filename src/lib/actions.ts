@@ -4,7 +4,7 @@
 
 import {
   addContact, addTag, bookTrial, completeTask, createAppointment, markNoShow, receiveMessage, receiveWhatsApp, rescheduleAppointment, sendMessage,
-  dismissCheckin, leaveAccountability, replyToCheckin, sendTemplateTo, settleInsightReply, setAppointmentStatus, setAvailability, setEmailStep, setMarketingOptOut, setQuickReplies, setStage, shiftClock, stopRun, submitForm, toggleAutomation, updateForm,
+  dismissCheckin, leaveAccountability, replyToCheckin, sendTemplateTo, setCoach, settleInsightReply, setAppointmentStatus, setAvailability, setEmailStep, setMarketingOptOut, setQuickReplies, setStage, shiftClock, stopRun, submitForm, toggleAutomation, updateForm,
 } from "./engine";
 import { State } from "./types";
 
@@ -13,6 +13,7 @@ export const ACTIONS = {
   dismissCheckin,
   leaveAccountability,
   replyToCheckin,
+  setCoach,
   settleInsightReply,
   addTag,
   bookTrial,
