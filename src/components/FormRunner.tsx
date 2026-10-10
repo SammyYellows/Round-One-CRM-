@@ -15,6 +15,7 @@ export function FormRunner({
   style,
   bookHref,
   note,
+  privacyUrl,
 }: {
   form: Form;
   onSubmit?: (answers: Record<string, string>) => void;
@@ -23,6 +24,7 @@ export function FormRunner({
   style?: React.CSSProperties;
   bookHref?: string; // where the end screen's booking button goes, once the answers are saved
   note?: string; // shown on the end screen, e.g. if the answers couldn't be saved
+  privacyUrl?: string; // when set, the consent line shows above Send (docs/before-go-live.md §1)
 }) {
   const [localStep, setLocalStep] = useState(0);
   const [answers, setAnswers] = useState<Record<string, string>>({});
@@ -234,6 +236,11 @@ export function FormRunner({
               </div>
             )}
             <div style={{ flex: 1 }} />
+            {privacyUrl && step === Q.length - 1 && (
+              <p className="help" style={{ fontSize: 13, margin: "0 0 10px" }}>
+                By sending this you agree to Round One contacting you by WhatsApp and email about your intro meeting. <a href={privacyUrl} target="_blank" rel="noopener noreferrer">Privacy policy</a>
+              </p>
+            )}
             <div style={{ display: "flex", gap: 8 }}>
               <button type="button" className="btn btn-ghost" onClick={() => setStep(Math.max(0, step - 1))} disabled={step === 0}>Back</button>
               {q.type !== "choice" && q.type !== "scale" && (

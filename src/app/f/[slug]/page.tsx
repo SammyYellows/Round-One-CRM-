@@ -17,5 +17,6 @@ export default async function PublicFormPage({ params }: { params: { slug: strin
     id: data.id, slug: data.slug, name: data.name, questions: data.questions, thanks: data.thanks, responses: 0,
     thanksTitle: data.thanks_title ?? undefined, bookButton: data.book_button ?? undefined,
   };
-  return <PublicForm form={form} token={issueFormToken(form.slug)} />;
+  // The consent line appears once the privacy page exists (Vercel setting PRIVACY_URL).
+  return <PublicForm form={form} token={issueFormToken(form.slug)} privacyUrl={process.env.PRIVACY_URL || undefined} />;
 }
