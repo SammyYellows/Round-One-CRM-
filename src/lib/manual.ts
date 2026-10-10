@@ -181,6 +181,7 @@ Use the search and filters at the top to find people.`,
 - Members flagged after three failed payment attempts in TeamUp, with what they owe. Open a person to see each missed payment.
 - The flag clears when a payment goes through in TeamUp.
 - Payment issues are sorted in TeamUp. A friendly word in person often works best.
+- The "failed-payment email" card at the top is off until management approve it there.
 
 ### Cancellations
 - Everyone who has given notice in TeamUp, when their membership runs out, and whether the "before you go" email has gone.

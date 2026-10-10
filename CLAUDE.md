@@ -202,6 +202,8 @@ In place so far:
   routes using `requireManager()` (reports, mailouts, automation drafts,
   gym facts, TeamUp hold, the inactivity setting, staff, Champ
   knowledge). Message cards on staff screens are read-only for staff.
+  Staff never see gym-wide money: no ad spend or cost per trial on Today,
+  no total owed on Failed payments (a named member's payments are fine).
   **Staff** page (`/staff`, `/api/staff`): management add a login (name,
   email, role) and Supabase sends the invite; removing sets
   `staff.active = false`, which stops the login at once.

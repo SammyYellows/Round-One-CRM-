@@ -1,5 +1,6 @@
 "use client";
 
+import { useIsManager } from "@/components/StaffContext";
 import Link from "next/link";
 import { BarList, ColumnChart, Meter, Sparkline } from "@/components/charts";
 import { demoAdLink } from "@/lib/engine";
@@ -11,6 +12,8 @@ import { sumMetrics } from "@/lib/types";
 const shortDay = (ms: number) => new Date(ms).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" });
 
 export default function TodayPage() {
+  // Staff logins don't see gym-wide money: ad spend and cost per trial (Sammy, 10/10/2026).
+  const manager = useIsManager();
   const { s, now, act, live } = useStore();
 
   // ---- Numbers ----
@@ -41,7 +44,7 @@ export default function TodayPage() {
     .filter((a) => a.trials > 0)
     .sort((a, b) => b.trials - a.trials || a.spend / a.trials - b.spend / b.trials)
     .slice(0, 5)
-    .map((a) => ({ key: a.id, label: a.name, value: a.trials, note: `${gbp(a.spend / a.trials)} per trial` }));
+    .map((a) => ({ key: a.id, label: a.name, value: a.trials, note: manager ? `${gbp(a.spend / a.trials)} per trial` : undefined }));
 
   const week = weekLoad(s, now);
 
@@ -56,7 +59,9 @@ export default function TodayPage() {
     { label: "Leads, last 7 days", value: String(leads7), note: `${change >= 0 ? "Up" : "Down"} ${Math.abs(change)}% on the week before`, spark: last14.map((d) => d.leads) },
     { label: "Trials, last 7 days", value: String(trials7), note: `${trialsToday} more booked for today`, spark: last14.map((d) => d.trials) },
     { label: "Trial show-up rate", value: `${Math.round(show.rate * 100)}%`, note: `${show.attended} of ${show.total} turned up`, meter: show.rate },
-    { label: "Meta cost per trial", value: meta.trials ? gbp(meta.spend / meta.trials) : "–", note: `${gbp(meta.spend)} spent, last 30 days`, spark: last14.map((d) => d.spend) },
+    manager
+      ? { label: "Meta cost per trial", value: meta.trials ? gbp(meta.spend / meta.trials) : "–", note: `${gbp(meta.spend)} spent, last 30 days`, spark: last14.map((d) => d.spend) }
+      : { label: "Trials coming up", value: String(trials.length), note: `${trialsToday} of them today` },
   ];
 
   return (

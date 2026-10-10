@@ -1,5 +1,6 @@
 "use client";
 
+import { useIsManager } from "@/components/StaffContext";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { EmailAutomationCard } from "@/components/EmailAutomationCard";
@@ -16,6 +17,7 @@ const AUTOMATION = "payment_failed";
 type Window = "30" | "90" | "all";
 
 export default function PaymentsPage() {
+  const manager = useIsManager(); // the gym-wide total owed is management's (Sammy, 10/10/2026)
   const { s, now, live } = useStore();
   const [window, setWindow] = useState<Window>("all");
   const [holding, setHolding] = useState<string | null>(null); // contact id with the confirm open
@@ -65,7 +67,7 @@ export default function PaymentsPage() {
     <>
       <header className="page-head">
         <div>
-          <div className="eyebrow">{rows.length} with {PAYMENT_FAILED_AT}+ failed attempts · {gbp(owedTotal, 2)} on open invoices · automation {automation?.enabled ? "on" : "off"}</div>
+          <div className="eyebrow">{rows.length} with {PAYMENT_FAILED_AT}+ failed attempts{manager ? ` · ${gbp(owedTotal, 2)} on open invoices` : ""} · automation {automation?.enabled ? "on" : "off"}</div>
           <h1 className="h h1">Failed payments</h1>
         </div>
         <Link className="btn btn-ghost" href="/members">All members</Link>
