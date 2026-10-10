@@ -7,10 +7,10 @@ import { samePhone } from "@/lib/phone";
 import { StoreProvider, useStore } from "@/lib/store";
 import { Form } from "@/lib/types";
 
-function Frame({ form, onSubmit, bookHref, note, children }: { form: Form; onSubmit: (answers: Record<string, string>) => void; bookHref?: string; note?: string; children?: React.ReactNode }) {
+function Frame({ form, onSubmit, bookHref, note, privacyUrl, children }: { form: Form; onSubmit: (answers: Record<string, string>) => void; bookHref?: string; note?: string; privacyUrl?: string; children?: React.ReactNode }) {
   return (
     <div style={{ minHeight: "100vh", background: "var(--black)", display: "flex", justifyContent: "center", alignItems: "center", padding: 16 }}>
-      <FormRunner form={form} onSubmit={onSubmit} bookHref={bookHref} note={note} style={{ width: "100%", maxWidth: 480, minHeight: "min(720px, calc(100vh - 32px))" }} />
+      <FormRunner form={form} onSubmit={onSubmit} bookHref={bookHref} note={note} privacyUrl={privacyUrl} style={{ width: "100%", maxWidth: 480, minHeight: "min(720px, calc(100vh - 32px))" }} />
       {children}
     </div>
   );
@@ -23,7 +23,7 @@ const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
  * `token` (from the server, when the page loaded) lets it tell people from
  * bots; the hidden "website" field is a trap only bots fill in.
  */
-export function PublicForm({ form, token }: { form: Form; token: string }) {
+export function PublicForm({ form, token, privacyUrl }: { form: Form; token: string; privacyUrl?: string }) {
   const [bookHref, setBookHref] = useState<string>();
   const [note, setNote] = useState<string>();
   const trap = useRef<HTMLInputElement>(null);
@@ -46,7 +46,7 @@ export function PublicForm({ form, token }: { form: Form; token: string }) {
     else if (json?.contactId && form.bookButton) setBookHref(`/book/${json.contactId}`);
   };
   return (
-    <Frame form={form} onSubmit={onSubmit} bookHref={bookHref} note={note}>
+    <Frame form={form} onSubmit={onSubmit} bookHref={bookHref} note={note} privacyUrl={privacyUrl}>
       {/* Trap for bots: hidden from people and screen readers. */}
       <input ref={trap} name="website" tabIndex={-1} autoComplete="off" aria-hidden="true" style={{ position: "absolute", left: -10000, width: 1, height: 1, opacity: 0 }} />
     </Frame>

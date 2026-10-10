@@ -82,6 +82,15 @@ when staff mark a sale on the pipeline.
   lists for goal, why now and what you've tried (10/10).
 - **Win-back replies** landing in Enquiries: fine as it is (Sammy, 08/10).
 
+## Go-live (v1), Sunday 11/10/2026
+
+Full switch-over (Sammy, 10/10; GymGrow is stopped). The day, in order,
+is in `docs/go-live-day.md`; privacy paragraphs to paste are in
+`docs/privacy-paragraphs.md`. Ready tonight: the consent line on the form
+(appears once `PRIVACY_URL` is set) and crm.round1boxfit.co.uk registered
+on Vercel (needs one CNAME at SiteGround). Nothing new reaches customers
+beyond the ten automations already on.
+
 ## Work streams
 
 0b. **Inactivity alert and attendance reports** (items 18 and 19, built
