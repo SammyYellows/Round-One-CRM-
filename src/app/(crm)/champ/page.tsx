@@ -150,7 +150,7 @@ export default function ChampPage() {
               <div className="small muted" style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                 <div>Ask about a member, a class, who’s in, a missed payment, or for training and sales ideas. Try:</div>
                 <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                  {STARTERS.map((q) => <button key={q} className="fchip fchip-sm" style={{ textTransform: "none", letterSpacing: 0, height: "auto", minHeight: 36, padding: "8px 12px", textAlign: "left", lineHeight: 1.35 }} onClick={() => ask(q)}>{q}</button>)}
+                  {STARTERS.map((q) => <button key={q} className="fchip fchip-sm champ-starter" style={{ textTransform: "none", letterSpacing: 0 }} onClick={() => ask(q)}>{q}</button>)}
                 </div>
               </div>
             )}

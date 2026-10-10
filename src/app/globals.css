@@ -347,7 +347,7 @@ table.sr-only { display: block; } /* a table ignores width: 1px, which made phon
 .nav-badge.quiet { background: var(--line); color: var(--muted); font-weight: 600; }
 
 /* Champ: chat list stacks above the chat on narrow screens */
-@media (max-width: 800px) { .champ-grid { grid-template-columns: minmax(0, 1fr) !important; } .champ-list { max-height: 160px !important; } .champ-bubble { max-width: 92% !important; } .champ-thread { padding: 12px 14px !important; max-height: none !important; } }
+@media (max-width: 800px) { .champ-grid { grid-template-columns: minmax(0, 1fr) !important; } .champ-list { max-height: 160px !important; } .champ-bubble { max-width: 92% !important; } .champ-thread { padding: 12px 14px !important; max-height: none !important; } .champ-starter { height: auto; min-height: 36px; padding: 8px 12px; text-align: left; line-height: 1.35; } }
 
 /* ---- Phones (Sammy, 10/10/2026: "awful on the phone") ----
    Under 800px the sidebar becomes a top bar with a Menu button, and pages
