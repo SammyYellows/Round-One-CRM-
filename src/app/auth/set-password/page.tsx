@@ -1,6 +1,16 @@
 import { redirect } from "next/navigation";
 import { AuthShell, Notice } from "@/components/AuthShell";
 import { currentUser } from "@/lib/server/staff";
+import { ShowPasswords } from "@/components/ShowPasswords";
+
+const MIN = 8;
+const ERRORS: Record<string, string> = {
+  short: `That password is too short. Use at least ${MIN} characters.`,
+  match: "The two passwords don’t match. Type them again (tick Show passwords to check).",
+  same: "That’s already your password, so there’s nothing to change. Choose a different one, or just log in with it.",
+  weak: "That password is too easy to guess. Try a longer one.",
+  other: "That didn’t save. Try again, or ask for a new reset link.",
+};
 
 export default async function SetPasswordPage({ searchParams }: { searchParams: { error?: string; done?: string } }) {
   const user = await currentUser();
@@ -15,17 +25,18 @@ export default async function SetPasswordPage({ searchParams }: { searchParams: 
   }
   return (
     <AuthShell title="Set your password">
-      <Notice tone="info">For {user.email}. Use at least 10 characters.</Notice>
-      {searchParams.error && <Notice tone="error">Those passwords don’t match or are too short. Try again.</Notice>}
+      <Notice tone="info">For {user.email}. Use at least {MIN} characters.</Notice>
+      {searchParams.error && <Notice tone="error">{ERRORS[searchParams.error] ?? ERRORS.other}</Notice>}
       <form method="post" action="/auth/password" style={{ display: "flex", flexDirection: "column", gap: 14 }}>
         <div>
           <label className="label" htmlFor="password">New password</label>
-          <input id="password" name="password" type="password" className="input" autoComplete="new-password" minLength={10} required />
+          <input id="password" name="password" type="password" className="input" autoComplete="new-password" minLength={MIN} required data-pw />
         </div>
         <div>
           <label className="label" htmlFor="confirm">Type it again</label>
-          <input id="confirm" name="confirm" type="password" className="input" autoComplete="new-password" minLength={10} required />
+          <input id="confirm" name="confirm" type="password" className="input" autoComplete="new-password" minLength={MIN} required data-pw />
         </div>
+        <ShowPasswords />
         <button className="btn btn-red">Save password</button>
       </form>
     </AuthShell>
