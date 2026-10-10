@@ -20,6 +20,7 @@ import { inactiveDays, classStats } from "./activity";
 import { fetchAttendance } from "./attendance";
 import { kisiConfigured, kisiEntries, kisiMemberId } from "./kisi";
 import { whoIsIn } from "./safety";
+import { knowledgeForChamp } from "./champKnowledge";
 import { loadState } from "./state";
 import { db } from "./supabase";
 import { fetchJson, listAll, teamupConfigured } from "./teamup";
@@ -62,6 +63,8 @@ Care with people:
 - Training advice is general coaching, not medical advice. For pain, injury or medical conditions, suggest they see a GP or physio before training around it.
 
 Gym facts (prices, timetable, policies): only use the facts sheet below. If it doesn't cover something, say so rather than guessing.
+
+Round One's own knowledge: management may add notes and documents below the facts sheet (equipment, class formats, coaching standards, sales scripts, house rules, who's who). That is how Round One does things: use it first, and build training and sales answers around it (their kit, their class formats, their way of selling). If general good practice differs, follow Round One's way, but always flag a genuine safety concern. If a staff member asks where something came from, say which note or document.
 
 How to write: British English, plain and friendly, like a good coach. Short answers first, detail if asked. Don't talk about yourself or your process (whether you looked something up, which tool you used); just answer. Use short paragraphs and "- " bullet lists. No tables, no headings, no emoji, no exclamation marks. Bold a name or key fact with **double asterisks** sparingly.`;
 
@@ -338,7 +341,7 @@ async function facts(): Promise<string> {
   return typeof data?.value === "string" && data.value.trim() ? data.value : "(No facts sheet yet.)";
 }
 
-async function callClaude(messages: ChampMessage[], factsSheet: string, final: boolean): Promise<{ content: Block[]; stop_reason: string; usage?: Block }> {
+async function callClaude(messages: ChampMessage[], factsSheet: string, knowledge: string, final: boolean): Promise<{ content: Block[]; stop_reason: string; usage?: Block }> {
   const res = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
     headers: {
@@ -349,7 +352,10 @@ async function callClaude(messages: ChampMessage[], factsSheet: string, final: b
     body: JSON.stringify({
       model: CHAMP_MODEL,
       max_tokens: 8000,
-      system: [{ type: "text", text: SYSTEM }, { type: "text", text: `FACTS SHEET\n\n${factsSheet}`, cache_control: { type: "ephemeral" } }],
+      // The prompt, facts and knowledge are the same for every question, so they're cached for an hour.
+      system: knowledge
+        ? [{ type: "text", text: SYSTEM }, { type: "text", text: `FACTS SHEET\n\n${factsSheet}` }, { type: "text", text: `ROUND ONE'S OWN KNOWLEDGE\n\n${knowledge}`, cache_control: { type: "ephemeral", ttl: "1h" } }]
+        : [{ type: "text", text: SYSTEM }, { type: "text", text: `FACTS SHEET\n\n${factsSheet}`, cache_control: { type: "ephemeral", ttl: "1h" } }],
       tools: TOOLS,
       // On the last step Champ answers with what it has rather than looking up more.
       tool_choice: final ? { type: "none" } : { type: "auto" },
@@ -376,12 +382,12 @@ export async function askChamp(history: ChampMessage[], question: string, staffN
   const p = ukParts(ctx.now);
   const nowLine = `[${["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][p.weekday]} ${p.date}, ${String(p.hour).padStart(2, "0")}:${String(p.minute).padStart(2, "0")} UK. Asked by ${staffName}.]`;
   const added: ChampMessage[] = [{ role: "user", content: [{ type: "text", text: `${nowLine}\n${question}` }] }];
-  const factsSheet = await facts();
+  const [factsSheet, knowledge] = await Promise.all([facts(), knowledgeForChamp().catch(() => "")]);
   const tools: string[] = [];
   const t0 = Date.now();
   for (let step = 0; step < MAX_STEPS; step++) {
     const final = step === MAX_STEPS - 1 || Date.now() - t0 > TIME_LIMIT_MS;
-    const r = await callClaude([...history, ...added], factsSheet, final);
+    const r = await callClaude([...history, ...added], factsSheet, knowledge, final);
     added.push({ role: "assistant", content: r.content });
     if (r.usage) console.log("[champ] usage", JSON.stringify(r.usage));
     if (r.stop_reason === "refusal") return { added, answer: textOf(r.content) || "I can’t help with that one. Ask me about members, classes, training or sales.", tools };
