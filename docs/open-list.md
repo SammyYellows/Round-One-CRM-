@@ -91,6 +91,16 @@ is in `docs/go-live-day.md`; privacy paragraphs to paste are in
 on Vercel (needs one CNAME at SiteGround). Nothing new reaches customers
 beyond the ten automations already on.
 
+**GymGrow import: on hold** (Sammy, 10/10). Contacts export received (1,450
+rows: 685 questionnaire leads with email, 683 phone-only contacts uploaded
+in one go on 7 May, 82 added individually; 88 already in the CRM). No
+notes, stages or answers in it. Waiting on Sammy: the **Opportunities
+export** from GymGrow, so each lead goes into its real pipeline stage.
+Plan when it comes: preview first (counts per stage and example rows),
+import quietly (source GymGrow, original dates, tag gymgrow-import, no
+messages, no automations), tag the 88 existing contacts only. Sammy still
+to decide on the 7 May list and the 82.
+
 ## Work streams
 
 0b. **Inactivity alert and attendance reports** (items 18 and 19, built
