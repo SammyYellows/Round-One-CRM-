@@ -178,6 +178,12 @@ In place so far:
   are saved (`champ_chats`, `champ_messages`, exact API content blocks so a
   chat carries on unchanged); owners and managers (staff role) can read
   everyone's. Champ's picture goes in `public/champ/champ.png`.
+  **Teach Champ** (`/champ/knowledge`, `champKnowledge.ts`, management
+  only: Owner or Manager staff role): notes and uploaded documents (PDF,
+  .docx, text; files go straight to the private `champ-docs` bucket by a
+  signed upload, PDFs are read once by Claude, Word files are unzipped in
+  code). Every active entry is added to Champ's system prompt (cached an
+  hour), capped at 400,000 characters.
 
 Still to come: Meta Marketing API sync.
 
