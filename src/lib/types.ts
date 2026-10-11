@@ -343,9 +343,11 @@ export interface Question {
   low?: string;
   high?: string;
   field?: "name" | "phone" | "email"; // maps the answer onto the contact
-  // For "multi": how many can be ticked, and whether there's an "Other" box.
+  // For "multi": how many can be ticked, whether there's an "Other" box, and
+  // an option that can only be ticked on its own (e.g. "Nothing").
   max?: number;
   other?: boolean;
+  alone?: string;
   optional?: boolean; // may be skipped
 }
 

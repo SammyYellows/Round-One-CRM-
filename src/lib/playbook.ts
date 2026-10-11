@@ -536,9 +536,9 @@ export const TRIAL_FORM: Form = {
   questions: [
     { id: "q1", type: "choice", text: "Do you prefer training alone or in a group?", options: ["Alone", "Group", "Either"] },
     { id: "q2", type: "choice", text: "Are you willing to invest in your health and fitness?", options: ["Yes, I’m ready to commit", "I’m considering it", "Not right now"] },
-    { id: "q3", type: "long", text: "What is your #1 fitness goal right now?" },
-    { id: "q4", type: "long", text: "Why is now the right time for you to start?" },
-    { id: "q5", type: "long", text: "What have you tried before?" },
+    { id: "q3", type: "multi", text: "What are your main fitness goals right now?", options: ["Lose weight", "Gain muscle", "Reduce body fat percentage", "Learn boxing"], max: 2, other: true },
+    { id: "q4", type: "multi", text: "Why is now the right time for you to start?", options: ["Something coming up (holiday, wedding, event)", "Health reasons or a wake-up call", "Fed up with how I look or feel", "More confidence, less stress"], max: 2, other: true },
+    { id: "q5", type: "multi", text: "What have you tried before?", options: ["Nothing", "Weights", "Outdoor or indoor cardio", "Different combat sports"], max: 5, other: true, alone: "Nothing" },
     { id: "q6", type: "choice", text: "How many days per week are you willing to train?", options: ["1–2 days", "3–4 days", "5+ days"] },
     { id: "q7", type: "choice", text: "Are you looking for coaching & accountability?", options: ["Yes", "No", "Not sure"] },
     { id: "q8", type: "choice", text: "How soon would you be ready to start?", options: ["Immediately", "This week", "This month", "Just browsing"] },
