@@ -7,9 +7,8 @@ import { samePhone } from "@/lib/phone";
 import { StoreProvider, useStore } from "@/lib/store";
 import { Form } from "@/lib/types";
 
-// The gym photo (Sammy, 11/10/2026), phones only: it shows in front of the
-// form when the page opens, starts fading at 2 seconds and is gone by 5. A tap
-// skips it. Hidden by CSS on wider screens.
+// The gym photo (Sammy, 11/10/2026): it shows in front of the form when the
+// page opens, starts fading at 2 seconds and is gone by 5. A tap skips it.
 function Splash() {
   const [show, setShow] = useState(true);
   useEffect(() => { const t = setTimeout(() => setShow(false), 5000); return () => clearTimeout(t); }, []);

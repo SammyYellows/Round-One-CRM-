@@ -184,9 +184,9 @@ updates from the import never fire automations.
    Waiting on Sammy: approve the welcome, check-in and nudge emails on the
    Accountability screen; send one real member their link when ready.
 3. **Photo on the questionnaire** (improvement list item 1). **Done 11/10**:
-   on phones the gym photo shows in front of the form, starts fading at 2
-   seconds and is gone by 5 (a tap skips it). Desktop unchanged. The photo is
-   small (490×326); a bigger original would look sharper full-screen.
+   the gym photo shows in front of the form on phones and desktop, starts
+   fading at 2 seconds and is gone by 5 (a tap skips it). The photo is small
+   (490×326); see items 21 and 22.
 3b. **Win-back email the day after notice** (improvement list item 7).
    **Stays on (Sammy, 08/10).** Research into better win-back approaches
    is improvement item 17.
@@ -321,6 +321,12 @@ updates from the import never fire automations.
     ones only get the 2-hour one). No WhatsApps or emails sent at import.
 20. **Price rise and smaller memberships** (Sammy, 11/10): switching to a
     smaller membership pays the price at the time of changing.
+21. **Original photos** (Sammy, 11/10): the questionnaire photo is a small
+    copy (490×326) and looks soft full-screen, mostly on desktop. Waiting on
+    Sammy: the original, full-size photos. Reminder set for 12/10 morning.
+22. **Accountability forms: change the photo later** (Sammy, 11/10). The
+    gym photo shows on every public form, including the accountability and
+    check-in forms members get. Fine for now; change it for those later.
 
 ## Done and off the list (08–09/10/2026)
 
