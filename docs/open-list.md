@@ -241,6 +241,31 @@ updates from the import never fire automations.
     like Enquiries, staff approve each reply. Build after the real number
     is connected.
 
+14. **WhatsApp real number: GymGrow removed, billing stuck** (11/10).
+    Done: Gym Grow and LeadConnector removed as partners from the whole
+    business portfolio (page, ad account, Instagram, WhatsApp);
+    LeadConnector's credit line gone. The number +44 7833 399014 (WABA
+    "Round One Gym", 1438210021679060, owned by Round 1) is still
+    Connected, quality High, and the WhatsApp Business app on the gym phone
+    still works (tested). Sammy is a finance editor; his Mastercard is saved
+    at portfolio level. **Blocked:** the WABA's payment account
+    (1968536350436383) is fixed at India / INR (LeadConnector's set-up), so
+    no card can be added and paid messages (templates outside 24 hours)
+    can't send. Meta support's suggestion (new GBP WABA + migrate the
+    number) is on hold: Meta's developer docs say a coexistence number
+    (app + Cloud API) can only be onboarded through a partner's Embedded
+    Signup, and plain registration makes it API-only (the app stops).
+    **Sammy, 11/10: keep the phone app; fix the billing.** Waiting on a
+    human at Meta support to change the currency or give a supported move
+    that keeps coexistence. Fallbacks if they can't: a coexistence-capable
+    partner just for the move, or going API-only with staff replying from
+    the CRM. Until then the CRM stays on the test number for WhatsApp.
+    Kept quiet from GymGrow: they only see "disconnected". Also: an ad
+    account "unknown (Read-Only)" 1004095058969212 to look at; the
+    portfolio's own two-factor setting is "No one" (set to Admins later);
+    the legal business name reads LEE HASKINS LTD (check). Card number was
+    visible in a screenshot in chat (CVV hidden): Sammy to watch it.
+
 ## Done and off the list (08–09/10/2026)
 
 Two routes (CRM vs direct TeamUp); first and last name; repeat form
