@@ -76,7 +76,7 @@ the front desk only).
 | 22 | Staff set coaches on members from Monday; front desk gets alerts until then. |
 | 23 | Sammy writes the equipment note in Train Champ today. |
 | 24 | Staff add mobiles as they see people. |
-| 25 | Resend Pro later, when the first big mailout is planned. |
+| 25 | Resend Pro today (Sammy corrected his answer). Once upgraded, Claude sets `MAILOUT_DAILY_LIMIT=0` in Vercel to lift the 80-a-day cap. |
 | 26 | Closed as covered by Monday's real use; anything odd goes in `test-log.md`. |
 | 27 | Leave it: staff on Staff Access aren't booked into classes. |
 | 28 | Still open: check on the first real Champ booking. |
