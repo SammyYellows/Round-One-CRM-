@@ -266,6 +266,26 @@ updates from the import never fire automations.
     the legal business name reads LEE HASKINS LTD (check). Card number was
     visible in a screenshot in chat (CVV hidden): Sammy to watch it.
 
+15. **Chrome won't log into Meta** (11/10, evening). Since the YCloud
+    sign-up's "Log in with WhatsApp Business app", Chrome on Sammy's
+    computer is stuck as the WhatsApp login ("You don't have access – log
+    out of your WhatsApp Business app", `out_of_scope_page_type=waba_user`).
+    Deleting facebook/meta site data didn't fix it. **Edge works** (use it
+    for Meta meanwhile). To try: delete ycloud.com, whatsapp and fbcdn site
+    data too; if not, Chrome → Clear browsing data → All time → cookies and
+    cached files (logs out of all sites).
+16. **WhatsApp via YCloud: finish setup** (11/10, evening). The gym phone
+    now shows "Connected platform: YCloud – Finish setting up in YCloud";
+    Meta shows +44 7833 399014 as CONNECTED, Cloud API, still on the
+    Business app (coexistence back on). YCloud never got access (the sign-up
+    ended on "You don't have access"; the Facebook route shows the number as
+    "Ineligible"). Waiting on YCloud support to complete it. Not yet tested:
+    whether the CRM can send directly through the number with its own key
+    (the account still has no card, India/INR). GymGrow's old templates on
+    that account have buttons pointing at gymgrow.app, so the CRM needs its
+    own templates submitted there. The business portfolio now shows as
+    "Round One Gym" in Meta pop-ups (was "Round 1"): check.
+
 ## Done and off the list (08–09/10/2026)
 
 Two routes (CRM vs direct TeamUp); first and last name; repeat form
