@@ -1,15 +1,26 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { FormRunner } from "@/components/FormRunner";
 import { readAttribution } from "@/lib/engine";
 import { samePhone } from "@/lib/phone";
 import { StoreProvider, useStore } from "@/lib/store";
 import { Form } from "@/lib/types";
 
+// The gym photo (Sammy, 11/10/2026), phones only: it shows in front of the
+// form when the page opens, starts fading at 2 seconds and is gone by 5. A tap
+// skips it. Hidden by CSS on wider screens.
+function Splash() {
+  const [show, setShow] = useState(true);
+  useEffect(() => { const t = setTimeout(() => setShow(false), 5000); return () => clearTimeout(t); }, []);
+  if (!show) return null;
+  return <div className="form-splash" aria-hidden="true" onClick={() => setShow(false)} />;
+}
+
 function Frame({ form, onSubmit, bookHref, note, privacyUrl, children }: { form: Form; onSubmit: (answers: Record<string, string>) => void; bookHref?: string; note?: string; privacyUrl?: string; children?: React.ReactNode }) {
   return (
-    <div style={{ minHeight: "100vh", background: "var(--black)", display: "flex", justifyContent: "center", alignItems: "center", padding: 16 }}>
+    <div className="form-frame" style={{ minHeight: "100vh", display: "flex", justifyContent: "center", alignItems: "center", padding: 16 }}>
+      <Splash />
       <FormRunner form={form} onSubmit={onSubmit} bookHref={bookHref} note={note} privacyUrl={privacyUrl} style={{ width: "100%", maxWidth: 480, minHeight: "min(720px, calc(100vh - 32px))" }} />
       {children}
     </div>
