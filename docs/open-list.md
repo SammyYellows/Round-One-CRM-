@@ -28,7 +28,7 @@ list comes up, until each is on or dropped.
 | Accountability welcome, weekly check-in, mid-week nudge | Accountability | Joining, their slot each week, Thursday 17:00 |
 | Weekly members, monthly growth and unpaid reports | Reports | Mondays and the 1st at 08:00 |
 
-**Done 08/10:** failed payments missed (Romel Rodriques) fixed. Still for Sammy: check in TeamUp whether he really has three Full Facility Access memberships (wrap-up #21).
+**Done 08/10:** failed payments missed (Romel Rodriques) fixed. **11/10:** his duplicate Full Facility Access memberships are cancelled in TeamUp; one active since 05/01/2026.
 
 **Task: Program route 2 schedule** (people who sign up straight in
 TeamUp, never through the questionnaire). Built so far: only the day-1
@@ -66,8 +66,8 @@ when staff mark a sale on the pipeline.
   then finds the API for it. Kisi is not needed for this (08/10).
 - **Two-way TeamUp actions** (item 9): Sammy wants reminding; the hold
   button is the first one, built 08/10.
-- **Test log run** (`docs/test-log.md`): Sammy wants reminding to pick a
-  time.
+- **Test log run** (`docs/test-log.md`): **closed 11/10** as covered by
+  staff using the CRM from Monday; log anything odd.
 - **Program messages days 1–28:** wording approved (08/10). **Sammy, 10/10:
   keep them off until Meta has approved the WhatsApp templates**, so email
   and WhatsApp start together. That needs the WhatsApp token.
@@ -223,8 +223,7 @@ updates from the import never fire automations.
 
 10. **Staff Access has "no allotment set" in TeamUp** (membership 246352).
     TeamUp refuses to book anyone on it into a class ("purchase required").
-    Found when testing Champ's booking on Sammy's account (10/10); nothing
-    was booked. Waiting on Sammy: set an allotment in TeamUp, or leave it.
+    **Sammy, 11/10: leave it.** Staff on Staff Access aren't booked.
 11. **Champ booking: does TeamUp email the member?** To check on the first
     real booking (Champ tells staff TeamUp "may" send its usual
     confirmation).
