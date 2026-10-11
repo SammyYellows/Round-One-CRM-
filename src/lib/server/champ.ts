@@ -23,6 +23,7 @@ import { whoIsIn } from "./safety";
 import { knowledgeForChamp } from "./champKnowledge";
 import { manualText } from "@/lib/manual";
 import { isManagerRole } from "@/lib/roles";
+import { isSharedLogin } from "@/lib/logins";
 import { sendEmail } from "./email";
 import { loadState } from "./state";
 import { db } from "./supabase";
@@ -260,7 +261,7 @@ async function flagConduct(input: Block, ctx: Ctx): Promise<string> {
   let told = false;
   if (!first) {
     const { data: managers } = await db().from("staff").select("email, role").eq("active", true);
-    const to = [...new Set((managers ?? []).filter((m) => /owner|manager/i.test(String(m.role)) && m.email).map((m) => String(m.email)))];
+    const to = [...new Set((managers ?? []).filter((m) => /owner|manager/i.test(String(m.role)) && m.email && !isSharedLogin(String(m.email))).map((m) => String(m.email)))];
     if (!to.length && process.env.STAFF_EMAIL) to.push(process.env.STAFF_EMAIL);
     const link = `${process.env.APP_URL || "https://round-one-crm.vercel.app"}/champ?chat=${who.chatId}`;
     const body = `${who.staffName} asked Champ something that breaks Round One's conduct rule (${category}). They were warned the first time, on ${count === 1 ? "an earlier occasion" : `${count} earlier occasions`}.\n\nWhat they asked:\n"${clip(who.question, 1000)}"\n\nChamp refused it. The chat: ${link}\n\nNothing has been said to anyone else.`;

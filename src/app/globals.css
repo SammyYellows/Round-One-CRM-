@@ -388,4 +388,8 @@ table.sr-only { display: block; } /* a table ignores width: 1px, which made phon
   .champ-portrait > div { font-size: 26px !important; }
   .champ-grid textarea { min-height: 84px; }
   input.input, textarea.input, select.select { font-size: 16px; }
+  .staff-head { display: none !important; }
+  .staff-row { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important; row-gap: 8px !important; }
+  .staff-row > :nth-child(1), .staff-row > :nth-child(2), .staff-row > :nth-child(5) { grid-column: 1 / -1; }
+  .staff-row > :nth-child(5) { justify-content: flex-start !important; }
 }

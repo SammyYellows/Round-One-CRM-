@@ -9,6 +9,7 @@ import { GYM } from "./gym";
 import { samePhone } from "./phone";
 import { ukParts, ukTime, ukWeekStart } from "./time";
 import { inactivityAdvice, PRIORITY_LABEL } from "./inactivity";
+import { isSharedLogin } from "./logins";
 
 // Random ids. Contact ids also make the private link to someone's booking
 // page (/book/<id>), so they come from a proper random source.
@@ -871,7 +872,7 @@ export function flagInactivity(s: State, days: number, opts: { baseline?: boolea
 
 Nothing goes to the member from the CRM: whether and how to get in touch is your call.
 Last in: ${a.lastSeenAt ? a.lastSeenAt : "never"}. Sessions in the last 30 days: ${a.last30}; the 30 before: ${a.prev30}.`,
-      ...(coach?.email ? { address: coach.email } : {}),
+      ...(coach?.email && !isSharedLogin(coach.email) ? { address: coach.email } : {}),
     });
     n++;
   }
