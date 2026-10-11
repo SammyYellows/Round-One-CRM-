@@ -85,7 +85,7 @@ How to write: British English, plain and friendly, like a good coach. Short answ
 
 const TOOLS: Block[] = [
   { name: "find_people", description: "Search everyone the CRM knows (members, ex-members, leads, enquiries) by name, email or phone. Returns short summaries with an id for person_details.", input_schema: { type: "object", properties: { query: { type: "string", description: "Name, part of a name, email or phone number" }, limit: { type: "integer", description: "Default 10" } }, required: ["query"] } },
-  { name: "person_details", description: "Everything about one person: membership, payments, attendance (last 60 days), waiver and emergency contact, questionnaire answers, accountability programme, what they've said in WhatsApp replies, trials, tasks, recent messages and history.", input_schema: { type: "object", properties: { contact_id: { type: "string" } }, required: ["contact_id"] } },
+  { name: "person_details", description: "Everything about one person: membership, payments, attendance (last 60 days), waiver and emergency contact, questionnaire answers, staff notes, accountability programme, what they've said in WhatsApp replies, trials, tasks, recent messages and history.", input_schema: { type: "object", properties: { contact_id: { type: "string" } }, required: ["contact_id"] } },
   { name: "list_members", description: "List members with filters. Use for questions like 'who hasn't been in for 3 weeks', 'who has no waiver', 'who owes money', 'who's given notice', 'whose membership ends soon'.", input_schema: { type: "object", properties: {
     status: { type: "string", enum: ["active", "on_hold", "ended", "any"], description: "Default active" },
     category: { type: "string", description: "TeamUp membership category, or part of the membership name, e.g. 'Program'" },
@@ -310,6 +310,7 @@ export async function runTool(name: string, input: Block, ctx: Ctx = new Ctx()):
         lapsedAdvice: advice ? { priority: advice.priority, reason: advice.reason, suggestedAction: advice.action } : undefined,
         safety: c.safety ? { waiverSigned: ukDay(c.safety.waiverSignedAt) ?? "NO", waiver: c.safety.waiverName, emergencyContact: c.safety.emergencyName || c.safety.emergencyPhone ? { name: c.safety.emergencyName, phone: c.safety.emergencyPhone, relationship: c.safety.emergencyRelationship } : "none on file", dateOfBirth: c.safety.dateOfBirth } : "not synced",
         questionnaire: c.answers.length ? c.answers.map((a) => `${a.question}: ${a.answer}`) : undefined,
+        staffNotes: c.notes?.length ? c.notes.slice(0, 20).map((n) => `${n.at.slice(0, 10)} ${n.by}: ${n.text}`) : undefined,
         trialAt: uk(c.trialAt), lostReason: c.lostReason, tags: c.tags.length ? c.tags : undefined,
         adAttribution: c.ad || c.campaign ? { campaign: c.campaign, adSet: c.adset, ad: c.ad } : undefined,
         accountability: c.accountability ? { active: c.accountability.active, sessionsAWeekFloor: c.accountability.floor, stretch: c.accountability.stretch, goals: c.accountability.goals, why: c.accountability.why, checkInSlot: c.accountability.slot, recentCheckins: c.accountability.checkins?.slice(0, 3).map((k) => ({ week: k.week, feel: k.feel, blocker: k.blocker, plan: k.play })) } : undefined,

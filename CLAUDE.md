@@ -229,6 +229,7 @@ In place so far:
   them. `useStore().removed` lists them for Contacts → Removed and Put back.
   Email enquiry senders are contacts but stay off the Meta pipeline
   (`onMetaPipeline`) unless tagged `on-pipeline`.
+- **Contact notes** (Sammy, 12/10): `contact.notes` (newest first, `addNote`; the server sets who wrote it). Shown above WhatsApp on the contact page; Champ's `person_details` includes them. With no questionnaire answers the page says so, and why.
 - **Manual** (`src/lib/manual.ts`, `/manual`, linked at the bottom of the
   menu): one section per area; the management section is hidden from
   staff. Champ reads the whole manual and is the expert on the CRM; keep

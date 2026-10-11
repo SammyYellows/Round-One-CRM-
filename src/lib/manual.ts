@@ -30,7 +30,7 @@ export const MANUAL: ManualSection[] = [
 - **Owner** and **Manager** logins also see Mailouts, Automations, Reports, Forms, Meta ads, Staff and Train Champ, and can change messages and settings.
 
 ### Getting help
-Ask **Champ** (**Ask Champ**, in red, second in the menu, or the big red button on Today). It knows this manual, can look up any member, class or lead for you, and can help with training and sales ideas.`,
+Ask **Champ** (**Ask Champ**, in red, second in the menu). It knows this manual, can look up any member, class or lead for you, and can help with training and sales ideas.`,
   },
   {
     slug: "daily-routine", title: "Your daily routine", who: "everyone",
@@ -52,8 +52,7 @@ Ask **Champ** (**Ask Champ**, in red, second in the menu, or the big red button 
   {
     slug: "today", title: "Today", who: "everyone",
     summary: "The home screen: what needs you, trials coming up, and how leads are doing.",
-    body: `- **Ask Champ**: the big red button at the top opens Champ.
-- **Needs you** (top left): tasks for staff. Tick **Done** when finished. Tasks are made by the CRM (a member hasn't been in, a check-in needs a reply, a cancellation) or by staff.
+    body: `- **Needs you** (top left): tasks for staff. Tick **Done** when finished. Tasks are made by the CRM (a member hasn't been in, a check-in needs a reply, a cancellation) or by staff.
 - **Upcoming trials** (under the tiles, top right) and **Trials this week**: intro meetings booked.
 - The four tiles (top right) and the charts (leads in the last 7 days, trials, show-up rate, where leads come from, which ads book trials) show how the sales side is going.
 - **Open trial form** opens the public questionnaire; **Book a trial** opens the calendar to book someone in.`,
@@ -145,7 +144,8 @@ Use the search and filters at the top to find people.`,
 - **WhatsApp**: the conversation. You can write freely only within 24 hours of their last message; after that WhatsApp only allows approved template messages, and the screen says so.
 - **Quick replies**: one-tap lines you can drop into a message (**Add a line** to create your own).
 - **In their words**: a short summary of what they've told us in WhatsApp, with a suggested reply. **Use it** puts it in the message box for you to edit and send; nothing is sent until you press **Send**. **No reply needed** clears it.
-- **Questionnaire**: their answers from the form.
+- **Questionnaire**: their answers from the form. If there are none it says **No questionnaire answers** and why (for example imported from GymGrow, or signed up in TeamUp).
+- **Notes** (above WhatsApp): type a note and press **Add note**. Each note shows who wrote it and when, newest first. For staff only; never sent to anyone. Champ can read them.
 - **Stage** and buttons such as **Sold programme**, **Sold membership** and **Move to nurture** (these send messages, see Meta pipeline).
 - For members: their **membership** (from TeamUp), **Coach**, **Last in** and sessions in the last 30 days, a **priority** if they've lapsed with a suggested action, and their **Safety** card.
 - **No marketing messages**: tick if they don't want offers (they can also reply STOP). Messages about their own booking or membership still go.

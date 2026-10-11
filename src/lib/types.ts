@@ -104,6 +104,8 @@ export interface Contact {
   // TeamUp sync doesn't add them back). Put back clears it, and so does
   // filling in the form or booking again.
   removed?: { at: string; by: string };
+  // Staff notes, newest first (Sammy, 12/10/2026).
+  notes?: { id: string; at: string; by: string; text: string }[];
 }
 
 export interface Safety {
@@ -263,6 +265,7 @@ export type EventType =
   | "safety.checked" // staff spoke to someone in the gym without a waiver or emergency contact
   | "class.booked" // booked into a TeamUp class through Champ
   | "contact.removed" // management took them off the CRM
+  | "note.added" // a staff note on the contact page
   | "contact.restored" // put back, by staff or because they came back in
   | "appointment.booked"
   | "appointment.updated";

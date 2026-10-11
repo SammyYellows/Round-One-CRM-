@@ -19,6 +19,7 @@ export default function ContactPage() {
   const { s, now, act, live, removed } = useStore();
   const manager = useIsManager();
   const [removing, setRemoving] = useState(false);
+  const [noteDraft, setNoteDraft] = useState("");
   const [draft, setDraft] = useState("");
   const [losing, setLosing] = useState(false);
   const [lostReason, setLostReason] = useState<string>(LOST_REASONS[0]);
@@ -288,7 +289,7 @@ export default function ContactPage() {
         </section>
 
         <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-          {c.answers.length > 0 && (
+          {c.answers.length > 0 ? (
             <section className="card">
               <div className="card-head">
                 <div>
@@ -304,6 +305,17 @@ export default function ContactPage() {
                   </div>
                 ))}
               </dl>
+            </section>
+          ) : (
+            <section className="card pad" style={{ borderLeft: "3px solid var(--line)" }}>
+              <h2 className="h h3" style={{ marginBottom: 6 }}>Questionnaire</h2>
+              <div className="strong">No questionnaire answers</div>
+              <div className="small muted" style={{ marginTop: 4 }}>
+                {c.gymgrow ? "Imported from GymGrow, which didn’t include their answers. Ask them at the intro meeting."
+                  : c.source === "teamup" ? "Signed up straight in TeamUp, so they never filled in the questionnaire."
+                  : c.source === "email" ? "Came in by email, so they never filled in the questionnaire."
+                  : "They haven’t filled in the questionnaire. Ask them at the intro meeting, or send them the form."}
+              </div>
             </section>
           )}
           {c.insight?.summary && (
@@ -328,6 +340,24 @@ export default function ContactPage() {
               )}
             </section>
           )}
+        <section className="card">
+          <div className="card-head">
+            <h2 className="h h3">Notes</h2>
+            <span className="small muted">{c.notes?.length ? `${c.notes.length} note${c.notes.length === 1 ? "" : "s"}` : "For staff only"}</span>
+          </div>
+          <form className="pad" style={{ paddingTop: 0, display: "flex", flexDirection: "column", gap: 8 }} onSubmit={(e) => { e.preventDefault(); if (!noteDraft.trim()) return; act("addNote", c.id, noteDraft); setNoteDraft(""); }}>
+            <label htmlFor="note" className="sr-only">Add a note</label>
+            <textarea id="note" className="input" rows={2} style={{ height: "auto", paddingTop: 10, resize: "vertical" }} placeholder="Add a note: a call, what they said at the desk, anything the team should know" value={noteDraft} onChange={(e) => setNoteDraft(e.target.value)} maxLength={4000} />
+            <button className="btn btn-ghost btn-sm" style={{ alignSelf: "flex-start" }} disabled={!noteDraft.trim()}>Add note</button>
+          </form>
+          {(c.notes ?? []).map((n) => (
+            <div key={n.id} className="row" style={{ flexDirection: "column", alignItems: "stretch", gap: 4, paddingTop: 12, paddingBottom: 12 }}>
+              <div style={{ whiteSpace: "pre-wrap", fontSize: 14 }}>{n.text}</div>
+              <div className="faint" style={{ fontSize: 12 }}>{n.by} · {ago(n.at, now)}</div>
+            </div>
+          ))}
+        </section>
+
         <section className="card">
           <div className="card-head" style={{ alignItems: "center" }}>
             <h2 className="h" style={{ fontSize: 24 }}>WhatsApp</h2>

@@ -78,10 +78,6 @@ export default function TodayPage() {
         </div>
       </header>
 
-      <div className="ask-champ-wrap">
-        <Link className="btn btn-red ask-champ" href="/champ">Ask Champ</Link>
-      </div>
-
       <div className="grid cols-today">
         <section className="card needs">
           <div className="card-head">
@@ -231,6 +227,7 @@ export default function TodayPage() {
 
 const EVENT_LABEL: Record<string, string> = {
   "contact.created": "New contact",
+  "note.added": "Note",
   "form.submitted": "Form submitted",
   "stage.changed": "Stage changed",
   "tag.added": "Tagged",
