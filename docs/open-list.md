@@ -71,7 +71,10 @@ when staff mark a sale on the pipeline.
   "leave it" was a mis-tap): both.** Built: the nightly payments stage reads
   blocks; Failed payments and the contact page show Blocked in TeamUp / Not
   blocked; anyone with 3+ failed attempts who isn't blocked gets a Needs you
-  task that ticks itself off (`recordBlocks`). Waiting on Sammy: switch on
+  task that ticks itself off (`recordBlocks`). **New failures only** (Sammy):
+  the 47 already failing on 11/10 (22 not blocked) were marked
+  `blockTaskId: "before-11-10"`, so no tasks for them. 64 blocked in TeamUp,
+  57 of them CRM contacts. Waiting on Sammy: switch on
   TeamUp's own auto-block (and the Kisi setting that leaves blocked
   memberships off the door) if wanted; paste a TeamUp customer page address
   for an Open in TeamUp button.
