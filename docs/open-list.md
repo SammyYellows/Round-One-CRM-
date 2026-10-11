@@ -61,9 +61,15 @@ when staff mark a sale on the pipeline.
   now; add the rest in Reports → Settings before switching the schedules
   on. Also the `management_report` template needs Meta's approval.
 - **Blocking after failed payments** (improvement item 15): Sammy wants a
-  block in TeamUp that keeps billing going, not a hold. **Reminder: Sammy
-  will send a screenshot of where he blocks someone in TeamUp**; Claude
-  then finds the API for it. Kisi is not needed for this (08/10).
+  block in TeamUp that keeps billing going, not a hold. **Screenshot sent
+  11/10**: customer profile → **Block Customer** / **Unblock Customer**; the
+  membership then shows "Registrations Blocked". **TeamUp's API can read
+  blocks but not make them** (`/customer_registration_blocks` is GET only;
+  the customers report filters on `registration_blocked`). TeamUp also
+  lists "membership blocked after failed payment" as a booking refusal
+  reason, so it has its own automatic block. Waiting on Sammy: which way
+  to go (show blocked status and an Open-in-TeamUp link in the CRM, and/or
+  use TeamUp's own automatic block).
 - **Two-way TeamUp actions** (item 9): Sammy wants reminding; the hold
   button is the first one, built 08/10.
 - **Test log run** (`docs/test-log.md`): **closed 11/10** as covered by
