@@ -10,6 +10,7 @@ const ERRORS: Record<string, string> = {
   same: "That’s already your password, so there’s nothing to change. Choose a different one, or just log in with it.",
   weak: "That password is too easy to guess. Try a longer one.",
   other: "That didn’t save. Try again, or ask for a new reset link.",
+  shared: "This is a shared login, so its password is set by a manager on the Staff page.",
 };
 
 export default async function SetPasswordPage({ searchParams }: { searchParams: { error?: string; done?: string } }) {

@@ -3,8 +3,9 @@
 import { useState } from "react";
 
 // A password box with a Show / Hide button inside it (Sammy, 10/10/2026: so
-// typing on a phone can be checked). Used on login and set-password.
-export function PasswordInput(props: { id: string; name: string; autoComplete: string; minLength?: number; autoFocus?: boolean }) {
+// typing on a phone can be checked). Used on login, set-password and the
+// Staff page (shared logins).
+export function PasswordInput(props: { id: string; name?: string; autoComplete: string; minLength?: number; autoFocus?: boolean; value?: string; onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void; placeholder?: string; "aria-label"?: string }) {
   const [show, setShow] = useState(false);
   return (
     <div style={{ position: "relative" }}>

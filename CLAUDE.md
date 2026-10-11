@@ -211,7 +211,13 @@ In place so far:
   no total owed on Failed payments (a named member's payments are fine).
   **Staff** page (`/staff`, `/api/staff`): management add a login (name,
   email, role) and Supabase sends the invite; removing sets
-  `staff.active = false`, which stops the login at once.
+  `staff.active = false`, which stops the login at once. **Shared logins**
+  (Sammy, 11/10): a username instead of an email (`src/lib/logins.ts`; it
+  becomes `<username>@logins.round1boxfit.co.uk`, a subdomain with no mail,
+  so nothing is delivered); management set the password on the Staff page,
+  which signs everyone on it out (`revoke_sessions`). Forgotten password and
+  changing your own password are refused for them, and no automatic email
+  goes to them (coach alerts fall back to the front desk).
 - **Manual** (`src/lib/manual.ts`, `/manual`, linked at the bottom of the
   menu): one section per area; the management section is hidden from
   staff. Champ reads the whole manual and is the expert on the CRM; keep

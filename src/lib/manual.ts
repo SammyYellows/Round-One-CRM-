@@ -13,10 +13,11 @@ export const MANUAL: ManualSection[] = [
     body: `The CRM is where Round One looks after enquiries, intro meetings and members. Memberships, bookings, payments and waivers are still done in **TeamUp**; the CRM reads from TeamUp every night and shows it alongside everything else.
 
 ### Logging in
-- Go to the CRM's web address and log in with your email and password. The email is remembered on that device.
+- Go to the CRM's web address and log in with your email and password, or with a shared login's **username** (for example \`staff\`) and its password. What you typed is remembered on that device.
 - Tap **Show** in the password box to check what you've typed.
 - Forgotten it? Tap **Forgotten your password?**, enter your email, and use the link in the email from bookings@round1boxfit.co.uk. Passwords need 8 characters or more, and can't be the one you already have.
 - New staff get an invite email from bookings@ to choose a password.
+- **Shared logins** (a username, no email): Forgotten password doesn't work for these, and you can't change the password yourself. Ask a manager, who sets a new one on the Staff page.
 
 ### Finding your way round
 - The menu down the left lists the screens. On a phone it's behind the **Menu** button at the top.
@@ -228,6 +229,7 @@ Anyone can reply STOP to stop marketing messages; messages about their own booki
     body: `Owner and Manager logins only.
 
 - **Staff**: add a login (name, email, role) and they get an invite email; **Resend** if they lost it; **Remove** stops their login at once (**Bring back** restores it). Roles: Staff (day-to-day screens) or Owner/Manager (everything).
+- **Shared logins** (on Staff): a username and password you choose, no email, shared by everyone at that level. **Set password** changes it and signs everyone on it out; do this when someone forgets it or leaves. On a shared login the CRM records the login's name (for example "Staff"), not the person.
 - **Train Champ** (button on Champ): notes and documents (PDF, Word, text) Champ reads before every answer, such as equipment, class formats, sales scripts. Switch entries on or off, edit or remove them.
 - **Everyone's** on Champ: read all staff chats. Conduct flags are emailed to management.
 - **Automations**: every automatic message, grouped by job. Read what's sent, edit the wording, and switch messages on or off (with a confirm).

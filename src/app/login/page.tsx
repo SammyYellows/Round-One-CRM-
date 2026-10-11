@@ -5,7 +5,7 @@ import { PasswordInput } from "@/components/ShowPasswords";
 export const dynamic = "force-dynamic";
 
 const ERRORS: Record<string, string> = {
-  login: "That email and password don’t match. Try again, or reset your password.",
+  login: "That email (or username) and password don’t match. Try again, or reset your password.",
   link: "That link has expired or already been used. Ask for a new one.",
 };
 
@@ -19,8 +19,8 @@ export default function LoginPage({ searchParams }: { searchParams: { error?: st
       <form method="post" action="/auth/login" style={{ display: "flex", flexDirection: "column", gap: 14 }}>
         <input type="hidden" name="next" value={searchParams.next ?? "/"} />
         <div>
-          <label className="label" htmlFor="email">Email</label>
-          <input id="email" name="email" type="email" className="input" autoComplete="email" defaultValue={email} required />
+          <label className="label" htmlFor="email">Email or username</label>
+          <input id="email" name="email" type="text" className="input" autoComplete="username" autoCapitalize="none" spellCheck={false} defaultValue={email} required />
         </div>
         <div>
           <label className="label" htmlFor="password">Password</label>

@@ -3,8 +3,16 @@ import { lastEmail } from "@/lib/server/lastEmail";
 
 export const dynamic = "force-dynamic";
 
-export default function ForgotPage({ searchParams }: { searchParams: { sent?: string } }) {
+export default function ForgotPage({ searchParams }: { searchParams: { sent?: string; shared?: string } }) {
   const email = lastEmail();
+  if (searchParams.shared) {
+    return (
+      <AuthShell title="Shared login">
+        <Notice tone="info">That’s a shared login, so there’s no email to send a link to. Ask a manager: they can set a new password on the Staff page.</Notice>
+        <a className="small" href="/login" style={{ color: "var(--muted)" }}>Back to login</a>
+      </AuthShell>
+    );
+  }
   if (searchParams.sent) {
     return (
       <AuthShell title="Check your email">
@@ -27,7 +35,7 @@ export default function ForgotPage({ searchParams }: { searchParams: { sent?: st
       <form method="post" action="/auth/reset" style={{ display: "flex", flexDirection: "column", gap: 14 }}>
         <div>
           <label className="label" htmlFor="email">Your staff email</label>
-          <input id="email" name="email" type="email" className="input" autoComplete="email" defaultValue={email} required />
+          <input id="email" name="email" type="text" className="input" autoComplete="username" autoCapitalize="none" spellCheck={false} defaultValue={email} required />
         </div>
         <button className="btn btn-red">Send reset link</button>
       </form>
