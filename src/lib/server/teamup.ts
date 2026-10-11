@@ -66,6 +66,15 @@ async function list(path: string, params: Record<string, string> = {}): Promise<
   return out;
 }
 
+/**
+ * Customers staff blocked with Block Customer (active registration blocks).
+ * Read only: TeamUp's API has no way to make or end a block (11/10/2026).
+ */
+export async function fetchBlockedCustomers(): Promise<string[]> {
+  const rows = await list("/customer_registration_blocks", { is_active: "true" });
+  return [...new Set(rows.filter((r) => r.is_active !== false).map((r) => idOf(r.customer)).filter(Boolean))];
+}
+
 /** Every page of a TeamUp list (four pages at a time). */
 export const listAll = (path: string, params: Record<string, string> = {}) => list(path, params);
 
@@ -185,7 +194,7 @@ export async function fetchPaymentInfo(): Promise<{ retries: Map<string, number>
 }
 
 /** Payment info in a shape that survives a trip through JSON (the staged sync keeps it between calls). */
-export type PaymentInfoJson = { retries: Record<string, number>; owed: Record<string, Owed> };
+export type PaymentInfoJson = { retries: Record<string, number>; owed: Record<string, Owed>; blocked?: string[] };
 export const paymentInfoToJson = (p: { retries: Map<string, number>; owed: Map<string, Owed> }): PaymentInfoJson => ({ retries: Object.fromEntries(p.retries), owed: Object.fromEntries(p.owed) });
 
 /**

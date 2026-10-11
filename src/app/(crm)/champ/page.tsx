@@ -45,9 +45,9 @@ function ChampPortrait() {
     return () => clearInterval(id);
   }, []);
   return (
-    <div className="champ-portrait" style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 8, padding: "18px 22px 0" }}>
+    <div className="champ-portrait" style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8, padding: "18px 22px 0", textAlign: "center" }}>
       <img src={src} alt="Champ, Round One’s assistant" style={{ height: 300, width: "auto", maxWidth: "100%", objectFit: "contain", display: "block" }} />
-      <div style={{ fontFamily: "var(--display)", fontSize: 40, textTransform: "uppercase", color: "var(--red)", lineHeight: 1 }}>Champ</div>
+      <div style={{ fontFamily: "var(--display)", fontSize: 40, textTransform: "uppercase", color: "var(--red)", lineHeight: 1 }}>Ask Champ</div>
     </div>
   );
 }

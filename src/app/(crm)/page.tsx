@@ -114,15 +114,33 @@ export default function TodayPage() {
           {openTasks.length + waiting.length === 0 && <div className="empty">Nothing waiting on you.</div>}
         </section>
 
-        <div className="grid stats2">
-          {tiles.map((t) => (
-            <div key={t.label} className="card pad" style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-              <div className="eyebrow">{t.label}</div>
-              <div className="h num" style={{ fontSize: 48, lineHeight: 1 }}>{t.value}</div>
-              {"meter" in t && t.meter !== undefined ? <Meter value={t.meter} label={t.label} /> : <Sparkline values={t.spark ?? []} />}
-              <div className="small muted">{t.note}</div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 16, minWidth: 0 }}>
+          <div className="grid stats2">
+            {tiles.map((t) => (
+              <div key={t.label} className="card pad" style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                <div className="eyebrow">{t.label}</div>
+                <div className="h num" style={{ fontSize: 48, lineHeight: 1 }}>{t.value}</div>
+                {"meter" in t && t.meter !== undefined ? <Meter value={t.meter} label={t.label} /> : <Sparkline values={t.spark ?? []} />}
+                <div className="small muted">{t.note}</div>
+              </div>
+            ))}
+          </div>
+          <section className="card">
+            <div className="card-head">
+              <h2 className="h h2">Upcoming trials</h2>
+              <Link href="/calendar" className="small">Calendar</Link>
             </div>
-          ))}
+            {trials.slice(0, 6).map((c) => (
+              <Link key={c.id} href={`/contacts/${c.id}`} className="row" style={{ textDecoration: "none" }}>
+                <div className="h num" style={{ fontSize: 20, width: 96, flexShrink: 0 }}>
+                  {isSameDay(Date.parse(c.trialAt!), now) ? time(c.trialAt!) : dayTime(c.trialAt!)}
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }} className="strong">{c.name}</div>
+                <span className="small muted">{ago(c.trialAt!, now)}</span>
+              </Link>
+            ))}
+            {trials.length === 0 && <div className="empty">No trials booked.</div>}
+          </section>
         </div>
       </div>
 
@@ -196,36 +214,17 @@ export default function TodayPage() {
         </section>
       </div>
 
-      <div className="grid cols-half">
-        <section className="card">
-          <div className="card-head">
-            <h2 className="h h2">Upcoming trials</h2>
-            <Link href="/calendar" className="small">Calendar</Link>
-          </div>
-          {trials.slice(0, 6).map((c) => (
-            <Link key={c.id} href={`/contacts/${c.id}`} className="row" style={{ textDecoration: "none" }}>
-              <div className="h num" style={{ fontSize: 20, width: 96, flexShrink: 0 }}>
-                {isSameDay(Date.parse(c.trialAt!), now) ? time(c.trialAt!) : dayTime(c.trialAt!)}
-              </div>
-              <div style={{ flex: 1, minWidth: 0 }} className="strong">{c.name}</div>
-              <span className="small muted">{ago(c.trialAt!, now)}</span>
-            </Link>
-          ))}
-          {trials.length === 0 && <div className="empty">No trials booked.</div>}
-        </section>
-
-        <section className="card">
-          <div className="card-head"><h2 className="h h2">Recent activity</h2></div>
-          {s.events.slice(0, 8).map((e) => (
-            <div key={e.id} className="row" style={{ paddingTop: 12, paddingBottom: 12 }}>
-              <div style={{ flex: 1, minWidth: 0, fontSize: 14 }}>
-                <span className="strong">{EVENT_LABEL[e.type]}</span> <span className="muted">{e.detail}</span>
-              </div>
-              <div className="faint" style={{ fontSize: 12, flexShrink: 0 }}>{ago(e.at, now)}</div>
+      <section className="card">
+        <div className="card-head"><h2 className="h h2">Recent activity</h2></div>
+        {s.events.slice(0, 8).map((e) => (
+          <div key={e.id} className="row" style={{ paddingTop: 12, paddingBottom: 12 }}>
+            <div style={{ flex: 1, minWidth: 0, fontSize: 14 }}>
+              <span className="strong">{EVENT_LABEL[e.type]}</span> <span className="muted">{e.detail}</span>
             </div>
-          ))}
-        </section>
-      </div>
+            <div className="faint" style={{ fontSize: 12, flexShrink: 0 }}>{ago(e.at, now)}</div>
+          </div>
+        ))}
+      </section>
     </>
   );
 }
