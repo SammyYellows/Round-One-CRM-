@@ -49,6 +49,7 @@ const contactFrom = (r: Row): Contact => ({
   ...(r.coach_id ? { coachId: r.coach_id as string } : {}),
   ...(r.activity ? { activity: r.activity as Contact["activity"] } : {}),
   ...(r.safety ? { safety: r.safety as Contact["safety"] } : {}),
+  ...(r.gymgrow ? { gymgrow: r.gymgrow as Contact["gymgrow"] } : {}),
 });
 const contactTo = (c: Contact): Row => ({
   id: c.id, name: c.name, first_name: c.firstName ?? null, phone: c.phone, email: c.email, source: c.source,
@@ -56,7 +57,7 @@ const contactTo = (c: Contact): Row => ({
   stage: c.stage, lost_reason: c.lostReason ?? null, tags: c.tags, answers: c.answers,
   trial_at: c.trialAt ?? null, created_at: c.createdAt,
   membership: c.membership ?? null, marketing_opt_out: !!c.marketingOptOut, email_bounced: !!c.emailBounced, teamup: c.teamup ?? null,
-  accountability: c.accountability ?? null, insight: c.insight ?? null, coach_id: c.coachId ?? null, activity: c.activity ?? null, safety: c.safety ?? null,
+  accountability: c.accountability ?? null, insight: c.insight ?? null, coach_id: c.coachId ?? null, activity: c.activity ?? null, safety: c.safety ?? null, gymgrow: c.gymgrow ?? null,
 });
 
 const messageFrom = (r: Row): Message => ({

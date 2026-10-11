@@ -304,6 +304,22 @@ updates from the import never fire automations.
     are blocked until billing is attached (YCloud). New system-user token
     pasted in chat 11/10: on the rotation list.
 
+19. **GymGrow import: done** (11/10, night). The Opportunities export (688
+    rows: 677 "lead" + 11 from GymGrow's booking page; no personal
+    contacts) imported quietly with `scripts/gymgrow-import.ts`: 603 new
+    contacts (339 Nurture, 200 No-show, 50 Contacted, 7 Appointment booked,
+    3 Sold – Programme, 3 Sold – Recurring, 1 Appointment attended), 2 test
+    rows skipped; 83 already in the CRM tagged (37 moved forward from New
+    lead, never backwards). All tagged `gymgrow-import`, original enquiry
+    dates, GymGrow ids on `contact.gymgrow` (migration 20261011020000). 16
+    staff tasks "was booked in GymGrow, check what happened". The 7
+    meetings this week from GymGrow's calendar are in the CRM calendar;
+    Sammy chose **email reminders only** for them: automation
+    `gymgrow_meeting_reminders` (day before, 2 hours before; the Monday
+    ones only get the 2-hour one). No WhatsApps or emails sent at import.
+20. **Price rise and smaller memberships** (Sammy, 11/10): switching to a
+    smaller membership pays the price at the time of changing.
+
 ## Done and off the list (08–09/10/2026)
 
 Two routes (CRM vs direct TeamUp); first and last name; repeat form
