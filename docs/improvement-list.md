@@ -5,7 +5,7 @@ Sammy says so. Newest at the bottom.
 
 | # | Added | Improvement | Notes |
 |---|---|---|---|
-| 1 | 27/09/2026 | A nice photo background on the questionnaire | **Built 11/10/2026.** Sammy's choice: phones only, the photo flashes up in front of the form, starts fading at 2 seconds and takes 3 to fade (`public/form/gym.webp`). Desktop still on black. |
+| 1 | 27/09/2026 | A nice photo background on the questionnaire | **Built 11/10/2026.** Sammy's choice: the photo flashes up in front of the form (phones first, then desktop too), starts fading at 2 seconds and takes 3 to fade (`public/form/gym.webp`). Shows on every public form; the accountability forms get a different treatment later. |
 | 2 | 27/09/2026 | See the questionnaire answers clearly when you open a contact | **Done 05/10/2026.** The contact page has a Questionnaire card under the WhatsApp thread: each question with its answer, when it was answered, skipped ones greyed. |
 | 3 | 27/09/2026 | AI-drafted replies to email enquiries, checked by staff before sending | **Planned on 02/10/2026, parked by Sammy. Pick up from the plan in `docs/email-enquiries.md`.** |
 | 4 | 27/09/2026 | Send marketing emails to a large list, picking the people from TeamUp | **Built 06/10/2026: the Mailouts screen.** Plan and decisions in `docs/mailouts.md`. Waiting on Sammy: Resend Pro upgrade before the first big send. |

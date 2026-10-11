@@ -153,9 +153,9 @@ button, input, select, textarea { font-family: var(--ui); }
 
 /* The respondent-facing form: light, like a printed flyer. */
 .runner { background: var(--white); color: var(--black); display: flex; flex-direction: column; }
-/* Public form. On phones the gym photo flashes up in front of it (Sammy, 11/10/2026; see the 800px rules). */
+/* Public form. The gym photo flashes up in front of it, then fades (Sammy, 11/10/2026). */
 .form-frame { background: var(--black); }
-.form-splash { display: none; }
+.form-splash { display: block; position: fixed; inset: 0; z-index: 50; background: var(--black) url("/form/gym.webp") center / cover no-repeat; animation: form-splash-fade 3s ease 2s forwards; cursor: pointer; }
 @keyframes form-splash-fade { from { opacity: 1; } to { opacity: 0; } }
 .runner-top { background: var(--black); padding: 12px 20px; display: flex; align-items: center; justify-content: space-between; gap: 16px; }
 .runner-top span { font-size: 11px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--white); }
@@ -396,5 +396,4 @@ table.sr-only { display: block; } /* a table ignores width: 1px, which made phon
   .staff-row { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important; row-gap: 8px !important; }
   .staff-row > :nth-child(1), .staff-row > :nth-child(2), .staff-row > :nth-child(5) { grid-column: 1 / -1; }
   .staff-row > :nth-child(5) { justify-content: flex-start !important; }
-  .form-splash { display: block; position: fixed; inset: 0; z-index: 50; background: var(--black) url("/form/gym.webp") center / cover no-repeat; animation: form-splash-fade 3s ease 2s forwards; cursor: pointer; }
 }
