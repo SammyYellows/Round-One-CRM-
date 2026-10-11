@@ -314,6 +314,16 @@ updates from the import never fire automations.
     numbers are Cloud API only). **Sammy: keep the phone app.** Next: Sammy
     submits the display name "Round One Gym"; YCloud chased (sent, no reply
     yet).
+    **Later 11/10: Sammy leaning to API-only after all** (kill the phone app,
+    move the number into the GBP test account). Paused to sleep on it;
+    pick up 12/10. Plan: 1 back up + export the phone's chats; 2 delete the
+    number from the old account in WhatsApp Manager; 3 delete the WhatsApp
+    Business account on the phone (wipes chats and backups); 4 add the
+    number in the app's WhatsApp API Setup (display name "Round One Gym",
+    SMS code); 5 Claude registers it, sets WHATSAPP_PHONE_NUMBER_ID,
+    redeploys, checks; 6 test. Messages to the number are lost between 2
+    and 5 (30-60 min). Not started; nothing changed yet. The phone app's
+    Business Platform screen shows YCloud as connected.
 
 17. **GymGrow leftovers to check** (11/10, when Meta lets Sammy back into
     Business settings; use Edge). Main access is gone (Gym Grow and
