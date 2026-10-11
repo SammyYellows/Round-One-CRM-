@@ -844,7 +844,9 @@ export function recordSafety(s: State, byCustomer: Map<string, Omit<Safety, "syn
  * record who's blocked (`blocked` is undefined when TeamUp couldn't be read),
  * and give anyone with PAYMENT_FAILED_AT+ failed attempts who isn't blocked a
  * task to check, once per run of failures. The task ticks itself off when
- * they show as blocked or have paid.
+ * they show as blocked or have paid. Sammy chose tasks for new failures only:
+ * everyone already failing on 11/10 was given blockTaskId "before-11-10", so
+ * they get a task only if they pay and then fail again.
  */
 export function recordBlocks(s: State, blocked: string[] | undefined) {
   const set = blocked ? new Set(blocked) : undefined;
