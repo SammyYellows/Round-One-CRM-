@@ -54,7 +54,7 @@ Ask **Champ** (**Ask Champ**, in red, second in the menu, or the big red button 
     summary: "The home screen: what needs you, trials coming up, and how leads are doing.",
     body: `- **Ask Champ**: the big red button at the top opens Champ.
 - **Needs you** (top left): tasks for staff. Tick **Done** when finished. Tasks are made by the CRM (a member hasn't been in, a check-in needs a reply, a cancellation) or by staff.
-- **Upcoming trials** and **Trials this week**: intro meetings booked.
+- **Upcoming trials** (under the tiles, top right) and **Trials this week**: intro meetings booked.
 - The four tiles (top right) and the charts (leads in the last 7 days, trials, show-up rate, where leads come from, which ads book trials) show how the sales side is going.
 - **Open trial form** opens the public questionnaire; **Book a trial** opens the calendar to book someone in.`,
   },
@@ -193,6 +193,8 @@ Use the search and filters at the top to find people.`,
     body: `### Failed payments
 - Members flagged after three failed payment attempts in TeamUp, with what they owe. Open a person to see each missed payment.
 - The flag clears when a payment goes through in TeamUp.
+- **Blocked in TeamUp** / **Not blocked** shows whether someone has been blocked with **Block Customer** on their TeamUp profile (checked nightly). The CRM can't block anyone itself (TeamUp doesn't allow it).
+- Anyone with three failed attempts who isn't blocked gets a task in **Needs you**: "Check … is blocked in TeamUp". Block them in TeamUp (or sort the payment); the task ticks itself off after the next nightly check.
 - Payment issues are sorted in TeamUp. A friendly word in person often works best.
 - The "failed-payment email" card at the top is off until management approve it there.
 

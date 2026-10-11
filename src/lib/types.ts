@@ -183,6 +183,9 @@ export interface TeamUpCustomer {
   status?: string; // TeamUp's own label: prospect, at_risk, converted, churned, lost…
   createdAt?: string; // when they first appeared in TeamUp ("came in")
   syncedAt: string;
+  // Staff pressed Block Customer in TeamUp (an active registration block),
+  // read nightly. TeamUp's API can read blocks but not make them.
+  blocked?: boolean;
 }
 
 export interface Membership {
@@ -195,6 +198,9 @@ export interface Membership {
   endsAt?: string; // expiry or next renewal, when TeamUp gives one
   cancelling?: boolean; // notice given in TeamUp; the membership runs out at endsAt
   paymentRetries?: number; // failed payment attempts TeamUp has logged on the subscription
+  // The open "check they're blocked in TeamUp" task for this run of failed
+  // payments (Sammy, 11/10/2026); cleared once they've paid, so a later run makes a new one.
+  blockTaskId?: string;
   // Unpaid invoices in TeamUp (open or retry-failed): the total, and each
   // one, newest first, so staff can see which payments keep failing.
   owed?: { count: number; total: number; since?: string; latest?: string; invoices?: UnpaidInvoice[] };

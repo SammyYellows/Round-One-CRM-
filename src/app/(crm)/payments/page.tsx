@@ -98,6 +98,8 @@ export default function PaymentsPage() {
             <div style={{ minWidth: 0 }}>
               <Link href={`/contacts/${c.id}`} className="strong" style={{ color: "var(--white)" }} onClick={(e) => e.stopPropagation()}>{c.name}</Link>
               <div className="faint num" style={{ fontSize: 12 }}>{c.email || c.phone || "no contact details"}</div>
+              {c.teamup?.blocked === true && <span className="chip chip-light" style={{ height: 20, fontSize: 10, marginTop: 4 }}>Blocked in TeamUp</span>}
+              {c.teamup?.blocked === false && <span className="chip chip-red" style={{ height: 20, fontSize: 10, marginTop: 4 }}>Not blocked</span>}
             </div>
             <div><div>{m.name}</div><div className="muted small">{m.category}</div></div>
             <div className="num">{m.paymentRetries}</div>

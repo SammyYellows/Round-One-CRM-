@@ -17,8 +17,8 @@
 // `teamup_sync`, shown on the Members screen so a creep towards the limit
 // is visible long before it bites.
 
-import { checkMembershipsEnding, importCustomers, importMembers, type CustomerInput, type MemberInput } from "@/lib/engine";
-import { attachPayments, fetchCustomerMembers, fetchCustomers, fetchMembers, fetchPaymentInfo, paymentInfoToJson, teamupConfigured, type PaymentInfoJson } from "./teamup";
+import { checkMembershipsEnding, importCustomers, importMembers, recordBlocks, type CustomerInput, type MemberInput } from "@/lib/engine";
+import { attachPayments, fetchBlockedCustomers, fetchCustomerMembers, fetchCustomers, fetchMembers, fetchPaymentInfo, paymentInfoToJson, teamupConfigured, type PaymentInfoJson } from "./teamup";
 import { applyMany } from "./state";
 import { db } from "./supabase";
 import { refreshAttendance } from "./accountability";
@@ -69,9 +69,12 @@ export async function runStage(stage: Stage): Promise<Record<string, unknown>> {
       await savePayload("teamup:members", { members, raw });
       result = { count: members.length };
     } else if (stage === "payments") {
-      const payments = paymentInfoToJson(await fetchPaymentInfo());
+      const payments: PaymentInfoJson = paymentInfoToJson(await fetchPaymentInfo());
+      // Who's blocked in TeamUp. If it can't be read, the payments still save.
+      let blockError: string | undefined;
+      try { payments.blocked = await fetchBlockedCustomers(); } catch (e) { blockError = e instanceof Error ? e.message : String(e); console.error("[teamup] blocks", blockError); }
       await savePayload("teamup:payments", payments);
-      result = { count: Object.keys(payments.owed).length };
+      result = { count: Object.keys(payments.owed).length, blocked: payments.blocked?.length, blockError };
     } else if (stage === "apply") {
       const [c, m, pay] = await Promise.all([payload<CustomerInput[]>("teamup:customers"), payload<{ members: MemberInput[]; raw: RawRow[] }>("teamup:members"), payload<PaymentInfoJson>("teamup:payments")]);
       if (!c || !m || !pay) throw new Error("Nothing to apply: the customers, members or payments stage hasn’t run");
@@ -84,7 +87,8 @@ export async function runStage(stage: Stage): Promise<Record<string, unknown>> {
         const people = importCustomers(s, c.value);
         const counts = importMembers(s, m.value.members, { baseline });
         const ending = baseline ? 0 : checkMembershipsEnding(s);
-        return { ...counts, customers: c.value.length, customersAdded: people.added, ending, baseline, members: m.value.members.length };
+        const blocks = recordBlocks(s, pay.value.blocked);
+        return { ...counts, ...blocks, customers: c.value.length, customersAdded: people.added, ending, baseline, members: m.value.members.length };
       });
       if (m.value.raw.length) {
         const { error } = await db().from("teamup_members").upsert(m.value.raw.map((r) => ({ ...r, synced_at: at })));

@@ -838,6 +838,49 @@ export function recordSafety(s: State, byCustomer: Map<string, Omit<Safety, "syn
 
 /** Staff spoke to someone flagged in the gym without a waiver or emergency contact: off the alert for today. */
 /**
+ * Blocking after failed payments (Sammy, 11/10/2026). TeamUp blocks
+ * memberships itself after failed payments, but its API can't show that, and
+ * can't block anyone; it can show who staff blocked with Block Customer. So:
+ * record who's blocked (`blocked` is undefined when TeamUp couldn't be read),
+ * and give anyone with PAYMENT_FAILED_AT+ failed attempts who isn't blocked a
+ * task to check, once per run of failures. The task ticks itself off when
+ * they show as blocked or have paid.
+ */
+export function recordBlocks(s: State, blocked: string[] | undefined) {
+  const set = blocked ? new Set(blocked) : undefined;
+  let made = 0, cleared = 0;
+  for (const c of s.contacts) {
+    const cid = c.teamup?.customerId ?? c.membership?.customerId;
+    if (!cid) continue;
+    if (set) {
+      if (c.teamup) c.teamup = { ...c.teamup, blocked: set.has(cid) };
+      else if (set.has(cid)) c.teamup = { customerId: cid, syncedAt: nowIso(s), blocked: true };
+    }
+    const m = c.membership;
+    if (!m) continue;
+    const failing = m.status !== "ended" && (m.paymentRetries ?? 0) >= PAYMENT_FAILED_AT;
+    const isBlocked = !!c.teamup?.blocked;
+    const open = m.blockTaskId ? s.tasks.find((t) => t.id === m.blockTaskId && !t.done) : undefined;
+    if (open && (!failing || isBlocked)) {
+      open.done = true;
+      cleared++;
+    }
+    if (!failing) {
+      if (m.blockTaskId) c.membership = { ...m, blockTaskId: undefined };
+      continue;
+    }
+    if (isBlocked || m.blockTaskId || c.removed) continue;
+    const text = `Check ${c.name} is blocked in TeamUp: ${m.paymentRetries} failed payment attempts on ${m.name}. Block Customer is on their TeamUp profile; this ticks itself off once the CRM sees the block (nightly) or they pay.`;
+    const id = uid();
+    s.tasks.unshift({ id, contactId: c.id, text, done: false, at: nowIso(s) });
+    c.membership = { ...m, blockTaskId: id };
+    log(s, "task.created", c.id, text);
+    made++;
+  }
+  return { blockTasks: made, blockTasksCleared: cleared, blocked: blocked?.length };
+}
+
+/**
  * Management take someone off the CRM (Sammy, 11/10/2026): spam, a mistake,
  * someone who asked to be left alone. They're hidden from every staff screen
  * and nothing is sent to them: their automations stop and any trial still to
@@ -1022,7 +1065,7 @@ export function importCustomers(s: State, inputs: CustomerInput[]) {
       if (c.source === "teamup") backdate(c, m.createdAt);
       updated++;
     }
-    c.teamup = { customerId: m.customerId, status: m.status, createdAt: m.createdAt, syncedAt: nowIso(s) };
+    c.teamup = { customerId: m.customerId, status: m.status, createdAt: m.createdAt, syncedAt: nowIso(s), ...(c.teamup?.blocked !== undefined ? { blocked: c.teamup.blocked } : {}) };
   }
   return { added, updated };
 }
@@ -1083,6 +1126,7 @@ export function importMembers(s: State, inputs: MemberInput[], opts: { baseline?
       startedAt: m.startedAt, endsAt: m.endsAt, cancelling: !!m.cancelling, paymentRetries: m.paymentRetries ?? 0, owed: m.owed,
       lastAttendedAt: prev?.lastAttendedAt, syncedAt: nowIso(s),
       noticesSent: prev?.id === m.id ? prev.noticesSent : undefined,
+      blockTaskId: prev?.id === m.id ? prev.blockTaskId : undefined,
     };
     // Failed payments: the attempt count reached the threshold since the last
     // sync (on a membership we had already recorded below it).

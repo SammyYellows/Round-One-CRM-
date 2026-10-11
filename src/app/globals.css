@@ -280,7 +280,6 @@ table.sr-only { display: block; } /* a table ignores width: 1px, which made phon
 /* ---- Page grids: wide screens first, then stack ---- */
 .stats4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 .stats2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-.cols-half { grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; }
 /* Today: the big Ask Champ button (Sammy, 11/10). */
 .ask-champ-wrap { display: flex; justify-content: center; }
 .ask-champ { height: 72px; padding: 0 72px; font-size: 18px; letter-spacing: 0.16em; }
@@ -292,6 +291,10 @@ table.sr-only { display: block; } /* a table ignores width: 1px, which made phon
 .cols-auto { grid-template-columns: 400px minmax(0, 1fr); gap: 20px; align-items: start; }
 .cols-forms { grid-template-columns: 220px minmax(0, 1fr) 380px; gap: 24px; align-items: start; }
 .board { overflow-x: auto; grid-template-columns: repeat(8, minmax(200px, 1fr)); }
+/* Pipelines (Sammy, 11/10): the board fits the screen so its sideways scroll bar is always in view; each column scrolls on its own. */
+.board { height: calc(100vh - 330px); min-height: 420px; align-items: stretch; scrollbar-color: var(--muted) var(--well); }
+.board .col { min-height: 0; overflow-y: auto; scrollbar-color: var(--muted) var(--well); }
+.board .col-head { position: sticky; top: -12px; z-index: 1; background: var(--well); margin-top: -12px; padding-top: 16px; }
 
 @media (max-width: 1360px) {
   .cols-contact { grid-template-columns: 300px minmax(0, 1fr); }
@@ -302,7 +305,7 @@ table.sr-only { display: block; } /* a table ignores width: 1px, which made phon
 @media (max-width: 1100px) {
   .main { padding: 28px 24px 40px; }
   .stats4, .stats5 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .cols-today, .cols-contact, .cols-auto, .cols-forms, .cal-wrap, .cols-dash, .cols-dash3, .cols-half { grid-template-columns: minmax(0, 1fr); }
+  .cols-today, .cols-contact, .cols-auto, .cols-forms, .cal-wrap, .cols-dash, .cols-dash3 { grid-template-columns: minmax(0, 1fr); }
   .panel { position: static; }
   .cols-forms > :last-child { grid-column: auto; }
   .sidebar { width: 200px; }
@@ -381,6 +384,7 @@ table.sr-only { display: block; } /* a table ignores width: 1px, which made phon
   .page-head .h1, h1.h1 { font-size: 40px; }
   .stats4, .stats5, .stats2 { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
   .ask-champ { width: 100%; padding: 0 20px; }
+  .board { height: 75vh; min-height: 360px; }
   .needs .row { flex-wrap: wrap; row-gap: 10px; }
   .needs .needs-text { flex: 1 1 100% !important; order: -1; }
   .crow { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); padding: 12px 16px; row-gap: 4px; }

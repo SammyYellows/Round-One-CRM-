@@ -67,9 +67,14 @@ when staff mark a sale on the pipeline.
   blocks but not make them** (`/customer_registration_blocks` is GET only;
   the customers report filters on `registration_blocked`). TeamUp also
   lists "membership blocked after failed payment" as a booking refusal
-  reason, so it has its own automatic block. **Sammy, 11/10: leave it for
-  now**; blocking stays by hand in TeamUp. Options if it comes back: show
-  blocked status with an Open-in-TeamUp link, and/or TeamUp's own auto-block.
+  reason, so it has its own automatic block. **Sammy, 11/10 (the earlier
+  "leave it" was a mis-tap): both.** Built: the nightly payments stage reads
+  blocks; Failed payments and the contact page show Blocked in TeamUp / Not
+  blocked; anyone with 3+ failed attempts who isn't blocked gets a Needs you
+  task that ticks itself off (`recordBlocks`). Waiting on Sammy: switch on
+  TeamUp's own auto-block (and the Kisi setting that leaves blocked
+  memberships off the door) if wanted; paste a TeamUp customer page address
+  for an Open in TeamUp button.
 - **Two-way TeamUp actions** (item 9): Sammy wants reminding; the hold
   button is the first one, built 08/10.
 - **Test log run** (`docs/test-log.md`): **closed 11/10** as covered by
