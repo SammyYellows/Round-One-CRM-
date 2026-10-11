@@ -320,7 +320,10 @@ updates from the import never fire automations.
     phone arrived (free 24-hour window); one to a new number
     (+447712255057) was accepted by Meta but not delivered: paid messages
     are blocked until billing is attached (YCloud). New system-user token
-    pasted in chat 11/10: on the rotation list.
+    pasted in chat 11/10: **rotated 11/10, 23:15**: app secret reset and
+    all RoundOnecrm tokens revoked, new never-expiring token straight into
+    Vercel (not chat); test template to Sammy's phone delivered and the
+    signed delivery update accepted.
 
 19. **GymGrow import: done** (11/10, night). The Opportunities export (688
     rows: 677 "lead" + 11 from GymGrow's booking page; no personal
