@@ -17,6 +17,7 @@ const PUBLIC = [
   /^\/api\/webhooks\//, // WhatsApp, Meta, TeamUp and Resend (they check their own signatures)
   /^\/api\/cron$/, // scheduled runs (checks CRON_SECRET itself)
   /^\/api\/email-check$/, // email test after a key change (checks CRON_SECRET itself)
+  /^\/api\/whatsapp-check$/, // WhatsApp account read-out (checks CRON_SECRET itself)
 ];
 
 export async function middleware(req: NextRequest) {
