@@ -67,9 +67,9 @@ when staff mark a sale on the pipeline.
   blocks but not make them** (`/customer_registration_blocks` is GET only;
   the customers report filters on `registration_blocked`). TeamUp also
   lists "membership blocked after failed payment" as a booking refusal
-  reason, so it has its own automatic block. Waiting on Sammy: which way
-  to go (show blocked status and an Open-in-TeamUp link in the CRM, and/or
-  use TeamUp's own automatic block).
+  reason, so it has its own automatic block. **Sammy, 11/10: leave it for
+  now**; blocking stays by hand in TeamUp. Options if it comes back: show
+  blocked status with an Open-in-TeamUp link, and/or TeamUp's own auto-block.
 - **Two-way TeamUp actions** (item 9): Sammy wants reminding; the hold
   button is the first one, built 08/10.
 - **Test log run** (`docs/test-log.md`): **closed 11/10** as covered by
