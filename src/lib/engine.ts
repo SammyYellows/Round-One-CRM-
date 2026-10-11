@@ -909,6 +909,15 @@ export function restoreContact(s: State, contactId: string, by = "Staff") {
   log(s, "contact.restored", c.id, `${by} put ${c.name} back`);
 }
 
+/** A staff note on the contact page. `by` is set by the server to the signed-in staff member's name. */
+export function addNote(s: State, contactId: string, text: string, by = "Staff") {
+  const c = s.contacts.find((x) => x.id === contactId);
+  const t = text.trim().slice(0, 4000);
+  if (!c || !t) return;
+  c.notes = [{ id: uid(), at: nowIso(s), by, text: t }, ...(c.notes ?? [])];
+  log(s, "note.added", c.id, `${by} added a note on ${c.name}: “${t.slice(0, 80)}${t.length > 80 ? "…" : ""}”`);
+}
+
 /** Someone removed came back in by themselves (the form, a booking): they show again. */
 function comeBack(s: State, c: Contact, how: string) {
   delete c.removed;
