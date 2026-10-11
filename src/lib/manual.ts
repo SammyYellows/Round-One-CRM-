@@ -238,7 +238,7 @@ Anyone can reply STOP to stop marketing messages; messages about their own booki
 
 - **Staff**: add a login (name, email, role) and they get an invite email; **Resend** if they lost it; **Remove** stops their login at once (**Bring back** restores it). Roles: Staff (day-to-day screens) or Owner/Manager (everything).
 - **Shared logins** (on Staff): a username and password you choose, no email, shared by everyone at that level. **Set password** changes it and signs everyone on it out; do this when someone forgets it or leaves. On a shared login the CRM records the login's name (for example "Staff"), not the person.
-- **Train Champ** (button on Champ): notes and documents (PDF, Word, text) Champ reads before every answer, such as equipment, class formats, sales scripts. Switch entries on or off, edit or remove them.
+- **Train Champ** (button on Champ): notes and documents (PDF, Word, text) such as equipment, class formats, sales scripts. Each entry gets a short summary (shown under it as "What Champ sees"); Champ reads the summaries with every question and opens an entry in full when the question needs it. One topic per entry and a clear title work best. Up to 400,000 characters per entry and 5,000,000 in all. Switch entries on or off, edit or remove them.
 - **Everyone's** on Champ: read all staff chats. Conduct flags are emailed to management.
 - **Automations**: every automatic message, grouped by job. Read what's sent, edit the wording, and switch messages on or off (with a confirm).
 - **Mailouts**: one email to many people (members, ex-members, old leads). Sends only after **Send** and confirming the count. Every email has an unsubscribe link.

@@ -20,7 +20,7 @@ import { inactiveDays, classStats } from "./activity";
 import { fetchAttendance } from "./attendance";
 import { kisiConfigured, kisiEntries, kisiMemberId } from "./kisi";
 import { whoIsIn } from "./safety";
-import { knowledgeForChamp } from "./champKnowledge";
+import { knowledgeForChamp, readKnowledge } from "./champKnowledge";
 import { manualText } from "@/lib/manual";
 import { isManagerRole } from "@/lib/roles";
 import { isSharedLogin } from "@/lib/logins";
@@ -77,7 +77,7 @@ Care with people:
 
 Gym facts (prices, timetable, policies): only use the facts sheet below. If it doesn't cover something, say so rather than guessing.
 
-Round One's own knowledge: management may add notes and documents below the facts sheet (equipment, class formats, coaching standards, sales scripts, house rules, who's who). That is how Round One does things: use it first, and build training and sales answers around it (their kit, their class formats, their way of selling). If general good practice differs, follow Round One's way, but always flag a genuine safety concern. If a staff member asks where something came from, say which note or document.
+Round One's own knowledge: management add notes and documents (equipment, class formats, coaching standards, sales scripts, house rules, who's who). Below the facts sheet you get only their contents list: each entry's id, title and a short summary. Before answering anything about training, coaching, classes, kit, rooms, selling, house rules or how Round One does something, open every entry that might be relevant with read_training and read it; if in doubt, open it, because a summary can't hold everything and guessing is worse than one more look-up. Don't answer from a summary alone when the full entry could say more. That knowledge is how Round One does things: use it first, and build training and sales answers around it (their kit, their class formats, their way of selling). If general good practice differs, follow Round One's way, but always flag a genuine safety concern. If a staff member asks where something came from, say which note or document.
 
 How to write: British English, plain and friendly, like a good coach. Short answers first, detail if asked. Don't talk about yourself or your process (whether you looked something up, which tool you used); just answer. Use short paragraphs and "- " bullet lists. No tables, no headings, no emoji, no exclamation marks. Bold a name or key fact with **double asterisks** sparingly.`;
 
@@ -103,6 +103,7 @@ const TOOLS: Block[] = [
   { name: "who_is_in_now", description: "Who's in the gym now: ticked into a class that's on, or through the door in the last 1.5 hours, with waiver and emergency contact.", input_schema: { type: "object", properties: {} } },
   { name: "class_popularity", description: "Each regular class slot over the last 60 days: sessions run, average ticked in, fill against capacity. Busiest first.", input_schema: { type: "object", properties: {} } },
   { name: "flag_conduct", description: "Record a racist, discriminatory or misogynistic message from the staff member, under Round One's conduct rule. Call once, before replying. Returns what to tell them.", input_schema: { type: "object", properties: { category: { type: "string", enum: ["racism", "discrimination", "misogyny"] }, quote: { type: "string", description: "A short quote of what they said" } }, required: ["category", "quote"] } },
+  { name: "read_training", description: "Open entries from Round One's own knowledge (the contents list below the facts sheet) and read them in full. Pass the ids in square brackets, up to 5 at once.", input_schema: { type: "object", properties: { ids: { type: "array", items: { type: "string" }, description: "Entry ids from the contents list" } }, required: ["ids"] } },
   { name: "book_class", description: "Book one member into one TeamUp class. The only change Champ can make. Use the contact id from find_people and the class id from classes. Returns whether it was booked, or is waiting for the staff member to press Book, or why TeamUp refused.", input_schema: { type: "object", properties: { contact_id: { type: "string" }, event_id: { type: "string" } }, required: ["contact_id", "event_id"] } },
   { name: "teamup_lookup", description: "Read anything else from TeamUp's API (read-only). Allowed paths: /customers, /customers/<id>, /customer_memberships, /memberships, /membership_categories, /events, /events/<id>, /attendances, /waivers, /waiver_agreements, /customer_forms, /customer_fields, /customer_form_submissions, /instructors, /venues, /venue_rooms, /offering_types. Filters that work: customer, event, status, expand, page, page_size. TeamUp ignores date filters on lists.", input_schema: { type: "object", properties: { path: { type: "string" }, params: { type: "object", additionalProperties: { type: "string" } } }, required: ["path"] } },
 ];
@@ -441,6 +442,8 @@ export async function runTool(name: string, input: Block, ctx: Ctx = new Ctx()):
     }
     case "flag_conduct":
       return await flagConduct(input, ctx);
+    case "read_training":
+      return await readKnowledge(Array.isArray(input.ids) ? (input.ids as unknown[]).map(String) : []);
     case "book_class":
       return await proposeBooking(input, ctx);
     case "teamup_lookup": {
@@ -476,7 +479,7 @@ async function callClaude(messages: ChampMessage[], factsSheet: string, knowledg
       max_tokens: 8000,
       // The prompt, facts and knowledge are the same for every question, so they're cached for an hour.
       system: knowledge
-        ? [{ type: "text", text: SYSTEM }, { type: "text", text: `THE STAFF MANUAL (how the CRM works)\n\n${MANUAL_TEXT}` }, { type: "text", text: `FACTS SHEET\n\n${factsSheet}` }, { type: "text", text: `ROUND ONE'S OWN KNOWLEDGE\n\n${knowledge}`, cache_control: { type: "ephemeral", ttl: "1h" } }]
+        ? [{ type: "text", text: SYSTEM }, { type: "text", text: `THE STAFF MANUAL (how the CRM works)\n\n${MANUAL_TEXT}` }, { type: "text", text: `FACTS SHEET\n\n${factsSheet}` }, { type: "text", text: `ROUND ONE'S OWN KNOWLEDGE: CONTENTS (open entries with read_training)\n\n${knowledge}`, cache_control: { type: "ephemeral", ttl: "1h" } }]
         : [{ type: "text", text: SYSTEM }, { type: "text", text: `THE STAFF MANUAL (how the CRM works)\n\n${MANUAL_TEXT}` }, { type: "text", text: `FACTS SHEET\n\n${factsSheet}`, cache_control: { type: "ephemeral", ttl: "1h" } }],
       tools: TOOLS,
       // On the last step Champ answers with what it has rather than looking up more.
