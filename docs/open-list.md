@@ -228,6 +228,15 @@ updates from the import never fire automations.
     real booking (Champ tells staff TeamUp "may" send its usual
     confirmation).
 
+12. **Win-back email: new draft "Hold and price rise"** (11/10), saved on
+    the card on Cancellations; the live wording is unchanged. Adds the
+    hold (keeps their current price and avoids the new joining fee), the
+    "main reason?" question, and drops "no joining fee if you come back".
+    Waiting on Sammy: make it live (pick it under saved drafts, then "Make
+    this the live wording") once the price rise and joining fee are
+    confirmed. **The live email still promises no joining fee to
+    returners**, so switch before the fee starts.
+
 ## Done and off the list (08–09/10/2026)
 
 Two routes (CRM vs direct TeamUp); first and last name; repeat form
