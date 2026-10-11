@@ -6,12 +6,14 @@ material: no message, automation or setting changes because of it. It is
 the companion to `docs/reference/sleeping-members.md`, which covers
 members who still pay but have stopped coming.
 
-Two things already exist and this note doesn't touch them: the
-"Gave notice – win-back" email and WhatsApp the day after someone gives
-notice in TeamUp (`docs/improvement-list.md` item 7), and item 17, which
-asks for research on the notice period itself. This note is about what
-comes after: people whose membership has actually ended, reached through
-the Mailouts screen (`docs/mailouts.md`) or a phone call.
+It covers both halves of winning people back. Sections 1 to 7 are about
+people whose membership has actually ended, reached through the Mailouts
+screen (`docs/mailouts.md`) or a phone call. Section 8 is the notice
+period, between someone giving notice in TeamUp and their last day: it
+answers `docs/improvement-list.md` item 17 (timing, offers, tone and a
+second touch) and looks at the live "Gave notice – win-back" email and
+WhatsApp (item 7), with suggested wording changes. Nothing in it changes
+the live messages until Sammy decides.
 
 What follows is what the published research and the industry say, how
 solid each source is, and what it suggests for Round One.
@@ -386,7 +388,231 @@ rejoins per hundred people, more from recent leavers, fewer from older
 ones. The measures that matter are replies, unsubscribes, bounces and
 rejoins, not opens.
 
-## 8. What this suggests for Round One
+## 8. During the notice period: saving people before they go
+
+Between giving notice in TeamUp and their last day, the person is still a
+member, still able to train, and their reason for leaving is fresh. What
+runs today (automation "Gave notice – win-back", on): TeamUp's
+`membership.cancelling` fires, the CRM waits 24 hours, then sends the
+email "Before you go, {first}" (`marketing: true`) and the WhatsApp
+template `win_back`. Replies land on the Cancellations screen. Staff can
+put a membership on hold in TeamUp.
+
+### Timing: notice day, a week before the end, or after it ends
+
+**No study compares these three moments for gyms.** What there is:
+
+- **The cancel moment is the one the industry builds around.** Clubwise
+  calls the cancellation request "your last opportunity to understand
+  what went wrong and potentially retain them".
+  ([Clubwise](https://www.clubwise.com/clubwise-blog/re-engaging-the-sleeper-fixing-frozen-gym-memberships/))
+  Subscription software firms put their save offers at that moment too
+  (Churnkey, below).
+- **Ignoring it costs goodwill.** Bedford's experienced exercisers
+  described cancelling "with no questions asked", and felt operators
+  "just don't care".
+  ([Health Club Management, 2014](https://www.healthclubmanagement.co.uk/health-club-management-features/Retention-Take-your-leave/28807))
+- **But the decision is usually made well before notice.** The 2014
+  Health Club Management piece on ex-members notes people start to
+  disengage weeks or even months before they cancel
+  ([Fit Tech](https://www.fittechglobal.com/fit-tech-features/Everyones-talking-about-Engaging-ex-members/29177)),
+  and DellaVigna and Malmendier found a gap of over two months between
+  last visit and cancelling (see `sleeping-members.md`). So a notice-day message is talking to someone
+  who has mostly decided; the realistic aim is to catch the ones whose
+  reason can be fixed (cost, schedule, a break), and to leave everyone
+  else on good terms.
+- **Pressure at the exit hurts the return.** Planet Fitness's CEO tied
+  its mid-30% rejoin rate to letting members manage, and cancel, their
+  memberships themselves, saying it builds goodwill.
+  ([Motley Fool transcript](https://www.fool.com/earnings/call-transcripts/2026/02/24/planet-fitness-plnt-q4-2025-earnings-transcript/))
+
+Reading it together: **notice day (plus 24 hours) is right for the first
+message**, because the reason is fresh and there's still time to change
+plan. **A week or so before the last day is the natural second touch**: a
+short, practical reminder that hold and switching are still open.
+**After it ends is win-back** (sections 1 to 7), not saving.
+
+### Offers: a hold, a downgrade, or a free month
+
+**Match the offer to the reason.** Churnkey (subscription cancel-flow
+software, its own platform data) grades "reason-routed offers outperform
+one-size-fits-all offers" as strong evidence: price objections go to a
+smaller plan, people not using it go to a pause, and people switching to
+something else get a clean exit, not a discount.
+([Churnkey](https://churnkey.co/growth/library/reason-matched-save-offers))
+That is the same finding as Kumar's for win-back (section 2).
+
+**A hold beats a discount, if it has an end date.** Churnkey reports
+paused subscribers resume at 54% on average (43% to 89% depending on how
+the pause is set up), against 22% kept by a discount offered at the
+cancel moment. It advises a resume date set when the pause starts and
+shown to the person, and limits on repeat pauses. Vendor data, not
+audited, and from apps and online subscriptions rather than gyms.
+([Churnkey](https://churnkey.co/growth/library/pause-offer-at-cancellation))
+FM Consulting (US gym consultants) say the same for gyms: freezes with a
+minimum and maximum (they suggest one month to three to six months), a
+fixed restart date that reactivates automatically, and no open-ended
+freezes. They give no return figures.
+([FM Consulting](https://www.fmconsulting.net/gym-consultant/membership-freezes-vs-cancellations-how-smart-gym-owners-save-revenue-when-members-take-breaks/))
+
+**A downgrade keeps the relationship.** For people leaving on time or
+money, a smaller membership ("right-sizing" in Churnkey's terms) keeps
+them training and billing, and avoids the price cut a discount implies.
+The live email already does this with Facility Access Only, Classes Only
+and the student and blue-light membership.
+
+**A free month to stay is the weakest option.** It's a discount at the
+cancel moment (Churnkey's 22%), the research on discounted customers
+applies (Lewis, Datta: section 4), and it teaches people that giving
+notice gets a deal (Nutripy: "trains members to cancel and wait for a
+deal"). If anything like it is used, it belongs after someone has left,
+as a low reacquisition price (Thomas, section 4), not as a reward for
+giving notice.
+
+**Practitioner view: Gym Launch Secrets.** Alex Hormozi's *Gym Launch
+Secrets* (practitioner material, US, written for owner-run gyms) treats
+the exit as a conversation, not a form: an exit interview run like a
+coaching or sales conversation, which a book summary says "can save half
+of cancellations". That figure appears only in a second-hand summary and
+I couldn't find it in the book or anywhere else; treat it as a claim. The
+summary also lists regular reach-outs, attendance tracking, handwritten
+cards and member events as the other retention tactics.
+([SoBrief summary](https://sobrief.com/books/gym-launch-secrets),
+[Goodreads](https://www.goodreads.com/book/show/50765829-gym-launch-secrets))
+The useful part for Round One is the idea that a person, ideally the
+member's coach, has the conversation; the hard-sell framing doesn't fit
+the copy voice or Bedford's evidence on how leavers want to be treated.
+
+### Tone
+
+- **Thank them, make it easy, leave the door open.** This is what
+  Planet Fitness credits for rejoins, and the opposite of what Bedford's
+  leavers resented.
+- **Ask, don't assume.** The reason given is often not the real one
+  (Bedford, section 2). An easy question ("what's the main reason? one
+  line is plenty") gets the reason that decides which offer fits.
+- **No guilt, no pressure** (Coulter and Pinto, section 5).
+
+### A second touch
+
+The evidence that a second message helps is about absent members, not
+leavers: in GG Fit's UK club programme the second message did better than
+the first.
+([Health Club Management](https://www.healthclubmanagement.co.uk/health-club-management-features/Talking-retention/30399))
+Practitioner advice (Clubwise, Nutripy) also favours two or three
+touches. Sensible shape: one short message about a week before the last
+day, only to people who haven't replied, naming the date and the two
+real options (switch, or hold), then nothing until the ex-member
+mailouts.
+
+The CRM already has a `membership.ending` trigger with a days-before
+count, but it fires for every membership ending, not only those who gave
+notice, and automations can't yet check `contact.membership.cancelling`.
+A second step would need that small addition (or a staff task instead of
+a message).
+
+### Is the notice email a service message or marketing?
+
+**It's marketing, and `marketing: true` is right.** The ICO's guidance:
+a message is a service message if it "simply gives information that they
+need to know", such as "advising customers in a factual way of the
+options available to them at the end of their contract", without
+"encouraging or promoting one option over another". A message that
+"actively promotes or encourages people to make use of a particular
+service, special offer, or upgrade" is direct marketing, and the ICO's
+own gym example is a payment-failure call that becomes marketing once
+the gym also mentions its personal training. The PECR guide adds that
+"significant promotional material aimed at getting customers ... to renew
+contracts that are coming to an end" makes a message marketing, which is
+the closest the ICO comes to a notice-period message. Labelling a message
+"service" doesn't change it: the ICO found American Express's "service"
+emails were marketing.
+([ICO, identify direct marketing](https://ico.org.uk/for-organisations/direct-marketing-and-privacy-and-electronic-communications/direct-marketing-guidance/identify-direct-marketing/),
+[ICO, PECR guide](https://ico.org.uk/for-organisations/direct-marketing-and-privacy-and-electronic-communications/guide-to-pecr/electronic-and-telephone-marketing/))
+
+The live email recommends other memberships, a coach conversation and a
+no-joining-fee return. That is encouraging one option over leaving, so
+it is marketing; WhatsApp's `win_back` is a marketing template for the
+same reason. The consequence is that members who opted out of marketing
+get nothing when they give notice. If Sammy wants them to hear
+something, it would have to be a separate, strictly factual note (your
+last day is X; to change your mind, reply), with no recommendations.
+Check first whether TeamUp already sends a cancellation confirmation.
+
+**The coming subscription rules allow save offers, within limits.** The
+DMCC Act's subscription regime (expected spring 2027, possibly brought
+forward to January 2027) requires exit "in a straightforward way and
+without unnecessary hurdles"; traders "may make offers or seek feedback
+during the cancellation process", but must not "frustrate or
+unreasonably elongate" it.
+([Browne Jacobson, April 2026](https://www.brownejacobson.com/insights/retail-law-roundup-april-2026/subscriptions-and-dmcc-act))
+The live email sits well within that: it goes after notice is given and
+asks nothing of anyone who wants to leave.
+
+### The live email, read against all this
+
+It already does most of what the evidence suggests: it waits until notice
+is given, thanks the person, routes by reason (time or money, motivation,
+something put them off), offers smaller memberships before any discount,
+asks for feedback, says there's no rush and leaves the door open. The
+gaps:
+
+1. **No hold.** The WhatsApp mentions a hold; the email doesn't, and a
+   hold is the option with the best evidence for people who need a
+   break.
+2. **The reply is open-ended.** Nothing makes replying easy for someone
+   who just wants to say why.
+3. **It's signed by `{team}`,** not a person.
+4. **No last day.** "Until the end of your notice period" makes them
+   work it out; `contact.membership.endsAt` has it when TeamUp gives one.
+
+Suggested wording (suggestions only; the hold terms are left for Sammy to
+fill in, not invented here):
+
+> **Subject:** Before you go, {first}
+>
+> Hi {first},
+>
+> We saw you've given notice on your membership. No hard feelings at
+> all, and thank you for training with us. It's been good having you in.
+>
+> Could you tell us the main reason? One line is plenty, just reply to
+> this email. It helps us more than you'd think.
+>
+> And in case it helps:
+>
+> If you need a break (injury, work, travel, a busy few months), you can
+> put your membership on hold instead of cancelling. [Hold terms: how
+> long, any cost, restart date.]
+>
+> If it's about time or money, a different membership might suit you
+> better. Facility Access Only gives you the gym floor without classes.
+> Classes Only is there if the classes are what you come for. If you're a
+> student or work in the blue light services, there's also a discounted
+> membership with valid ID.
+>
+> If it's about motivation or progress, have a word with one of the
+> coaches. Sometimes a different class, like Technique Thursdays, or a
+> fresh plan is all it takes.
+>
+> If something put you off, please tell us. We'd much rather hear it than
+> guess.
+>
+> Your membership runs until [last day], so you can keep training until
+> then and there's no rush to decide. To switch, hold or stay, reply here
+> or grab one of us next time you're in.
+>
+> And if you do leave, the door's always open. There's no joining fee if
+> you want to come back later.
+>
+> [Name], Round One
+
+The WhatsApp is short and already mentions the hold; the only suggested
+change is the same easy question ("What's the main reason? One line is
+fine.") in place of "If something put you off, tell us", if Meta's
+template review allows it.
+
+## 9. What this suggests for Round One
 
 Suggestions, not decisions. None of these needs anything built, except
 where marked.
@@ -440,7 +666,48 @@ where marked.
     will answer the time-since-leaving question better than anything
     published.
 
-## 9. How much to trust each source
+During the notice period (section 8):
+
+11. **Keep the notice-day timing and the 24-hour wait.** The reason is
+    fresh and there's still time to change plan; there's no evidence for
+    waiting longer.
+12. **Add the hold to the email,** with a fixed restart date and the
+    terms Sammy sets (how long, any cost). It is the option with the
+    best evidence for people who need a break, and the WhatsApp already
+    mentions it. A hold for any member is done in TeamUp today; the
+    CRM's Hold button is for unpaid members only.
+13. **Ask one easy question.** "What's the main reason? One line is
+    plenty." The answer decides which offer fits, and it feeds the
+    Cancellations screen and weekly report (item 12).
+14. **Sign it from a person, and give the last day** from `endsAt`
+    instead of "the end of your notice period". Suggested full wording is
+    in section 8.
+15. **Offer a smaller membership or a hold, never a free month to
+    stay.** Keep the no-joining-fee line for coming back later; it's a
+    reacquisition offer, not a reward for giving notice.
+16. **Have a coach call the people worth keeping.** Regulars and
+    long-standing members who give notice get a call or a personal
+    WhatsApp from their coach during the notice period: ask what's
+    changed, offer the hold or a different membership, and accept the
+    answer. This is the useful part of Gym Launch Secrets' exit
+    interview, without the hard sell.
+17. **A possible second step, about a week before the last day,** only
+    to people who haven't replied: one short message naming the date and
+    the two options (switch or hold). *(Needs a small addition: the
+    `membership.ending` trigger can't yet be limited to people who gave
+    notice. A staff task at that point is the no-build alternative.)*
+18. **Keep `marketing: true` on the email and the WhatsApp.** Both
+    recommend options, so under the ICO's guidance they are marketing,
+    and opted-out members correctly get neither. If Sammy wants
+    opted-out members told anything, it must be a strictly factual note
+    (last day, how to change your mind) with no recommendations, and
+    only if TeamUp doesn't already confirm the cancellation.
+19. **Measure the saves.** Of those who give notice: how many reply,
+    switch, hold, or stay, and how many held members restart on the
+    date. Three months of that answers whether the email and any second
+    step are worth it.
+
+## 10. How much to trust each source
 
 | Source | Type | Weight |
 |---|---|---|
@@ -459,3 +726,8 @@ where marked.
 | Email benchmarks (MailerLite, Mailchimp, Benchmark, Campaign Monitor) | Provider data | Medium; samples differ, opens inflated |
 | ICO, ASA/CAP, Google, Resend, Meta | Regulators and platform rules | High |
 | HelloFresh fine, DUAA commentary | Law firm reporting | High for the law; not legal advice |
+| Churnkey (pause, reason-matched offers) | Vendor platform data from online subscriptions, not audited | Low-medium; useful for direction, not gyms |
+| FM Consulting on freezes | Gym consultant blog | Low for figures; describes common gym practice |
+| Gym Launch Secrets (Hormozi) | Practitioner book, US; "save half" figure only in a second-hand summary | Low; practitioner material |
+| ICO "identify direct marketing" and PECR guide | Regulator guidance | High |
+| DMCC Act commentary (Browne Jacobson, April 2026) | Law firm; guidance and dates still to come | High for direction; details not final |
