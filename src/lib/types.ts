@@ -178,6 +178,9 @@ export interface Checkin {
 /** Failed attempts before someone counts as a failed payment (Sammy, 07/10/2026). */
 export const PAYMENT_FAILED_AT = 3;
 
+/** Their customer page in TeamUp's staff dashboard (Sammy, 11/10/2026), where Block Customer is. */
+export const teamupCustomerUrl = (customerId: string) => `https://goteamup.com/providers/customers/${encodeURIComponent(customerId)}/`;
+
 export interface TeamUpCustomer {
   customerId: string;
   status?: string; // TeamUp's own label: prospect, at_risk, converted, churned, lost…

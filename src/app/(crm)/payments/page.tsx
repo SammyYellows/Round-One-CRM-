@@ -6,7 +6,7 @@ import { useEffect, useMemo, useState } from "react";
 import { EmailAutomationCard } from "@/components/EmailAutomationCard";
 import { ago, gbp, shortDate } from "@/lib/format";
 import { useStore } from "@/lib/store";
-import { PAYMENT_FAILED_AT } from "@/lib/types";
+import { PAYMENT_FAILED_AT, teamupCustomerUrl } from "@/lib/types";
 
 // Members whose payments keep failing in TeamUp: flagged after three failed
 // attempts (Sammy, 07/10/2026), with what they owe and whether the message
@@ -100,6 +100,7 @@ export default function PaymentsPage() {
               <div className="faint num" style={{ fontSize: 12 }}>{c.email || c.phone || "no contact details"}</div>
               {c.teamup?.blocked === true && <span className="chip chip-light" style={{ height: 20, fontSize: 10, marginTop: 4 }}>Blocked in TeamUp</span>}
               {c.teamup?.blocked === false && <span className="chip chip-red" style={{ height: 20, fontSize: 10, marginTop: 4 }}>Not blocked</span>}
+              <div><a className="small" href={teamupCustomerUrl(c.teamup?.customerId ?? m.customerId)} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}>Open in TeamUp</a></div>
             </div>
             <div><div>{m.name}</div><div className="muted small">{m.category}</div></div>
             <div className="num">{m.paymentRetries}</div>

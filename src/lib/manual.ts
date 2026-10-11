@@ -194,7 +194,7 @@ Use the search and filters at the top to find people.`,
 - Members flagged after three failed payment attempts in TeamUp, with what they owe. Open a person to see each missed payment.
 - The flag clears when a payment goes through in TeamUp.
 - **Blocked in TeamUp** / **Not blocked** shows whether someone has been blocked with **Block Customer** on their TeamUp profile (checked nightly). The CRM can't block anyone itself (TeamUp doesn't allow it).
-- Anyone with three failed attempts who isn't blocked gets a task in **Needs you**: "Check … is blocked in TeamUp". Block them in TeamUp (or sort the payment); the task ticks itself off after the next nightly check.
+- Anyone with three failed attempts who isn't blocked gets a task in **Needs you**: "Check … is blocked in TeamUp". **Open in TeamUp** (on Failed payments and the contact page) goes straight to their TeamUp page, where **Block Customer** is. Block them there (or sort the payment); the task ticks itself off after the next nightly check.
 - Payment issues are sorted in TeamUp. A friendly word in person often works best.
 - The "failed-payment email" card at the top is off until management approve it there.
 

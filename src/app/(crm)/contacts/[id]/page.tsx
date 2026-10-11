@@ -6,7 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import { describeStep, firstName } from "@/lib/engine";
 import { ago, dayTime, shortDate, time, toLocalInput } from "@/lib/format";
 import { useStore } from "@/lib/store";
-import { LOST_REASONS, ON_PIPELINE, STAGES, Stage, apptStatusLabel, sourceLabel, stageLabel } from "@/lib/types";
+import { LOST_REASONS, ON_PIPELINE, STAGES, Stage, apptStatusLabel, sourceLabel, stageLabel, teamupCustomerUrl } from "@/lib/types";
 import { PRIORITY_LABEL, inactivityAdvice } from "@/lib/inactivity";
 import { useIsManager } from "@/components/StaffContext";
 
@@ -245,6 +245,7 @@ export default function ContactPage() {
                 {c.membership.endsAt ? ` · ${c.membership.status === "ended" ? "ended" : "ends or renews"} ${shortDate(c.membership.endsAt)}` : ""}
               </div>
               <div className="small faint">Change it in TeamUp; synced {ago(c.membership.syncedAt, now)}.</div>
+              <a className="btn btn-ghost btn-sm" style={{ alignSelf: "flex-start", marginTop: 4 }} href={teamupCustomerUrl(c.teamup?.customerId ?? c.membership.customerId)} target="_blank" rel="noreferrer">Open in TeamUp</a>
             </div>
           )}
           {c.accountability && (
