@@ -286,6 +286,24 @@ updates from the import never fire automations.
     own templates submitted there. The business portfolio now shows as
     "Round One Gym" in Meta pop-ups (was "Round 1"): check.
 
+17. **GymGrow leftovers to check** (11/10, when Meta lets Sammy back into
+    Business settings; use Edge). Main access is gone (Gym Grow and
+    LeadConnector partners removed, credit line gone, WhatsApp link now
+    YCloud). Still to check: (1) Leads Access → CRMs tab: remove
+    LeadConnector; (2) Sammy's personal Facebook → Settings → Apps and
+    websites: remove GymGrow/LeadConnector (can be done in the Facebook app
+    on his phone); (3) Business settings → Integrations / Connected apps
+    (keep Round One CRM); (4) the "unknown (Read-Only)" ad account
+    1004095058969212. Checked clean by Claude 11/10: the website (only a
+    TeamUp link) and round1boxfit.co.uk DNS (no GymGrow records).
+    **roundone.uk/apply** (the old ad link to Typeform) no longer opens:
+    point the ads at crm.round1boxfit.co.uk/f/free-trial when they restart.
+18. **Test sends from the gym number** (11/10): a template to Sammy's own
+    phone arrived (free 24-hour window); one to a new number
+    (+447712255057) was accepted by Meta but not delivered: paid messages
+    are blocked until billing is attached (YCloud). New system-user token
+    pasted in chat 11/10: on the rotation list.
+
 ## Done and off the list (08–09/10/2026)
 
 Two routes (CRM vs direct TeamUp); first and last name; repeat form
