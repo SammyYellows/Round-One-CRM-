@@ -237,6 +237,10 @@ updates from the import never fire automations.
     confirmed. **The live email still promises no joining fee to
     returners**, so switch before the fee starts.
 
+13. **AI-drafted WhatsApp replies** (improvement item 22, Sammy 11/10):
+    like Enquiries, staff approve each reply. Build after the real number
+    is connected.
+
 ## Done and off the list (08–09/10/2026)
 
 Two routes (CRM vs direct TeamUp); first and last name; repeat form
