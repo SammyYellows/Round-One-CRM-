@@ -76,8 +76,9 @@ when staff mark a sale on the pipeline.
   `blockTaskId: "before-11-10"`, so no tasks for them. 64 blocked in TeamUp,
   57 of them CRM contacts. Waiting on Sammy: switch on
   TeamUp's own auto-block (and the Kisi setting that leaves blocked
-  memberships off the door) if wanted; paste a TeamUp customer page address
-  for an Open in TeamUp button.
+  memberships off the door) if wanted. **Open in TeamUp** added 11/10
+  (goteamup.com/providers/customers/<id>/) on Failed payments and the
+  contact page.
 - **Two-way TeamUp actions** (item 9): Sammy wants reminding; the hold
   button is the first one, built 08/10.
 - **Test log run** (`docs/test-log.md`): **closed 11/10** as covered by
