@@ -194,8 +194,11 @@ In place so far:
   only: Owner or Manager staff role): notes and uploaded documents (PDF,
   .docx, text; files go straight to the private `champ-docs` bucket by a
   signed upload, PDFs are read once by Claude, Word files are unzipped in
-  code). Every active entry is added to Champ's system prompt (cached an
-  hour), capped at 400,000 characters.
+  code). **Contents, not the whole library** (Sammy, 11/10): each entry
+  gets a short Claude-written `summary` when saved or edited; Champ's
+  system prompt (cached an hour) carries only the contents list (id, title,
+  summary) and its `read_training` tool opens entries in full. Limits:
+  400,000 characters per entry, 5,000,000 in all.
 
 - **Roles and staff logins** (Sammy, 10/10): `src/lib/roles.ts`. Owner and
   Manager staff roles are management and see everything; everyone else

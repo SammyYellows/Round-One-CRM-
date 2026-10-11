@@ -1,5 +1,9 @@
 // Champ's knowledge (Sammy, 10/10/2026): notes management write and text
-// read from documents they upload, for Champ to read before every answer.
+// read from documents they upload. Since 11/10 Champ sees a contents list
+// (each entry's title and a short summary, written once by Claude) on every
+// question, and opens an entry in full with its read_training look-up only
+// when the question needs it, so the library can grow without every
+// question getting dearer.
 // Owners and managers only (staff role), until management logins arrive.
 // Server-only.
 //
@@ -12,11 +16,13 @@ import { db } from "./supabase";
 
 export const BUCKET = "champ-docs";
 export const MAX_FILE_BYTES = 20 * 1024 * 1024;
-/** All of Champ's knowledge together, so every question stays quick and cheap (about 100,000 tokens). */
-export const MAX_TOTAL_CHARS = 400_000;
+/** All of Champ's knowledge together. Only the contents list rides along with each question. */
+export const MAX_TOTAL_CHARS = 5_000_000;
+/** One entry, so opening it stays quick and cheap (about 100,000 tokens). */
+export const MAX_ENTRY_CHARS = 400_000;
 const PDF_MODEL = process.env.CHAMP_MODEL || "claude-sonnet-5-5";
 
-export interface KnowledgeRow { id: string; title: string; body: string; kind: "note" | "document"; file_name: string | null; file_path: string | null; mime: string | null; size: number | null; status: "ready" | "failed"; error: string | null; active: boolean; created_by: string; created_at: string; updated_at: string }
+export interface KnowledgeRow { id: string; title: string; body: string; summary: string | null; kind: "note" | "document"; file_name: string | null; file_path: string | null; mime: string | null; size: number | null; status: "ready" | "failed"; error: string | null; active: boolean; created_by: string; created_at: string; updated_at: string }
 
 export async function listKnowledge(): Promise<KnowledgeRow[]> {
   const { data, error } = await db().from("champ_knowledge").select("*").order("created_at");
@@ -24,12 +30,64 @@ export async function listKnowledge(): Promise<KnowledgeRow[]> {
   return (data ?? []) as KnowledgeRow[];
 }
 
-/** The text Champ reads: every active, ready entry, in the order they were added. */
+type Entry = Pick<KnowledgeRow, "id" | "title" | "body" | "summary" | "kind" | "file_name">;
+const label = (r: Entry) => `${r.title}${r.kind === "document" && r.file_name ? ` (from ${r.file_name})` : ""}`;
+
+/** A short contents note for one entry, by Claude: what's in it, so Champ can tell when to open it. */
+export async function summarise(title: string, body: string): Promise<string> {
+  const key = process.env.ANTHROPIC_API_KEY;
+  if (!key) throw new Error("No Claude API key");
+  const res = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: { "x-api-key": key, "anthropic-version": "2023-06-01", "content-type": "application/json" },
+    body: JSON.stringify({
+      model: PDF_MODEL, max_tokens: 1500, output_config: { effort: "low" },
+      system: "You write the contents note for one entry in a gym's staff knowledge library. A staff assistant sees only these notes and decides from them whether to open an entry to answer a question, so list what the entry covers: its topics, and the specific things in it (equipment, rooms, class names, drills, prices, policies, scripts, people, times). Two to six short lines, plain text, no advice and nothing that isn't in the entry. Start straight away; don't repeat the title.",
+      messages: [{ role: "user", content: `Title: ${title}\n\n${body}` }],
+    }),
+  });
+  if (!res.ok) throw new Error(`Claude ${res.status}`);
+  const j = (await res.json()) as { content?: { type: string; text?: string }[] };
+  const text = j.content?.filter((b) => b.type === "text").map((b) => b.text ?? "").join("").trim();
+  if (!text) throw new Error("Empty summary");
+  return text;
+}
+
+/** Writes any missing contents notes (new entries, or ones edited since). If Claude can't be reached, the start of the entry stands in for this question only. */
+async function fillSummaries(rows: Entry[]) {
+  const missing = rows.filter((r) => !r.summary);
+  for (let i = 0; i < missing.length; i += 3) {
+    await Promise.all(missing.slice(i, i + 3).map(async (r) => {
+      try {
+        r.summary = await summarise(r.title, r.body);
+        await db().from("champ_knowledge").update({ summary: r.summary }).eq("id", r.id);
+      } catch {
+        r.summary = `${r.body.replace(/\s+/g, " ").slice(0, 300)}…`;
+      }
+    }));
+  }
+}
+
+async function activeEntries(): Promise<Entry[]> {
+  const { data } = await db().from("champ_knowledge").select("id, title, body, summary, kind, file_name").eq("active", true).eq("status", "ready").order("created_at");
+  return (data ?? []) as Entry[];
+}
+
+/** The contents list Champ sees on every question: each active entry's id, title, size and summary. */
 export async function knowledgeForChamp(): Promise<string> {
-  const { data } = await db().from("champ_knowledge").select("title, body, kind, file_name").eq("active", true).eq("status", "ready").order("created_at");
-  const rows = (data ?? []) as Pick<KnowledgeRow, "title" | "body" | "kind" | "file_name">[];
+  const rows = await activeEntries();
   if (!rows.length) return "";
-  return rows.map((r) => `## ${r.title}${r.kind === "document" && r.file_name ? ` (from ${r.file_name})` : ""}\n\n${r.body.trim()}`).join("\n\n---\n\n");
+  await fillSummaries(rows);
+  return rows.map((r) => `- [${r.id}] ${label(r)}, ${r.body.length.toLocaleString("en-GB")} characters\n  ${(r.summary ?? "").replace(/\n+/g, "\n  ")}`).join("\n");
+}
+
+/** The full text of entries Champ asked to open (active and ready ones only). */
+export async function readKnowledge(ids: string[]): Promise<{ id: string; title: string; text: string }[] | { error: string }> {
+  const want = [...new Set(ids.map(String))].slice(0, 5);
+  if (!want.length) return { error: "Give the id of at least one entry from the contents list" };
+  const rows = (await activeEntries()).filter((r) => want.includes(r.id));
+  if (!rows.length) return { error: "No entry with that id. Use the ids in square brackets in the contents list." };
+  return rows.map((r) => ({ id: r.id, title: label(r), text: r.body }));
 }
 
 export async function totalChars(exceptId?: string): Promise<number> {

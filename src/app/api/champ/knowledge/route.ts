@@ -3,10 +3,10 @@
 //   POST {action:"note", title, body}     add a written note
 //   POST {action:"upload-url", name, size}  a signed address to upload a file straight to storage
 //   POST {action:"document", path, name, title}  read an uploaded file's text and add it
-//   PATCH {id, title?, body?, active?}    edit, switch on or off
+//   PATCH {id, title?, body?, active?}    edit (its summary is rewritten), switch on or off
 //   DELETE ?id=                           remove (and its file)
 
-import { BUCKET, MAX_FILE_BYTES, MAX_TOTAL_CHARS, extractText, listKnowledge, totalChars } from "@/lib/server/champKnowledge";
+import { BUCKET, MAX_ENTRY_CHARS, MAX_FILE_BYTES, MAX_TOTAL_CHARS, extractText, listKnowledge, summarise, totalChars } from "@/lib/server/champKnowledge";
 import { requireStaff, type StaffMember } from "@/lib/server/staff";
 import { db } from "@/lib/server/supabase";
 import { isManagerRole } from "@/lib/roles";
@@ -23,12 +23,13 @@ async function manager() {
 }
 const tooBig = async (adding: number, exceptId?: string) => (await totalChars(exceptId)) + adding > MAX_TOTAL_CHARS;
 const FULL = `Champ's knowledge is full (about ${MAX_TOTAL_CHARS.toLocaleString("en-GB")} characters). Switch off or remove something first.`;
+const LONG = `That's more than ${MAX_ENTRY_CHARS.toLocaleString("en-GB")} characters for one entry. Split it into smaller notes or files (for example one per topic), so Champ only opens the part it needs.`;
 
 export async function GET() {
   const auth = await manager();
   if ("error" in auth) return auth.error;
   const rows = await listKnowledge();
-  return Response.json({ rows: rows.map((r) => ({ ...r, chars: r.body.length })), used: rows.filter((r) => r.active).reduce((n, r) => n + r.body.length, 0), max: MAX_TOTAL_CHARS, maxFile: MAX_FILE_BYTES });
+  return Response.json({ rows: rows.map((r) => ({ ...r, chars: r.body.length })), used: rows.filter((r) => r.active).reduce((n, r) => n + r.body.length, 0), max: MAX_TOTAL_CHARS, maxEntry: MAX_ENTRY_CHARS, maxFile: MAX_FILE_BYTES });
 }
 
 export async function POST(req: Request) {
@@ -40,8 +41,10 @@ export async function POST(req: Request) {
   if (b.action === "note") {
     const body = typeof b.body === "string" ? b.body.trim() : "";
     if (!title || !body) return Response.json({ error: "Give the note a title and some text" }, { status: 400 });
+    if (body.length > MAX_ENTRY_CHARS) return Response.json({ error: LONG }, { status: 400 });
     if (await tooBig(body.length)) return Response.json({ error: FULL }, { status: 400 });
-    const { data, error } = await db().from("champ_knowledge").insert({ title, body, kind: "note", created_by: auth.staff.name }).select("id").single();
+    const summary = await summarise(title, body).catch(() => null);
+    const { data, error } = await db().from("champ_knowledge").insert({ title, body, summary, kind: "note", created_by: auth.staff.name }).select("id").single();
     if (error) return Response.json({ error: error.message }, { status: 500 });
     return Response.json({ ok: true, id: data.id });
   }
@@ -68,8 +71,10 @@ export async function POST(req: Request) {
     try {
       const { text, note } = await extractText(buf, name, file.type || "");
       if (!text) throw new Error("No text found in this file. If it's a scan, Champ can only read it as a PDF.");
+      if (text.length > MAX_ENTRY_CHARS) throw new Error(LONG);
       if (await tooBig(text.length)) throw new Error(FULL);
-      const { data, error: e2 } = await db().from("champ_knowledge").insert({ ...row, body: text, status: "ready", error: note ?? null }).select("id").single();
+      const summary = await summarise(row.title, text).catch(() => null);
+      const { data, error: e2 } = await db().from("champ_knowledge").insert({ ...row, body: text, summary, status: "ready", error: note ?? null }).select("id").single();
       if (e2) throw new Error(e2.message);
       return Response.json({ ok: true, id: data.id, chars: text.length, note });
     } catch (e) {
@@ -87,7 +92,7 @@ export async function PATCH(req: Request) {
   const b = (await req.json().catch(() => ({}))) as { id?: unknown; title?: unknown; body?: unknown; active?: unknown };
   const id = typeof b.id === "string" ? b.id : "";
   if (!id) return Response.json({ error: "Missing id" }, { status: 400 });
-  const { data: cur } = await db().from("champ_knowledge").select("body, active, status").eq("id", id).maybeSingle();
+  const { data: cur } = await db().from("champ_knowledge").select("title, body, summary, active, status").eq("id", id).maybeSingle();
   if (!cur) return Response.json({ error: "Not found" }, { status: 404 });
   const patch: Record<string, unknown> = { updated_at: new Date().toISOString() };
   if (typeof b.title === "string" && b.title.trim()) patch.title = b.title.trim().slice(0, 120);
@@ -95,7 +100,11 @@ export async function PATCH(req: Request) {
   if (typeof b.active === "boolean") patch.active = b.active && cur.status === "ready";
   const willBeActive = (patch.active ?? cur.active) as boolean;
   const bodyLen = ((patch.body as string | undefined) ?? (cur.body as string)).length;
+  if (bodyLen > MAX_ENTRY_CHARS) return Response.json({ error: LONG }, { status: 400 });
   if (willBeActive && (await tooBig(bodyLen, id))) return Response.json({ error: FULL }, { status: 400 });
+  // Edited: its contents note is written again so Champ knows what's in it now.
+  // Switched on without one yet: write it now rather than at the next question.
+  if (patch.title !== undefined || patch.body !== undefined || (willBeActive && !cur.summary)) patch.summary = await summarise((patch.title as string | undefined) ?? (cur.title as string), (patch.body as string | undefined) ?? (cur.body as string)).catch(() => null);
   const { error } = await db().from("champ_knowledge").update(patch).eq("id", id);
   if (error) return Response.json({ error: error.message }, { status: 500 });
   return Response.json({ ok: true });

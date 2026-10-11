@@ -28,7 +28,7 @@ const TOOL_LABEL: Record<string, string> = {
   find_people: "searched people", person_details: "opened a profile", list_members: "listed members", member_numbers: "counted members",
   list_leads: "listed leads", pipeline_overview: "checked the pipeline", trials: "checked trials", classes: "checked classes",
   class_attendees: "checked a class register", person_classes: "checked class bookings", person_door_entries: "checked door entries",
-  who_is_in_now: "checked who’s in", class_popularity: "checked class numbers", teamup_lookup: "looked in TeamUp", book_class: "set up a class booking",
+  who_is_in_now: "checked who’s in", class_popularity: "checked class numbers", teamup_lookup: "looked in TeamUp", book_class: "set up a class booking", read_training: "read the training notes",
 };
 
 

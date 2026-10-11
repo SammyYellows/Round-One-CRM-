@@ -9,7 +9,7 @@ import { useStore } from "@/lib/store";
 // that's switched on before it answers. Management only (Owner or Manager
 // logins), reached from the Champ screen, not the sidebar.
 
-interface Row { id: string; title: string; body: string; kind: "note" | "document"; file_name: string | null; size: number | null; status: "ready" | "failed"; error: string | null; active: boolean; created_by: string; updated_at: string; chars: number }
+interface Row { id: string; title: string; body: string; summary: string | null; kind: "note" | "document"; file_name: string | null; size: number | null; status: "ready" | "failed"; error: string | null; active: boolean; created_by: string; updated_at: string; chars: number }
 
 const SUGGESTIONS = ["Equipment", "Class formats", "Coaching standards", "Safety and house rules", "Intro meetings and sales", "Who's who"];
 
@@ -17,7 +17,7 @@ export default function KnowledgePage() {
   const { now, live } = useStore();
   const [rows, setRows] = useState<Row[] | null>(null);
   const [used, setUsed] = useState(0);
-  const [max, setMax] = useState(400000);
+  const [max, setMax] = useState(5000000);
   const [denied, setDenied] = useState("");
   const [err, setErr] = useState("");
   const [note, setNote] = useState("");
@@ -85,7 +85,7 @@ export default function KnowledgePage() {
       </header>
 
       <section className="card" style={{ padding: 16, marginBottom: 16 }}>
-        <div className="small muted">Knowledge used: {used.toLocaleString("en-GB")} of {max.toLocaleString("en-GB")} characters ({pct}%). The more there is, the more each question costs, so keep it to what staff need.</div>
+        <div className="small muted">Knowledge used: {used.toLocaleString("en-GB")} of {max.toLocaleString("en-GB")} characters ({pct}%). Champ sees a short summary of each entry with every question and opens an entry in full only when the question needs it, so give each entry a clear title and keep one topic per entry. Up to 400,000 characters per entry.</div>
         <div style={{ height: 6, background: "var(--line)", marginTop: 8 }}><div style={{ width: `${pct}%`, height: "100%", background: pct > 90 ? "var(--red)" : "var(--white)" }} /></div>
         {err && <div className="small" style={{ color: "var(--red)", marginTop: 8 }} role="alert">{err}</div>}
         {note && <div className="small" style={{ marginTop: 8 }} aria-live="polite">{note}</div>}
@@ -121,6 +121,7 @@ export default function KnowledgePage() {
                 <div className="faint small">{r.kind === "document" ? `Document: ${r.file_name}` : "Note"}{!r.active && r.status === "ready" ? " · switched off" : ""}</div>
                 {r.status === "failed" && <div className="small" style={{ color: "var(--red)" }}>Couldn’t read it: {r.error}</div>}
                 {r.status === "ready" && r.error && <div className="small faint">{r.error}</div>}
+                {r.status === "ready" && <div className="small muted" style={{ marginTop: 4, whiteSpace: "pre-wrap" }}><span className="faint">What Champ sees: </span>{r.summary || "Summary is written the next time Champ is asked."}</div>}
               </div>
               <div className="small muted">{r.chars.toLocaleString("en-GB")} characters</div>
               <div className="small muted">{r.created_by} · {ago(r.updated_at, now)}</div>
