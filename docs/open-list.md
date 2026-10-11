@@ -303,6 +303,17 @@ updates from the import never fire automations.
     that account have buttons pointing at gymgrow.app, so the CRM needs its
     own templates submitted there. The business portfolio now shows as
     "Round One Gym" in Meta pop-ups (was "Round 1"): check.
+    **Checked 11/10 late (`/api/whatsapp-check`, read only):** the CRM's new
+    key reaches the gym account; still INR; number CONNECTED, green, on the
+    Business app; **display name never approved** (`name_status`
+    NON_EXISTS, sending "limited" until it is; also why Meta refused the
+    move); no apps subscribed to the gym account (left until the switch);
+    GymGrow's 14 templates still there. Moving the number into the GBP test
+    account would cost the phone app (fresh add = API-only; Meta's move
+    needs a payment method and approved name on the old account, and moved
+    numbers are Cloud API only). **Sammy: keep the phone app.** Next: Sammy
+    submits the display name "Round One Gym"; YCloud chased (sent, no reply
+    yet).
 
 17. **GymGrow leftovers to check** (11/10, when Meta lets Sammy back into
     Business settings; use Edge). Main access is gone (Gym Grow and
