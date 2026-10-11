@@ -72,8 +72,9 @@ when staff mark a sale on the pipeline.
   keep them off until Meta has approved the WhatsApp templates**, so email
   and WhatsApp start together. That needs the WhatsApp token.
 - **Route 2 schedule:** still listening for Sammy's description.
-- **Tick boxes on the questionnaire (item 10):** Sammy will send the option
-  lists for goal, why now and what you've tried (10/10).
+- **Tick boxes on the questionnaire (item 10): done 11/10.** Goals (up to
+  2), why now (up to 2, Claude's suggestions Sammy picked) and what you've
+  tried (any; "Nothing" clears the rest), each with an "Other" box.
 - **Win-back replies** landing in Enquiries: fine as it is (Sammy, 08/10).
 
 ## This week (from 11/10/2026): staff get familiar; WhatsApp moves over

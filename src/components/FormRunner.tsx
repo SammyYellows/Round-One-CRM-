@@ -176,7 +176,8 @@ export function FormRunner({
                       className={`opt ${on ? "on" : ""}`}
                       aria-pressed={on}
                       onClick={() => {
-                        const next = on ? picked.filter((x) => x !== o) : max === 1 ? [o] : picked.length >= max ? picked : [...picked, o];
+                        const rest = picked.filter((x) => x !== q.alone);
+                        const next = on ? picked.filter((x) => x !== o) : max === 1 || o === q.alone ? [o] : rest.length >= max ? rest : [...rest, o];
                         setAnswers({ ...answers, [`${q.id}.picked`]: next.join("\n") });
                       }}
                     >
@@ -187,7 +188,7 @@ export function FormRunner({
                 {q.other && (answers[`${q.id}.picked`] ?? "").split("\n").includes("Other") && (
                   <input className="pin" autoFocus placeholder="Tell us" value={answers[`${q.id}.other`] ?? ""} onChange={(e) => setAnswers({ ...answers, [`${q.id}.other`]: e.target.value })} />
                 )}
-                {(q.max ?? 1) > 1 && <div className="help" style={{ fontSize: 13 }}>Tick up to {q.max}.</div>}
+                {(q.max ?? 1) > 1 && <div className="help" style={{ fontSize: 13 }}>{(q.max ?? 1) >= (q.options?.length ?? 0) + (q.other ? 1 : 0) ? "Select all that apply." : `Select up to ${q.max}.`}</div>}
               </div>
             ) : q.type === "long" ? (
               <textarea
