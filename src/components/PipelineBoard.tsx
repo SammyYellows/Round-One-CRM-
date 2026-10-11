@@ -6,7 +6,7 @@ import { ContactFilters } from "@/components/ContactFilters";
 import { ContactFilter, EMPTY_FILTER, SortKey, applyFilter, sortContacts, waitingOnUs } from "@/lib/contactQuery";
 import { ago, dayTime } from "@/lib/format";
 import { useStore } from "@/lib/store";
-import { Contact, STAGES, Source, Stage, sourceLabel } from "@/lib/types";
+import { Contact, STAGES, Source, Stage, onMetaPipeline, sourceLabel } from "@/lib/types";
 
 // Two pipelines share this board (Sammy, 06/10/2026): "Meta" is everyone who
 // came in through ads, the form, walk-ins, referrals, WhatsApp or email;
@@ -24,7 +24,7 @@ export function PipelineBoard({ kind }: { kind: "meta" | "teamup" }) {
   const [dragId, setDragId] = useState<string | null>(null);
   const [over, setOver] = useState<Stage | null>(null);
 
-  const leads = s.contacts.filter((c) => (kind === "teamup" ? c.source === "teamup" : c.source !== "teamup"));
+  const leads = s.contacts.filter((c) => (kind === "teamup" ? c.source === "teamup" : onMetaPipeline(c)));
   const visible = applyFilter(s, leads, filter, now);
   const inPlay = leads.filter((c) => c.stage !== "lost");
 

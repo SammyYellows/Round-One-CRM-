@@ -45,9 +45,9 @@ function ChampPortrait() {
     return () => clearInterval(id);
   }, []);
   return (
-    <div className="champ-portrait" style={{ display: "flex", alignItems: "flex-end", gap: 12 }}>
-      <img src={src} alt="Champ, Round One’s assistant" style={{ height: 160, width: "auto", display: "block" }} />
-      <div style={{ fontFamily: "var(--display)", fontSize: 32, textTransform: "uppercase", color: "var(--red)", lineHeight: 1, paddingBottom: 6 }}>Champ</div>
+    <div className="champ-portrait" style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 8, padding: "18px 22px 0" }}>
+      <img src={src} alt="Champ, Round One’s assistant" style={{ height: 300, width: "auto", maxWidth: "100%", objectFit: "contain", display: "block" }} />
+      <div style={{ fontFamily: "var(--display)", fontSize: 40, textTransform: "uppercase", color: "var(--red)", lineHeight: 1 }}>Champ</div>
     </div>
   );
 }
@@ -161,7 +161,8 @@ export default function ChampPage() {
         </aside>
 
         <section className="card" style={{ display: "flex", flexDirection: "column", minHeight: "70vh" }}>
-          <div className="champ-thread" style={{ flex: 1, padding: "16px 22px", overflowY: "auto", maxHeight: "62vh" }}>
+          <ChampPortrait />
+          <div className="champ-thread" style={{ flex: 1, padding: "16px 22px", overflowY: "auto", maxHeight: "50vh" }}>
             {msgs.length === 0 && !busy && (
               <div className="small muted" style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                 <div>Ask about a member, a class, who’s in, a missed payment, or for training and sales ideas. Try:</div>
@@ -202,7 +203,6 @@ export default function ChampPage() {
           </div>
 
           <div style={{ borderTop: "1px solid var(--line)", padding: "14px 22px", display: "flex", flexDirection: "column", gap: 10 }}>
-            <ChampPortrait />
             {err && <div className="small" style={{ color: "var(--red)" }} role="alert">{err}</div>}
             {!configured && <div className="small" style={{ color: "var(--red)" }}>Champ isn’t switched on yet: the Claude API key is missing.</div>}
             {mine ? (

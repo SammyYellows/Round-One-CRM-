@@ -6,8 +6,9 @@ import { useEffect, useRef, useState } from "react";
 import { describeStep, firstName } from "@/lib/engine";
 import { ago, dayTime, shortDate, time, toLocalInput } from "@/lib/format";
 import { useStore } from "@/lib/store";
-import { LOST_REASONS, STAGES, Stage, apptStatusLabel, sourceLabel, stageLabel } from "@/lib/types";
+import { LOST_REASONS, ON_PIPELINE, STAGES, Stage, apptStatusLabel, sourceLabel, stageLabel } from "@/lib/types";
 import { PRIORITY_LABEL, inactivityAdvice } from "@/lib/inactivity";
+import { useIsManager } from "@/components/StaffContext";
 
 const STATUS: Record<string, string> = { queued: "Sending", sent: "Sent", delivered: "Delivered", read: "Read", failed: "Not delivered" };
 
@@ -15,7 +16,9 @@ const FAKE_REPLIES = ["Sounds good, see you then", "Can I bring a friend?", "Wha
 
 export default function ContactPage() {
   const { id } = useParams<{ id: string }>();
-  const { s, now, act, live } = useStore();
+  const { s, now, act, live, removed } = useStore();
+  const manager = useIsManager();
+  const [removing, setRemoving] = useState(false);
   const [draft, setDraft] = useState("");
   const [losing, setLosing] = useState(false);
   const [lostReason, setLostReason] = useState<string>(LOST_REASONS[0]);
@@ -35,6 +38,25 @@ export default function ContactPage() {
   useEffect(() => {
     threadRef.current?.scrollTo({ top: threadRef.current.scrollHeight });
   }, [msgs.length]);
+
+  const gone = c ? undefined : removed.find((x) => x.id === id);
+  if (gone) {
+    return (
+      <>
+        <header className="page-head">
+          <div>
+            <div className="eyebrow"><Link href="/contacts" style={{ color: "var(--muted)" }}>Contacts</Link> / Removed</div>
+            <h1 className="h h1">{gone.name}</h1>
+          </div>
+        </header>
+        <div className="card pad" style={{ display: "flex", flexDirection: "column", gap: 12, alignItems: "flex-start" }}>
+          <p style={{ margin: 0 }}>{gone.removed!.by} removed {gone.name} from the CRM {ago(gone.removed!.at, now)} ({shortDate(gone.removed!.at)}). They don’t show anywhere and nothing is sent to them. If they fill in the form or book a trial again, they come back by themselves.</p>
+          <div className="small muted">{[gone.email, gone.phone].filter(Boolean).join(" · ") || "No contact details"}</div>
+          {manager && <button className="btn btn-red" onClick={() => act("restoreContact", gone.id)}>Put back</button>}
+        </div>
+      </>
+    );
+  }
 
   if (!c) {
     return (
@@ -86,8 +108,22 @@ export default function ContactPage() {
               <button className="btn btn-red" onClick={() => act("setStage", c.id, "sold_membership")}>Sold membership</button>
             </>
           )}
+          {c.source === "email" && !c.tags.includes(ON_PIPELINE) && (
+            <button className="btn btn-ghost" onClick={() => act("addTag", c.id, ON_PIPELINE)} title="Email enquiries stay off the Meta pipeline unless you put them on">Put on pipeline</button>
+          )}
+          {manager && !removing && <button className="btn btn-ghost" onClick={() => setRemoving(true)}>Remove</button>}
         </div>
       </header>
+
+      {removing && (
+        <div className="enq-confirm" role="alertdialog" aria-label={`Remove ${c.name}`}>
+          <div><strong>Remove {c.name} from the CRM?</strong> They’ll disappear from the pipeline, contacts and every list, their automations stop, any trial still to come is cancelled without a message, and nothing is sent to them. Their history is kept and you can put them back from Contacts → Removed.</div>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            <button className="btn btn-red btn-sm" onClick={() => { act("removeContact", c.id); setRemoving(false); }}>Remove</button>
+            <button className="btn btn-ghost btn-sm" onClick={() => setRemoving(false)}>Keep them</button>
+          </div>
+        </div>
+      )}
 
       <div className="grid cols-contact">
         <section className="card pad" style={{ display: "flex", flexDirection: "column", gap: 14 }}>

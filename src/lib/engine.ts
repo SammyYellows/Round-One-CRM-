@@ -123,6 +123,8 @@ function matches(s: State, a: Automation, ev: Fired) {
 }
 
 function fire(s: State, ev: Fired) {
+  // Nothing is ever sent to someone management removed.
+  if (s.contacts.find((x) => x.id === ev.contactId)?.removed) return;
   for (const a of s.automations) {
     if (!a.enabled || !matches(s, a, ev)) continue;
     a.runs += 1;
@@ -135,7 +137,7 @@ function fire(s: State, ev: Fired) {
 function advanceRun(s: State, run: Run) {
   const a = s.automations.find((x) => x.id === run.automationId);
   const c = s.contacts.find((x) => x.id === run.contactId);
-  if (!a || !c) {
+  if (!a || !c || c.removed) {
     run.status = "stopped";
     return;
   }
@@ -376,6 +378,7 @@ export function createAppointment(
   id = uid(),
 ) {
   const c = s.contacts.find((x) => x.id === input.contactId);
+  if (c?.removed) comeBack(s, c, "booked a trial");
   const cal = s.calendars.find((x) => x.id === input.calendarId);
   if (!c || !cal) return;
   const start = Date.parse(input.start);
@@ -541,6 +544,7 @@ export function submitForm(s: State, formId: string, answers: Record<string, str
   // contact questions); otherwise match on phone number before creating one.
   let c = (contactId ? s.contacts.find((x) => x.id === contactId) : undefined) ?? (phone ? s.contacts.find((x) => samePhone(x.phone, phone)) : undefined);
   if (contactId && !c) return;
+  if (c?.removed) comeBack(s, c, "filled in the form again");
   if (c) {
     // Same number, filled in again: take the newer details (a corrected
     // name or email), but keep their stage and any booking.
@@ -660,7 +664,7 @@ export function dueCheckins(s: State): Contact[] {
   const now = nowMs(s);
   return s.contacts.filter((c) => {
     const a = c.accountability;
-    if (!a?.active || c.membership?.status !== "active") return false; // lapsed means silence
+    if (!a?.active || c.removed || c.membership?.status !== "active") return false; // lapsed means silence
     const at = slotTimeThisWeek(a.slot, now);
     if (at === null || now < at) return false;
     return !a.lastCheckinAt || Date.parse(a.lastCheckinAt) < at;
@@ -734,7 +738,7 @@ export function dueNudges(s: State): Contact[] {
   const thursday = weekday === 4;
   return s.contacts.filter((c) => {
     const a = c.accountability;
-    if (!a?.active || c.membership?.status !== "active") return false;
+    if (!a?.active || c.removed || c.membership?.status !== "active") return false;
     if (a.lastNudgeAt && ukParts(Date.parse(a.lastNudgeAt)).date === date) return false; // once a day at most
     const sentThisWeek = a.lastNudgeAt ? Date.parse(a.lastNudgeAt) >= ukWeekStart(now).getTime() : false;
     const under = (a.attendance?.thisWeek ?? 0) < a.floor;
@@ -766,7 +770,7 @@ export function flagSilence(s: State) {
   let n = 0;
   for (const c of s.contacts) {
     const a = c.accountability;
-    if (!a?.active || c.membership?.status !== "active" || !a.attendance) continue;
+    if (!a?.active || c.removed || c.membership?.status !== "active" || !a.attendance) continue;
     if (now - Date.parse(a.joinedAt) < 14 * 86400e3) continue; // give them a fortnight
     if (a.attendance.thisWeek > 0 || a.attendance.lastWeek > 0) continue;
     const lastAnswer = a.checkins?.[0]?.at;
@@ -833,6 +837,39 @@ export function recordSafety(s: State, byCustomer: Map<string, Omit<Safety, "syn
 }
 
 /** Staff spoke to someone flagged in the gym without a waiver or emergency contact: off the alert for today. */
+/**
+ * Management take someone off the CRM (Sammy, 11/10/2026): spam, a mistake,
+ * someone who asked to be left alone. They're hidden from every staff screen
+ * and nothing is sent to them: their automations stop and any trial still to
+ * come is cancelled (quietly, with no cancellation message). Their history
+ * stays, and Put back undoes it. `by` is set by the server to the signed-in
+ * staff member's name.
+ */
+export function removeContact(s: State, contactId: string, by = "Staff") {
+  const c = s.contacts.find((x) => x.id === contactId);
+  if (!c || c.removed) return;
+  c.removed = { at: nowIso(s), by };
+  for (const r of s.runs) if (r.contactId === c.id && (r.status === "running" || r.status === "waiting")) r.status = "stopped";
+  const now = nowMs(s);
+  for (const a of s.appointments) if (a.contactId === c.id && (a.status === "booked" || a.status === "confirmed") && Date.parse(a.start) > now) a.status = "cancelled";
+  c.trialAt = undefined;
+  for (const t of s.tasks) if (t.contactId === c.id && !t.done) t.done = true;
+  log(s, "contact.removed", c.id, `${by} removed ${c.name} from the CRM`);
+}
+
+export function restoreContact(s: State, contactId: string, by = "Staff") {
+  const c = s.contacts.find((x) => x.id === contactId);
+  if (!c?.removed) return;
+  delete c.removed;
+  log(s, "contact.restored", c.id, `${by} put ${c.name} back`);
+}
+
+/** Someone removed came back in by themselves (the form, a booking): they show again. */
+function comeBack(s: State, c: Contact, how: string) {
+  delete c.removed;
+  log(s, "contact.restored", c.id, `${c.name} ${how}, so they're back on the CRM`);
+}
+
 export function markSafetyChecked(s: State, contactId: string) {
   const c = s.contacts.find((x) => x.id === contactId);
   if (!c) return;
@@ -852,7 +889,7 @@ export function flagInactivity(s: State, days: number, opts: { baseline?: boolea
   for (const c of s.contacts) {
     const a = c.activity;
     const m = c.membership;
-    if (!a || !m || m.status !== "active" || a.alertedAt) continue;
+    if (!a || !m || m.status !== "active" || a.alertedAt || c.removed) continue;
     const since = a.lastSeenAt ?? m.startedAt;
     if (!since || now - Date.parse(since) < days * 86400e3) continue;
     const gap = Math.floor((now - Date.parse(since)) / 86400e3);

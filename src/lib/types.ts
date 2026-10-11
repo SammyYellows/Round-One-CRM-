@@ -99,6 +99,11 @@ export interface Contact {
   // Imported from GymGrow (11/10/2026): their GymGrow ids and pipeline stage
   // at export, so a later export updates them instead of duplicating.
   gymgrow?: { contactId: string; opportunityId: string; stage: string; importedAt: string };
+  // Taken off the CRM by management (Sammy, 11/10/2026): hidden from every
+  // staff screen and never sent anything, but kept (history, and so the
+  // TeamUp sync doesn't add them back). Put back clears it, and so does
+  // filling in the form or booking again.
+  removed?: { at: string; by: string };
 }
 
 export interface Safety {
@@ -248,6 +253,8 @@ export type EventType =
   | "accountability.silent" // no check-in and no sessions two weeks running: coaches told
   | "safety.checked" // staff spoke to someone in the gym without a waiver or emergency contact
   | "class.booked" // booked into a TeamUp class through Champ
+  | "contact.removed" // management took them off the CRM
+  | "contact.restored" // put back, by staff or because they came back in
   | "appointment.booked"
   | "appointment.updated";
 
@@ -291,6 +298,11 @@ export type Trigger =
  * for that route.
  */
 export type Via = "crm" | "teamup";
+// Email enquiry senders become contacts but stay off the Meta pipeline
+// (Sammy, 11/10/2026) unless staff tag them with this from the contact page.
+export const ON_PIPELINE = "on-pipeline";
+export const onMetaPipeline = (c: Contact) => c.source !== "teamup" && (c.source !== "email" || c.tags.includes(ON_PIPELINE));
+
 export const viaOf = (c: { source: Source }): Via => (c.source === "teamup" ? "teamup" : "crm");
 export const viaLabel = (v: Via) => (v === "crm" ? "Came through the CRM" : "Signed up in TeamUp");
 

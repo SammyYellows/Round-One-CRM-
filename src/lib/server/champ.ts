@@ -178,7 +178,8 @@ class Ctx {
   private st?: Promise<State>;
   now = Date.now();
   constructor(public who?: { staffId: string; staffName: string; chatId: string; question: string; autobook?: boolean }) {}
-  state() { return (this.st ??= loadState()); }
+  // Removed people (Contact.removed) don't exist as far as Champ is concerned.
+  state() { return (this.st ??= loadState().then((st) => ({ ...st, contacts: st.contacts.filter((c) => !c.removed) }))); }
 }
 
 // ---- Booking into a class: the one write Champ may make ----

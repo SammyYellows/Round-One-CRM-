@@ -9,7 +9,7 @@ import { isManagementPath, isManagerRole } from "@/lib/roles";
 
 const NAV = [
   { href: "/", label: "Today", icon: <path d="M3 11 12 4l9 7v9H3z" /> },
-  { href: "/champ", label: "Champ", icon: <><path d="M4 5h16v11H9l-5 4z" /><path d="M8 10h8" /></> },
+  { href: "/champ", label: "Ask Champ", red: true, icon: <><path d="M4 5h16v11H9l-5 4z" /><path d="M8 10h8" /></> },
   { href: "/calendar", label: "Calendar", icon: <><rect x="3" y="4" width="18" height="17" /><path d="M3 9h18M8 2v4M16 2v4" /></> },
   { href: "/pipeline", label: "Meta pipeline", icon: <><rect x="3" y="4" width="5" height="16" /><rect x="10" y="4" width="5" height="11" /><rect x="17" y="4" width="4" height="7" /></> },
   { href: "/pipeline/teamup", label: "TeamUp pipeline", icon: <><rect x="3" y="4" width="5" height="7" /><rect x="10" y="4" width="5" height="11" /><rect x="17" y="4" width="4" height="16" /></> },
@@ -98,7 +98,7 @@ export function Sidebar({ staff }: { staff?: { name: string; role: string } }) {
       </div>
       <div id="main-nav" className="nav-list">
       {nav.map((n) => (
-        <Link key={n.href} href={n.href} className={`nav ${isOn(n.href) ? "on" : ""}`} aria-current={isOn(n.href) ? "page" : undefined}>
+        <Link key={n.href} href={n.href} className={`nav ${isOn(n.href) ? "on" : ""} ${"red" in n && n.red ? "nav-red" : ""}`} aria-current={isOn(n.href) ? "page" : undefined}>
           <svg className="ico" viewBox="0 0 24 24" aria-hidden="true">{n.icon}</svg>
           {n.label}
           {(() => {

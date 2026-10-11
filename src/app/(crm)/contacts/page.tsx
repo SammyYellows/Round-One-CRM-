@@ -8,6 +8,7 @@ import { ContactFilter, EMPTY_FILTER, SortKey, applyFilter, lastActivity, sortCo
 import { uid } from "@/lib/engine";
 import { ago, dayTime } from "@/lib/format";
 import { useStore } from "@/lib/store";
+import { useIsManager } from "@/components/StaffContext";
 import { SOURCES, Source, sourceLabel, stageLabel } from "@/lib/types";
 
 const COLUMNS: { key: SortKey | null; label: string }[] = [
@@ -20,7 +21,8 @@ const COLUMNS: { key: SortKey | null; label: string }[] = [
 ];
 
 export default function ContactsPage() {
-  const { s, now, act } = useStore();
+  const { s, now, act, removed } = useStore();
+  const manager = useIsManager();
   const router = useRouter();
   const [filter, setFilter] = useState<ContactFilter>(EMPTY_FILTER);
   const [sort, setSort] = useState<{ key: SortKey; dir: 1 | -1 }>({ key: "newest", dir: 1 });
@@ -112,6 +114,21 @@ export default function ContactsPage() {
         ))}
         {list.length === 0 && <div className="empty">No one matches these filters.</div>}
       </section>
+
+      {manager && removed.length > 0 && (
+        <details className="card">
+          <summary className="card-head" style={{ cursor: "pointer" }}><h2 className="h h3">Removed · {removed.length}</h2><span className="small muted">Hidden everywhere; open one to put them back</span></summary>
+          {removed.map((c) => (
+            <Link key={c.id} href={`/contacts/${c.id}`} className="row" style={{ textDecoration: "none" }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div className="strong">{c.name}</div>
+                <div className="faint small">{[c.email, c.phone].filter(Boolean).join(" · ")}</div>
+              </div>
+              <div className="faint small">{c.removed!.by}, {ago(c.removed!.at, now)}</div>
+            </Link>
+          ))}
+        </details>
+      )}
     </>
   );
 }

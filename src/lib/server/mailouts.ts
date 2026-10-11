@@ -84,6 +84,7 @@ async function allContacts(): Promise<Pick[]> {
       .select("id, name, email, phone, source, stage, trial_at, membership, teamup, created_at, marketing_opt_out, email_bounced")
       .eq("marketing_opt_out", false)
       .eq("email_bounced", false)
+      .is("removed", null)
       .order("created_at", { ascending: false })
       .range(from, from + PAGE - 1);
     if (error) throw new Error(`Loading contacts: ${error.message}`);

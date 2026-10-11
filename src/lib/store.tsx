@@ -10,11 +10,11 @@
 //
 // Pages don't need to know which mode they're in; they call act() either way.
 
-import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { ActionArgs, ActionName, runAction } from "./actions";
 import { nowMs, tick } from "./engine";
 import { seed } from "./seed";
-import { State } from "./types";
+import { Contact, State } from "./types";
 
 export const LIVE = Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY);
 
@@ -32,6 +32,10 @@ interface Store {
   act: Act;
   reset: () => void;
   live: boolean;
+  // People management removed (Contact.removed). `s` leaves them out, with
+  // their appointments and tasks, so no screen shows them; this list is for
+  // the contact page and the Removed list on Contacts.
+  removed: Contact[];
 }
 
 const Ctx = createContext<Store | null>(null);
@@ -71,7 +75,7 @@ function loadLocal(): State {
   return seed(Date.now());
 }
 
-function useLocalStore(): Store | null {
+function useLocalStore(): Omit<Store, "removed"> | null {
   const [s, setS] = useState<State | null>(null);
 
   useEffect(() => {
@@ -117,7 +121,7 @@ function useLocalStore(): Store | null {
 
 // ---- Live (Supabase) ------------------------------------------------------
 
-function useLiveStore(onError: (msg: string) => void): Store | null {
+function useLiveStore(onError: (msg: string) => void): Omit<Store, "removed"> | null {
   const [s, setS] = useState<State | null>(null);
   const pending = useRef(0);
   const queue = useRef<Promise<void>>(Promise.resolve());
@@ -192,9 +196,25 @@ function ErrorBar({ msg, onClose }: { msg: string; onClose: () => void }) {
   );
 }
 
+/** What pages see: the state without removed people (actions still run on the full state). */
+function useView(store: Omit<Store, "removed"> | null): Store | null {
+  const st = store?.s;
+  const view = useMemo(() => {
+    if (!st) return null;
+    const removed = st.contacts.filter((c) => c.removed);
+    if (!removed.length) return { s: st, removed };
+    const gone = new Set(removed.map((c) => c.id));
+    return {
+      s: { ...st, contacts: st.contacts.filter((c) => !gone.has(c.id)), appointments: st.appointments.filter((a) => !gone.has(a.contactId)), tasks: st.tasks.filter((t) => !t.contactId || !gone.has(t.contactId)) },
+      removed,
+    };
+  }, [st]);
+  return store && view ? { ...store, ...view } : null;
+}
+
 function LiveProvider({ children }: { children: React.ReactNode }) {
   const [error, setError] = useState<string | null>(null);
-  const store = useLiveStore(setError);
+  const store = useView(useLiveStore(setError));
   if (!store) return <div className="loading">{error ?? "Loading"}</div>;
   return (
     <Ctx.Provider value={store}>
@@ -205,7 +225,7 @@ function LiveProvider({ children }: { children: React.ReactNode }) {
 }
 
 function LocalProvider({ children }: { children: React.ReactNode }) {
-  const store = useLocalStore();
+  const store = useView(useLocalStore());
   if (!store) return <div className="loading">Loading</div>;
   return <Ctx.Provider value={store}>{children}</Ctx.Provider>;
 }

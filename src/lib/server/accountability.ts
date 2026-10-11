@@ -36,7 +36,7 @@ async function attendanceFor(ids: { contactId: string; customerId: string; email
 
 /** Everyone active on the programme with a TeamUp id. */
 const roster = (s: Awaited<ReturnType<typeof loadState>>) =>
-  s.contacts.filter((c) => c.accountability?.active).map((c) => ({ contactId: c.id, customerId: c.teamup?.customerId ?? c.membership?.customerId ?? "", email: c.email })).filter((x) => x.customerId || x.email);
+  s.contacts.filter((c) => c.accountability?.active && !c.removed).map((c) => ({ contactId: c.id, customerId: c.teamup?.customerId ?? c.membership?.customerId ?? "", email: c.email })).filter((x) => x.customerId || x.email);
 
 /** Nightly, and from the Refresh button: this week's and last week's sessions for everyone on the programme. */
 export async function refreshAttendance() {

@@ -10,6 +10,6 @@ export const MANAGEMENT_PATHS = ["/mailouts", "/automations", "/reports", "/form
 export const isManagementPath = (path: string) => MANAGEMENT_PATHS.some((p) => path === p || path.startsWith(`${p}/`));
 
 /** Changes only management can make: what gets sent to customers, and settings. */
-export const MANAGEMENT_ACTIONS = new Set(["toggleAutomation", "setEmailStep", "updateForm", "setAvailability", "shiftClock"]);
+export const MANAGEMENT_ACTIONS = new Set(["toggleAutomation", "setEmailStep", "updateForm", "setAvailability", "shiftClock", "removeContact", "restoreContact"]);
 
 export const ROLES = ["Owner", "Manager", "Staff"] as const;

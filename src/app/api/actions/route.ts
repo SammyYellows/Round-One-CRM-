@@ -17,8 +17,10 @@ export async function POST(req: Request) {
   }
   // Messages to customers and settings are management's to change (Sammy, 10/10/2026).
   if (MANAGEMENT_ACTIONS.has(body.name) && !isManagerRole(auth.staff.role)) return Response.json({ error: "Only management can change that" }, { status: 403 });
+  // Who removed or put back a contact is whoever is signed in, whatever the page sent.
+  const args = body.name === "removeContact" || body.name === "restoreContact" ? [body.args[0], auth.staff.name] : body.args;
   try {
-    return Response.json(await applyAction(body.name, body.args as never));
+    return Response.json(await applyAction(body.name, args as never));
   } catch (e) {
     console.error("[actions]", body.name, e);
     return Response.json({ error: "Couldn’t save that change. Try again." }, { status: 500 });
