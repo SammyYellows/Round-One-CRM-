@@ -183,8 +183,10 @@ updates from the import never fire automations.
    (one session a day, merged with classes), live since 09/10.
    Waiting on Sammy: approve the welcome, check-in and nudge emails on the
    Accountability screen; send one real member their link when ready.
-3. **Photo background on the questionnaire** (improvement list item 1).
-   Waiting on Sammy: a photo from Round One.
+3. **Photo on the questionnaire** (improvement list item 1). **Done 11/10**:
+   on phones the gym photo shows in front of the form, starts fading at 2
+   seconds and is gone by 5 (a tap skips it). Desktop unchanged. The photo is
+   small (490×326); a bigger original would look sharper full-screen.
 3b. **Win-back email the day after notice** (improvement list item 7).
    **Stays on (Sammy, 08/10).** Research into better win-back approaches
    is improvement item 17.
