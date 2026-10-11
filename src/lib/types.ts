@@ -96,6 +96,9 @@ export interface Contact {
   // reading in an emergency and for the "in the gym now" check. Updated
   // nightly; never sent anywhere.
   safety?: Safety;
+  // Imported from GymGrow (11/10/2026): their GymGrow ids and pipeline stage
+  // at export, so a later export updates them instead of duplicating.
+  gymgrow?: { contactId: string; opportunityId: string; stage: string; importedAt: string };
 }
 
 export interface Safety {
