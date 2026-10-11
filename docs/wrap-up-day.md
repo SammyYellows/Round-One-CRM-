@@ -53,6 +53,34 @@ Full steps for each are in `docs/go-live-day.md`.
 | 27 | Staff Access membership in TeamUp has "no allotment set", so TeamUp won't book staff into classes (found testing Champ's booking, 10/10) | Set an allotment in TeamUp, or leave it |
 | 28 | Champ booking: does TeamUp email the member when Champ books them? | Check on the first real booking |
 
+## Decided on the day (Sammy, Sunday 11/10 morning)
+
+Overnight check: all seven nightly TeamUp stages succeeded (03:00–03:14),
+no failed emails, nothing sent to customers (two "Not been in" alerts to
+the front desk only).
+
+| # | Decision |
+|---|---|
+| 10 | Keep off until WhatsApp has moved and the templates are approved (job 3). Claude asks again then. |
+| 11 | Approve: Sammy presses "Approve and switch on" on the Failed payments card. |
+| 12 | Approve all three: Sammy approves each card on Accountability. |
+| 13 | Keep off until WhatsApp has moved (job 3); then the managers' numbers. |
+| 14 | Sammy will describe a schedule (days, what each says, channel). Claude then drafts switched-off cards. |
+| 15 | Sammy will send the option lists. |
+| 16 | Sammy will send the TeamUp screenshot. |
+| 17 | Parked on the ideas list. |
+| 18 | Sammy will send a photo. |
+| 19 | Do it now: research written up in `docs/reference/win-back.md`. No messages change. |
+| 20 | Dropped. Recheck the video during the real-number test (job 4). |
+| 21 | Fixed by Sammy. Checked in last night's TeamUp data: one active Full Facility Access – Peak (since 05/01/2026); the other two cancelled. |
+| 22 | Staff set coaches on members from Monday; front desk gets alerts until then. |
+| 23 | Sammy writes the equipment note in Train Champ today. |
+| 24 | Staff add mobiles as they see people. |
+| 25 | Resend Pro today (Sammy corrected his answer). Once upgraded, Claude sets `MAILOUT_DAILY_LIMIT=0` in Vercel to lift the 80-a-day cap. |
+| 26 | Closed as covered by Monday's real use; anything odd goes in `test-log.md`. |
+| 27 | Leave it: staff on Staff Access aren't booked into classes. |
+| 28 | Still open: check on the first real Champ booking. |
+
 ## Stays open
 
 - **GymGrow import:** waiting on the Opportunities export. Never import
