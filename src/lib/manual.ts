@@ -26,11 +26,11 @@ export const MANUAL: ManualSection[] = [
 - **Manual** (this) is at the bottom of the menu.
 
 ### What you can see
-- **Staff** logins see the day-to-day screens: Today, Champ, Calendar, both pipelines, Contacts, Enquiries, Members, Program members, Cancellations, Accountability and Failed payments.
+- **Staff** logins see the day-to-day screens: Today, Ask Champ, Calendar, both pipelines, Contacts, Enquiries, Members, Program members, Cancellations, Accountability and Failed payments.
 - **Owner** and **Manager** logins also see Mailouts, Automations, Reports, Forms, Meta ads, Staff and Train Champ, and can change messages and settings.
 
 ### Getting help
-Ask **Champ** (second in the menu). It knows this manual, can look up any member, class or lead for you, and can help with training and sales ideas.`,
+Ask **Champ** (**Ask Champ**, in red, second in the menu, or the big red button on Today). It knows this manual, can look up any member, class or lead for you, and can help with training and sales ideas.`,
   },
   {
     slug: "daily-routine", title: "Your daily routine", who: "everyone",
@@ -52,9 +52,10 @@ Ask **Champ** (second in the menu). It knows this manual, can look up any member
   {
     slug: "today", title: "Today", who: "everyone",
     summary: "The home screen: what needs you, trials coming up, and how leads are doing.",
-    body: `- **Needs you**: tasks for staff. Tick **Done** when finished. Tasks are made by the CRM (a member hasn't been in, a check-in needs a reply, a cancellation) or by staff.
+    body: `- **Ask Champ**: the big red button at the top opens Champ.
+- **Needs you** (top left): tasks for staff. Tick **Done** when finished. Tasks are made by the CRM (a member hasn't been in, a check-in needs a reply, a cancellation) or by staff.
 - **Upcoming trials** and **Trials this week**: intro meetings booked.
-- The tiles and charts (leads in the last 7 days, trials, show-up rate, where leads come from, which ads book trials) show how the sales side is going.
+- The four tiles (top right) and the charts (leads in the last 7 days, trials, show-up rate, where leads come from, which ads book trials) show how the sales side is going.
 - **Open trial form** opens the public questionnaire; **Book a trial** opens the calendar to book someone in.`,
   },
   {
@@ -101,7 +102,7 @@ Ask **Champ** (second in the menu). It knows this manual, can look up any member
   {
     slug: "pipeline", title: "Meta pipeline (leads)", who: "everyone",
     summary: "Enquiries from ads, the form, walk-ins and referrals, by stage.",
-    body: `Everyone who enquires through the questionnaire, an ad, a walk-in, a referral, WhatsApp or email. Drag a card to another column to change their stage, or change it on their contact page.
+    body: `Everyone who enquires through the questionnaire, an ad, a walk-in, a referral or WhatsApp. People who only emailed info@ stay off it (they're on Contacts and Enquiries) unless you press **Put on pipeline** on their contact page. Drag a card to another column to change their stage, or change it on their contact page.
 
 ### The stages
 - **New lead**: just enquired.
@@ -147,7 +148,12 @@ Use the search and filters at the top to find people.`,
 - **Questionnaire**: their answers from the form.
 - **Stage** and buttons such as **Sold programme**, **Sold membership** and **Move to nurture** (these send messages, see Meta pipeline).
 - For members: their **membership** (from TeamUp), **Coach**, **Last in** and sessions in the last 30 days, a **priority** if they've lapsed with a suggested action, and their **Safety** card.
-- **No marketing messages**: tick if they don't want offers (they can also reply STOP). Messages about their own booking or membership still go.`,
+- **No marketing messages**: tick if they don't want offers (they can also reply STOP). Messages about their own booking or membership still go.
+
+### Removing someone (Owner and Manager logins)
+- **Remove** on a contact's page, then confirm, takes them off the CRM: spam, a mistake, a duplicate, someone who wants to be left alone. They disappear from the pipelines, Contacts, Today and every list; their automations stop; a trial still to come is cancelled without any message; nothing is ever sent to them.
+- Their history is kept. **Contacts → Removed** (at the bottom) lists them; open one and press **Put back**.
+- If a removed person fills in the questionnaire or books a trial again, they come back by themselves.`,
   },
   {
     slug: "enquiries", title: "Enquiries (emails to info@)", who: "everyone",
@@ -157,7 +163,7 @@ Use the search and filters at the top to find people.`,
 - Read the email on the left and the draft on the right. Edit it freely, or type an instruction (for example "shorter, and mention the Saturday class") and the draft is rewritten.
 - **Send reply** and then confirm. It goes from info@ and threads with their email. **Nothing sends until you confirm.**
 - **No reply needed** for anything that doesn't need an answer; **Reopen** brings it back.
-- The sender becomes a contact automatically.
+- The sender becomes a contact automatically, but stays off the Meta pipeline unless you press **Put on pipeline** on their contact page.
 - **Gym facts** (management only) is the sheet drafts are allowed to use: prices, hours, classes.`,
   },
   {
@@ -178,7 +184,7 @@ Use the search and filters at the top to find people.`,
     slug: "teamup-and-program", title: "TeamUp pipeline and Program members", who: "everyone",
     summary: "People who came through TeamUp, and the 28 Day Program.",
     body: `- **TeamUp pipeline**: everyone synced from TeamUp (members, ex-members and people who made an account but never joined), by when they came in.
-- **Program members**: everyone on the 28 Day Program, where they are in it, split into those who came through the CRM and those who signed up straight in TeamUp. It also holds the Program messages (most are switched off until management approves them).
+- **Program members**: everyone on the 28 Day Program (the list at the top), where they are in it, split into those who came through the CRM and those who signed up straight in TeamUp. The Program messages are underneath (most are switched off until management approves them).
 - The 28 Day Program is £79 upfront; if they finish and move onto a recurring membership, the £79 comes off, so their first 28 days end up free.`,
   },
   {

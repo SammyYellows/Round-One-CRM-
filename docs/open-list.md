@@ -328,6 +328,9 @@ updates from the import never fire automations.
 22. **Accountability forms: change the photo later** (Sammy, 11/10). The
     gym photo shows on every public form, including the accountability and
     check-in forms members get. Fine for now; change it for those later.
+23. **Site comments: done 11/10** (improvement item 23): Today layout and
+    Ask Champ button, Ask Champ in red, bigger Champ picture, Program members
+    swapped, email senders off the Meta pipeline, Remove for managers.
 
 ## Done and off the list (08–09/10/2026)
 

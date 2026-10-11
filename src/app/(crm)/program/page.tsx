@@ -55,23 +55,7 @@ export default function ProgramPage() {
         <Link className="btn btn-ghost" href="/members">All members</Link>
       </header>
 
-      <div className="small muted" style={{ marginBottom: 14 }}>
-        Two routes onto the Program. Each message is off until approved here; edit the wording, save drafts, or ask the AI to change it. Service messages, so they go regardless of marketing opt-outs. {MESSAGES.filter((m) => s.automations.find((a) => a.id === m.id)?.enabled).length} of {MESSAGES.length} on.
-      </div>
-
-      <h2 className="h h3" style={{ margin: "6px 0 10px" }}>Came through the CRM (Meta ad, form, referral)</h2>
-      <div className="small muted" style={{ marginBottom: 12 }}>
-        They bought the Program at the sale, so the pipeline’s welcome went when staff marked Sold – Programme. Once they’re in TeamUp (matched on email), two messages a week from day 3, timed from the membership start. Finish the Program and move to recurring, and the £79 is refunded against the membership.
-      </div>
-      {CRM_MESSAGES.map((m) => <EmailAutomationCard key={m.id} automationId={m.id} title={m.title} purpose={m.purpose} when={m.when} startOpen={false} />)}
-
-      <h2 className="h h3" style={{ margin: "18px 0 10px" }}>Signed up directly in TeamUp (website, walk-in, word of mouth)</h2>
-      <div className="small muted" style={{ marginBottom: 12 }}>
-        No CRM journey first, so they get their own schedule. Day 1 is here; the rest comes from Sammy.
-      </div>
-      {TEAMUP_MESSAGES.map((m) => <EmailAutomationCard key={m.id} automationId={m.id} title={m.title} purpose={m.purpose} when={m.when} startOpen={false} />)}
-
-      <section className="card">
+      <section className="card" style={{ marginBottom: 24 }}>
         <div className="card-head">
           <div>
             <div className="eyebrow">From TeamUp, synced nightly</div>
@@ -101,6 +85,22 @@ export default function ProgramPage() {
         })}
         {members.length === 0 && <div className="empty">Nobody is on the Program right now.</div>}
       </section>
+
+      <div className="small muted" style={{ marginBottom: 14 }}>
+        Two routes onto the Program. Each message is off until approved here; edit the wording, save drafts, or ask the AI to change it. Service messages, so they go regardless of marketing opt-outs. {MESSAGES.filter((m) => s.automations.find((a) => a.id === m.id)?.enabled).length} of {MESSAGES.length} on.
+      </div>
+
+      <h2 className="h h3" style={{ margin: "6px 0 10px" }}>Came through the CRM (Meta ad, form, referral)</h2>
+      <div className="small muted" style={{ marginBottom: 12 }}>
+        They bought the Program at the sale, so the pipeline’s welcome went when staff marked Sold – Programme. Once they’re in TeamUp (matched on email), two messages a week from day 3, timed from the membership start. Finish the Program and move to recurring, and the £79 is refunded against the membership.
+      </div>
+      {CRM_MESSAGES.map((m) => <EmailAutomationCard key={m.id} automationId={m.id} title={m.title} purpose={m.purpose} when={m.when} startOpen={false} />)}
+
+      <h2 className="h h3" style={{ margin: "18px 0 10px" }}>Signed up directly in TeamUp (website, walk-in, word of mouth)</h2>
+      <div className="small muted" style={{ marginBottom: 12 }}>
+        No CRM journey first, so they get their own schedule. Day 1 is here; the rest comes from Sammy.
+      </div>
+      {TEAMUP_MESSAGES.map((m) => <EmailAutomationCard key={m.id} automationId={m.id} title={m.title} purpose={m.purpose} when={m.when} startOpen={false} />)}
     </>
   );
 }

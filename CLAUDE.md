@@ -218,6 +218,14 @@ In place so far:
   which signs everyone on it out (`revoke_sessions`). Forgotten password and
   changing your own password are refused for them, and no automatic email
   goes to them (coach alerts fall back to the front desk).
+- **Removing contacts** (Sammy, 11/10): Owner/Manager press Remove on a
+  contact (`removeContact`, sets `contact.removed`). Nothing is deleted: the
+  store leaves removed people (and their appointments and tasks) out of `s`
+  for every page, `fire()` never starts automations for them, and server
+  loops that send (mailouts, accountability, inactivity) and Champ skip
+  them. `useStore().removed` lists them for Contacts → Removed and Put back.
+  Email enquiry senders are contacts but stay off the Meta pipeline
+  (`onMetaPipeline`) unless tagged `on-pipeline`.
 - **Manual** (`src/lib/manual.ts`, `/manual`, linked at the bottom of the
   menu): one section per area; the management section is hidden from
   staff. Champ reads the whole manual and is the expert on the CRM; keep

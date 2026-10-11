@@ -78,15 +78,52 @@ export default function TodayPage() {
         </div>
       </header>
 
-      <div className="grid stats4">
-        {tiles.map((t) => (
-          <div key={t.label} className="card pad" style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            <div className="eyebrow">{t.label}</div>
-            <div className="h num" style={{ fontSize: 48, lineHeight: 1 }}>{t.value}</div>
-            {"meter" in t && t.meter !== undefined ? <Meter value={t.meter} label={t.label} /> : <Sparkline values={t.spark ?? []} />}
-            <div className="small muted">{t.note}</div>
+      <div className="ask-champ-wrap">
+        <Link className="btn btn-red ask-champ" href="/champ">Ask Champ</Link>
+      </div>
+
+      <div className="grid cols-today">
+        <section className="card needs">
+          <div className="card-head">
+            <h2 className="h h2">Needs you</h2>
+            <span className="small muted">{openTasks.length + waiting.length} things</span>
           </div>
-        ))}
+          {waiting.map((c) => (
+            <div key={c.id} className="row">
+              <span className="chip chip-light" style={{ width: 96, flexShrink: 0 }}>WhatsApp</span>
+              <div className="needs-text" style={{ flex: 1, minWidth: 0 }}>
+                <div className="strong">{c.name} is waiting for a reply</div>
+                <div className="small muted">
+                  {s.messages.filter((m) => m.contactId === c.id).at(-1)?.text.slice(0, 70)}
+                </div>
+              </div>
+              <Link className="btn btn-ghost btn-sm" href={`/contacts/${c.id}`}>Reply</Link>
+            </div>
+          ))}
+          {openTasks.map((t) => (
+            <div key={t.id} className="row">
+              <span className="chip chip-red" style={{ width: 96, flexShrink: 0 }}>Task</span>
+              <div className="needs-text" style={{ flex: 1, minWidth: 0 }}>
+                <div className="strong">{t.text}</div>
+                <div className="small muted">{ago(t.at, now)}</div>
+              </div>
+              {t.contactId && <Link className="btn btn-ghost btn-sm" href={`/contacts/${t.contactId}`}>Open</Link>}
+              <button className="btn btn-ghost btn-sm" onClick={() => act("completeTask", t.id)}>Done</button>
+            </div>
+          ))}
+          {openTasks.length + waiting.length === 0 && <div className="empty">Nothing waiting on you.</div>}
+        </section>
+
+        <div className="grid stats2">
+          {tiles.map((t) => (
+            <div key={t.label} className="card pad" style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              <div className="eyebrow">{t.label}</div>
+              <div className="h num" style={{ fontSize: 48, lineHeight: 1 }}>{t.value}</div>
+              {"meter" in t && t.meter !== undefined ? <Meter value={t.meter} label={t.label} /> : <Sparkline values={t.spark ?? []} />}
+              <div className="small muted">{t.note}</div>
+            </div>
+          ))}
+        </div>
       </div>
 
       <div className="grid cols-dash">
@@ -159,68 +196,35 @@ export default function TodayPage() {
         </section>
       </div>
 
-      <div className="grid cols-today">
+      <div className="grid cols-half">
         <section className="card">
           <div className="card-head">
-            <h2 className="h h2">Needs you</h2>
-            <span className="small muted">{openTasks.length + waiting.length} things</span>
+            <h2 className="h h2">Upcoming trials</h2>
+            <Link href="/calendar" className="small">Calendar</Link>
           </div>
-          {waiting.map((c) => (
-            <div key={c.id} className="row">
-              <span className="chip chip-light" style={{ width: 96, flexShrink: 0 }}>WhatsApp</span>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div className="strong">{c.name} is waiting for a reply</div>
-                <div className="small muted">
-                  {s.messages.filter((m) => m.contactId === c.id).at(-1)?.text.slice(0, 70)}
-                </div>
+          {trials.slice(0, 6).map((c) => (
+            <Link key={c.id} href={`/contacts/${c.id}`} className="row" style={{ textDecoration: "none" }}>
+              <div className="h num" style={{ fontSize: 20, width: 96, flexShrink: 0 }}>
+                {isSameDay(Date.parse(c.trialAt!), now) ? time(c.trialAt!) : dayTime(c.trialAt!)}
               </div>
-              <Link className="btn btn-ghost btn-sm" href={`/contacts/${c.id}`}>Reply</Link>
-            </div>
+              <div style={{ flex: 1, minWidth: 0 }} className="strong">{c.name}</div>
+              <span className="small muted">{ago(c.trialAt!, now)}</span>
+            </Link>
           ))}
-          {openTasks.map((t) => (
-            <div key={t.id} className="row">
-              <span className="chip chip-red" style={{ width: 96, flexShrink: 0 }}>Task</span>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div className="strong">{t.text}</div>
-                <div className="small muted">{ago(t.at, now)}</div>
-              </div>
-              {t.contactId && <Link className="btn btn-ghost btn-sm" href={`/contacts/${t.contactId}`}>Open</Link>}
-              <button className="btn btn-ghost btn-sm" onClick={() => act("completeTask", t.id)}>Done</button>
-            </div>
-          ))}
-          {openTasks.length + waiting.length === 0 && <div className="empty">Nothing waiting on you.</div>}
+          {trials.length === 0 && <div className="empty">No trials booked.</div>}
         </section>
 
-        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-          <section className="card">
-            <div className="card-head">
-              <h2 className="h h2">Upcoming trials</h2>
-              <Link href="/calendar" className="small">Calendar</Link>
-            </div>
-            {trials.slice(0, 6).map((c) => (
-              <Link key={c.id} href={`/contacts/${c.id}`} className="row" style={{ textDecoration: "none" }}>
-                <div className="h num" style={{ fontSize: 20, width: 96, flexShrink: 0 }}>
-                  {isSameDay(Date.parse(c.trialAt!), now) ? time(c.trialAt!) : dayTime(c.trialAt!)}
-                </div>
-                <div style={{ flex: 1, minWidth: 0 }} className="strong">{c.name}</div>
-                <span className="small muted">{ago(c.trialAt!, now)}</span>
-              </Link>
-            ))}
-            {trials.length === 0 && <div className="empty">No trials booked.</div>}
-          </section>
-
-          <section className="card">
-            <div className="card-head"><h2 className="h h2">Recent activity</h2></div>
-            {s.events.slice(0, 8).map((e) => (
-              <div key={e.id} className="row" style={{ paddingTop: 12, paddingBottom: 12 }}>
-                <div style={{ flex: 1, minWidth: 0, fontSize: 14 }}>
-                  <span className="strong">{EVENT_LABEL[e.type]}</span> <span className="muted">{e.detail}</span>
-                </div>
-                <div className="faint" style={{ fontSize: 12, flexShrink: 0 }}>{ago(e.at, now)}</div>
+        <section className="card">
+          <div className="card-head"><h2 className="h h2">Recent activity</h2></div>
+          {s.events.slice(0, 8).map((e) => (
+            <div key={e.id} className="row" style={{ paddingTop: 12, paddingBottom: 12 }}>
+              <div style={{ flex: 1, minWidth: 0, fontSize: 14 }}>
+                <span className="strong">{EVENT_LABEL[e.type]}</span> <span className="muted">{e.detail}</span>
               </div>
-            ))}
-          </section>
-        </div>
+              <div className="faint" style={{ fontSize: 12, flexShrink: 0 }}>{ago(e.at, now)}</div>
+            </div>
+          ))}
+        </section>
       </div>
     </>
   );
