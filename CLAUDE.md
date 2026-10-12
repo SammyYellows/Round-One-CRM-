@@ -230,6 +230,7 @@ In place so far:
   Email enquiry senders are contacts but stay off the Meta pipeline
   (`onMetaPipeline`) unless tagged `on-pipeline`.
 - **Contact notes** (Sammy, 12/10): `contact.notes` (newest first, `addNote`; the server sets who wrote it). Shown above WhatsApp on the contact page; Champ's `person_details` includes them. With no questionnaire answers the page says so, and why.
+- **GymGrow history** (Sammy, 12/10): old WhatsApp, SMS, email and call messages from GymGrow in `gymgrow_messages` (read-only, not part of `State`; loaded by `/api/contacts/<id>/history`), shown as "Earlier messages" on the contact page and as `gymgrowHistory` in Champ's `person_details`. Imported once by `scripts/gymgrow-history.ts` (matched on phone, then email; never adds contacts or sends anything).
 - **Manual** (`src/lib/manual.ts`, `/manual`, linked at the bottom of the
   menu): one section per area; the management section is hidden from
   staff. Champ reads the whole manual and is the expert on the CRM; keep

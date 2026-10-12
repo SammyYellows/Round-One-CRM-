@@ -51,7 +51,8 @@ over it).
 - Decide which database is the real one (everything runs on `round1-dev`).
 - Replace the keys that were pasted in chat: Supabase access token and
   database password, both Resend keys, the WhatsApp token and Meta app
-  secret.
+  secret. Delete the GymGrow Private Integration key (`GYMGROW_TOKEN`,
+  pasted 12/10) in GymGrow once the history import is no longer needed.
 - Vercel Pro (needed for business use).
 - **Resend Pro ($20/month) before the first real mailout** (Sammy, 05/10:
   "I will upgrade, but develop on free, make a reminder"). Free allows 100

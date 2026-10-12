@@ -419,6 +419,7 @@ export default function ContactPage() {
           )}
         </section>
 
+        {live && <EarlierMessages contactId={c.id} />}
         </div>
 
         <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
@@ -516,3 +517,42 @@ function QuickReplies({ onPick }: { onPick?: (text: string) => void }) {
     </div>
   );
 }
+
+type Earlier = { id: string; channel: "whatsapp" | "sms" | "email" | "call"; dir: "in" | "out"; subject: string | null; body: string; status: string | null; at: string };
+const CHANNEL_LABEL: Record<Earlier["channel"], string> = { whatsapp: "WhatsApp", sms: "Text", email: "Email", call: "Call" };
+
+/** Their messages from GymGrow, before the switch (Sammy, 12/10/2026). History only: loaded from /api/contacts/<id>/history, never sent, never "waiting". */
+function EarlierMessages({ contactId }: { contactId: string }) {
+  const [rows, setRows] = useState<Earlier[] | null>(null);
+  const [open, setOpen] = useState(false);
+  useEffect(() => {
+    setRows(null);
+    fetch(`/api/contacts/${contactId}/history`, { cache: "no-store" }).then((r) => (r.ok ? r.json() : { messages: [] })).then((j) => setRows(j.messages ?? [])).catch(() => setRows([]));
+  }, [contactId]);
+  if (!rows || rows.length === 0) return null;
+  return (
+    <section className="card">
+      <div className="card-head">
+        <div>
+          <div className="eyebrow">From GymGrow, before the switch · {rows.length} message{rows.length === 1 ? "" : "s"}</div>
+          <h2 className="h h3">Earlier messages</h2>
+        </div>
+        <button className="btn btn-ghost btn-sm" onClick={() => setOpen((o) => !o)} aria-expanded={open}>{open ? "Hide" : "Show"}</button>
+      </div>
+      {open && (
+        <div className="pad" style={{ paddingTop: 0, display: "flex", flexDirection: "column", gap: 10, maxHeight: 520, overflowY: "auto" }}>
+          {rows.map((m) => (
+            <div key={m.id} style={{ alignSelf: m.dir === "in" ? "flex-start" : "flex-end", maxWidth: "85%", padding: "10px 12px", background: m.dir === "in" ? "var(--well)" : "var(--char)", borderLeft: m.dir === "in" ? "3px solid var(--line)" : undefined, fontSize: 13, lineHeight: 1.5 }}>
+              <div className="faint" style={{ fontSize: 11, marginBottom: 4 }}>
+                {CHANNEL_LABEL[m.channel]} · {m.dir === "in" ? "from them" : "from Round One"} · {shortDate(m.at)} {time(m.at)}{m.status === "failed" ? " · not delivered" : ""}
+              </div>
+              {m.subject && <div className="strong" style={{ marginBottom: 4 }}>{m.subject}</div>}
+              <div style={{ whiteSpace: "pre-wrap" }}>{m.body || (m.channel === "call" ? "Phone call" : "(no text)")}</div>
+            </div>
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+

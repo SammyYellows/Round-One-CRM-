@@ -336,17 +336,17 @@ updates from the import never fire automations.
     (CRON_SECRET) can deregister/register numbers when needed. Also noticed:
     unanswered Facebook/Instagram messages in Business Suite's Inbox (not in
     the CRM).
-    **GymGrow WhatsApp history (12/10, next session):** Sammy made a GymGrow
-    Private Integration key (read-only: conversations.readonly,
-    conversations/message.readonly, conversation reports; add
-    contacts.readonly if missing) and saved it in the cloud environment as
-    `GYMGROW_TOKEN` (loads in a new session). GymGrow is HighLevel: API base
-    https://services.leadconnectorhq.com, header `Version: 2021-04-15`,
-    location id `eRmW9UXThqUOI75q6r0t` (from GymGrow's URL). Plan: read-only
-    count and a sample (names and dates) first; then, only after Sammy says
-    yes, a script that adds each person's WhatsApp history to their CRM
-    thread, matched on phone, never adding new people, never messaging
-    anyone. Delete the key in GymGrow afterwards.
+    **GymGrow message history: done (12/10).** Sammy chose "Everything":
+    7,890 messages for 655 people (WhatsApp 4,347 out / 1,699 in, email
+    1,360 / 51, SMS 382 / 46, calls 1 / 4) are in `gymgrow_messages`, read
+    only, shown on the contact page as "Earlier messages" and readable by
+    Champ. Matched on phone then email; nobody added, nobody messaged. 84
+    GymGrow conversations matched no CRM contact and were left out. To re-run:
+    `scripts/gymgrow-history.ts` (dry run; `--write` saves). **Still to do:**
+    the `GYMGROW_TOKEN` key was pasted in chat (12/10), so Sammy deletes it in
+    GymGrow (Settings → Private Integrations) and from the cloud environment.
+    Some people have duplicate contacts (three Danny Burchills): the history
+    went to one of them; a merge-contacts tool may be worth adding.
 
 17. **GymGrow leftovers to check** (11/10, when Meta lets Sammy back into
     Business settings; use Edge). Main access is gone (Gym Grow and
