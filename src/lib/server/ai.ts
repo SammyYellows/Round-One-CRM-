@@ -25,7 +25,12 @@ export interface DraftResult {
   draft: string;
   /** Where the reply should go when the sender address can't be replied to (e.g. a website form notification). */
   replyTo?: string;
+  /** A job for staff beyond replying, for Needs you; empty when there isn't one. */
+  action: string;
 }
+
+// What counts as a to-do for Needs you (Sammy, 12/10/2026).
+const ACTION = "A job this creates for gym staff beyond simply replying: for example book them into an intro or a class, call them back, sort a payment, freeze or cancellation in TeamUp, pass something to a coach, or check something and get back to them. Start with a verb and include the person's name, under 20 words (e.g. 'Call Sam Jones back about moving his direct debit date'). Empty string if a reply is all it needs, or if nothing needs doing.";
 
 const VOICE = `You work on the front desk at ${GYM.name}, a boxing and strength gym in Bristol, answering emails sent to the gym's inbox. A staff member reads and edits everything you write before it is sent, so write the reply as them, ready to send.
 
@@ -68,8 +73,9 @@ export async function draftReply(input: DraftInput): Promise<DraftResult> {
               summary: { type: "string", description: "One plain sentence saying who is asking what, for the staff list." },
               draft: { type: "string", description: "The full reply, ready to send, or empty for 'other'." },
               replyTo: { type: "string", description: "The real person's email address when the email is a form or system notification; otherwise an empty string." },
+              action: { type: "string", description: `${ACTION} Always empty for 'other'.` },
             },
-            required: ["kind", "summary", "draft", "replyTo"],
+            required: ["kind", "summary", "draft", "replyTo", "action"],
             additionalProperties: false,
           },
         },
@@ -93,7 +99,7 @@ export async function draftReply(input: DraftInput): Promise<DraftResult> {
   try { out = JSON.parse(text) as Partial<DraftResult>; } catch { throw new Error("The AI's answer wasn’t valid JSON"); }
   const kind = out.kind === "other" ? "other" : "enquiry";
   const replyTo = String(out.replyTo ?? "").trim().toLowerCase();
-  return { kind, summary: String(out.summary ?? "").trim(), draft: kind === "other" ? "" : String(out.draft ?? "").trim(), replyTo: /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(replyTo) ? replyTo : undefined };
+  return { kind, summary: String(out.summary ?? "").trim(), draft: kind === "other" ? "" : String(out.draft ?? "").trim(), replyTo: /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(replyTo) ? replyTo : undefined, action: kind === "other" ? "" : String(out.action ?? "").trim() };
 }
 
 /**
@@ -252,7 +258,7 @@ export async function readCheckin(input: { first: string; floor: number; stretch
  * note for staff plus a suggested reply (improvement item 16). The reply is
  * only ever sent by a person; this never argues, sells hard or promises.
  */
-export async function readReplies(input: { name: string; stage: string; membership?: string; trialAt?: string; answers: { question: string; answer: string }[]; thread: { dir: "in" | "out"; text: string; at: string }[]; facts: string }): Promise<{ summary: string; suggestedReply: string }> {
+export async function readReplies(input: { name: string; stage: string; membership?: string; trialAt?: string; answers: { question: string; answer: string }[]; thread: { dir: "in" | "out"; text: string; at: string }[]; facts: string }): Promise<{ summary: string; suggestedReply: string; action: string }> {
   const key = process.env.ANTHROPIC_API_KEY;
   if (!key) throw new Error("ANTHROPIC_API_KEY isn’t set");
   const res = await fetch("https://api.anthropic.com/v1/messages", {
@@ -270,7 +276,8 @@ export async function readReplies(input: { name: string; stage: string; membersh
         format: { type: "json_schema", schema: { type: "object", properties: {
           summary: { type: "string", description: "For staff: what this person has told us across their messages. Goals, worries, timing, constraints, anything to remember. Their own words where it helps. 2 to 5 short lines. Empty string if they've said nothing of substance." },
           suggestedReply: { type: "string", description: "A reply to their latest message for a staff member to send, in the gym's voice, at most 60 words. If their last message needs no reply (e.g. 'thanks'), or if replying would mean arguing or negotiating, an empty string." },
-        }, required: ["summary", "suggestedReply"], additionalProperties: false } },
+          action: { type: "string", description: `From their messages since our last OUT message only (not older ones): ${ACTION}` },
+        }, required: ["summary", "suggestedReply", "action"], additionalProperties: false } },
       },
       messages: [{ role: "user", content:
         `Contact: ${input.name}. Pipeline stage: ${input.stage}.${input.membership ? ` Membership: ${input.membership}.` : ""}${input.trialAt ? ` Intro meeting booked: ${input.trialAt}.` : ""}\n` +
@@ -282,6 +289,37 @@ export async function readReplies(input: { name: string; stage: string; membersh
   if (!res.ok) { const err = (await res.json().catch(() => ({}))) as { error?: { message?: string } }; throw new Error(err.error?.message || `Anthropic said ${res.status}`); }
   const json = (await res.json()) as { stop_reason?: string; content: { type: string; text?: string }[] };
   if (json.stop_reason === "refusal") throw new Error("The AI declined");
-  const out = JSON.parse(json.content.find((c) => c.type === "text")?.text ?? "{}") as { summary?: string; suggestedReply?: string };
-  return { summary: String(out.summary ?? "").trim(), suggestedReply: String(out.suggestedReply ?? "").trim() };
+  const out = JSON.parse(json.content.find((c) => c.type === "text")?.text ?? "{}") as { summary?: string; suggestedReply?: string; action?: string };
+  return { summary: String(out.summary ?? "").trim(), suggestedReply: String(out.suggestedReply ?? "").trim(), action: String(out.action ?? "").trim() };
+}
+
+/**
+ * Reads a reply staff have just sent and says what it promised we'd do
+ * later, as a to-do for Needs you (Sammy, 12/10/2026). Empty when it
+ * promised nothing.
+ */
+export async function spotPromise(input: { name: string; channel: "email" | "WhatsApp"; text: string }): Promise<string> {
+  const key = process.env.ANTHROPIC_API_KEY;
+  if (!key) throw new Error("ANTHROPIC_API_KEY isn’t set");
+  const res = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: { "x-api-key": key, "anthropic-version": "2023-06-01", "content-type": "application/json" },
+    body: JSON.stringify({
+      model: MODEL,
+      max_tokens: 300,
+      system: `You help the front desk at ${GYM.name}, a gym in Bristol, keep their promises. You read a message a staff member has just sent to someone and spot anything it commits the gym to doing later.`,
+      output_config: {
+        effort: "low",
+        format: { type: "json_schema", schema: { type: "object", properties: {
+          action: { type: "string", description: "If the message commits the gym to do something later (check and get back to them, call them, send details, book them in, sort something in TeamUp, pass something to a coach), that job as a to-do for staff: start with a verb, include the person's name, under 20 words. Empty string if it promises nothing that still needs doing." },
+        }, required: ["action"], additionalProperties: false } },
+      },
+      messages: [{ role: "user", content: `Sent by ${input.channel} to ${input.name}:\n\n${input.text.slice(0, 4000)}` }],
+    }),
+  });
+  if (!res.ok) { const err = (await res.json().catch(() => ({}))) as { error?: { message?: string } }; throw new Error(err.error?.message || `Anthropic said ${res.status}`); }
+  const json = (await res.json()) as { stop_reason?: string; content: { type: string; text?: string }[] };
+  if (json.stop_reason === "refusal") return "";
+  const out = JSON.parse(json.content.find((c) => c.type === "text")?.text ?? "{}") as { action?: string };
+  return String(out.action ?? "").trim();
 }

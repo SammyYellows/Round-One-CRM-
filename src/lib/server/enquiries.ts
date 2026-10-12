@@ -3,12 +3,14 @@
 // whether it's an enquiry and draft a reply, and tell the front desk. The
 // reply only goes when a staff member presses Send and confirms.
 
-import { addContact } from "@/lib/engine";
+import { addContact, addTask } from "@/lib/engine";
 import { GYM } from "@/lib/gym";
 import { aiConfigured, draftReply, rewriteDraft } from "./ai";
 import { appUrl } from "./deliver";
 import { fetchReceivedEmail, listReceivedEmailIds, sendEmail } from "./email";
 import { applyMany } from "./state";
+import { afterResponse } from "./background";
+import { noteFollowUp } from "./followUp";
 import { db } from "./supabase";
 
 export type EnquiryStatus = "new" | "drafted" | "sent" | "dismissed";
@@ -160,6 +162,7 @@ export async function processEnquiry(id: string) {
   let draft = "";
   let replyTo: string | null = e.replyTo;
   let error: string | null = null;
+  let action = "";
   const findContact = async (email: string) => (await db().from("contacts").select("id, name, stage, trial_at, membership").ilike("email", email).limit(1).maybeSingle()).data as Row | null;
   match = await findContact(e.fromEmail);
   if (aiConfigured()) {
@@ -175,6 +178,7 @@ export async function processEnquiry(id: string) {
       kind = out.kind;
       summary = out.summary;
       draft = out.draft;
+      action = out.action;
       if (out.replyTo && out.replyTo !== e.fromEmail) {
         replyTo = out.replyTo;
         match = (await findContact(out.replyTo)) ?? match; // the real person, not the form's no-reply address
@@ -193,6 +197,11 @@ export async function processEnquiry(id: string) {
     contactId = await applyMany((s) => addContact(s, { name, phone: "", email: address, source: "email" }));
   }
   if (kind !== "other" && contactId) await recordEvent("email.received", contactId, `Email: ${e.subject || "(no subject)"}`, { enquiryId: id });
+  // Something to do beyond replying goes on Needs you (Sammy, 12/10/2026), once per email.
+  if (kind !== "other" && contactId && action) {
+    const cid = contactId;
+    await applyMany((s) => addTask(s, { id: `todo_em_${id}`, contactId: cid, text: action }));
+  }
 
   await update(id, {
     kind, summary: summary || null, draft: draft || null, contact_id: contactId, error, reply_to: replyTo,
@@ -234,7 +243,11 @@ export async function sendReply(id: string, text: string, staffName: string) {
   }
   const now = new Date().toISOString();
   await update(id, { status: "sent", reply_text: body, sent_at: now, sent_by: staffName, sent_id: sent.id ?? null, error: null, draft: body });
-  if (e.contactId) await recordEvent("email.replied", e.contactId, `Replied by email to ${to}: ${subject}`, { enquiryId: id, by: staffName });
+  if (e.contactId) {
+    await recordEvent("email.replied", e.contactId, `Replied by email to ${to}: ${subject}`, { enquiryId: id, by: staffName });
+    // If the reply promised something, it goes on Needs you.
+    await afterResponse(noteFollowUp(e.contactId, body, "email", `todo_re_${id}`));
+  }
   return { ok: true as const, dryRun: sent.dryRun };
 }
 

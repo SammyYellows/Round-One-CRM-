@@ -5,7 +5,7 @@
 // WhatsApp webhook after the message is saved. Without ANTHROPIC_API_KEY
 // nothing happens.
 
-import { setInsight } from "@/lib/engine";
+import { addTask, setInsight } from "@/lib/engine";
 import { stageLabel } from "@/lib/types";
 import { aiConfigured, readReplies } from "./ai";
 import { getFacts } from "./enquiries";
@@ -28,6 +28,11 @@ export async function readContactReplies(contactId: string) {
     name: c.name, stage: stageLabel(c.stage), membership: c.membership?.name, trialAt: c.trialAt,
     answers: c.answers.filter((a) => a.answer), thread: thread.map((m) => ({ dir: m.dir, text: m.text, at: m.at })), facts,
   });
-  await applyMany((st) => setInsight(st, contactId, { summary: read.summary, suggestedReply: read.suggestedReply || undefined, fromMessages: incoming.length }));
+  const lastIn = incoming[incoming.length - 1];
+  await applyMany((st) => {
+    setInsight(st, contactId, { summary: read.summary, suggestedReply: read.suggestedReply || undefined, fromMessages: incoming.length });
+    // Something to do beyond replying goes on Needs you, once per message.
+    if (read.action) addTask(st, { id: `todo_${lastIn.id}`, contactId, text: read.action });
+  });
   return { ok: true };
 }
