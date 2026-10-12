@@ -146,6 +146,7 @@ Use the search and filters at the top to find people.`,
 - **In their words**: a short summary of what they've told us in WhatsApp, with a suggested reply. **Use it** puts it in the message box for you to edit and send; nothing is sent until you press **Send**. **No reply needed** clears it.
 - **Questionnaire**: their answers from the form. If there are none it says **No questionnaire answers** and why (for example imported from GymGrow, or signed up in TeamUp).
 - **Notes** (above WhatsApp): type a note and press **Add note**. Each note shows who wrote it and when, newest first. For staff only; never sent to anyone. Champ can read them.
+- **Earlier messages** (under WhatsApp): the WhatsApp, text, email and call history from GymGrow, before the switch. Press **Show** to open it. Read only; nothing can be sent from here. Champ can read it too.
 - **Stage** and buttons such as **Sold programme**, **Sold membership** and **Move to nurture** (these send messages, see Meta pipeline).
 - For members: their **membership** (from TeamUp), **Coach**, **Last in** and sessions in the last 30 days, a **priority** if they've lapsed with a suggested action, and their **Safety** card.
 - **No marketing messages**: tick if they don't want offers (they can also reply STOP). Messages about their own booking or membership still go.
