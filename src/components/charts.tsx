@@ -162,3 +162,27 @@ export function Meter({ value, label }: { value: number; label: string }) {
     </div>
   );
 }
+
+/** Members at the end of each month, from TeamUp (Reports and Today). */
+export function MembersLine({ pts, compact }: { pts: { month: string; label: string; membersAtEnd: number }[]; compact?: boolean }) {
+  const W = compact ? 420 : 640, H = 220, L = 44, R = 16, T = 18, B = 34;
+  const vals = pts.map((p) => p.membersAtEnd);
+  const lo = Math.min(...vals), hi = Math.max(...vals);
+  const pad = Math.max(5, Math.round((hi - lo) * 0.2));
+  const min = Math.max(0, lo - pad), max = hi + pad;
+  const x = (i: number) => L + (i / Math.max(1, pts.length - 1)) * (W - L - R);
+  const y = (v: number) => T + (1 - (v - min) / Math.max(1, max - min)) * (H - T - B);
+  return (
+    <svg viewBox={`0 0 ${W} ${H}`} width="100%" role="img" aria-label={`Members at the end of each month: ${pts.map((p) => `${p.label} ${p.membersAtEnd}`).join(", ")}`}>
+      {[0, 1, 2, 3, 4].map((g) => { const v = min + ((max - min) * g) / 4; return <g key={g}><line x1={L} x2={W - R} y1={y(v)} y2={y(v)} className="grid-line" /><text x={L - 6} y={y(v) + 4} textAnchor="end" fontSize="11" fill="var(--muted)">{Math.round(v)}</text></g>; })}
+      <polyline points={pts.map((p, i) => `${x(i)},${y(p.membersAtEnd)}`).join(" ")} fill="none" stroke="var(--red)" strokeWidth="2.5" strokeLinejoin="round" />
+      {pts.map((p, i) => (
+        <g key={p.month}>
+          <rect x={x(i) - 4} y={y(p.membersAtEnd) - 4} width={8} height={8} fill="var(--red)" />
+          <text x={x(i)} y={y(p.membersAtEnd) - 10} textAnchor="middle" fontSize="12" fontWeight="600" fill="var(--white)">{p.membersAtEnd}</text>
+          <text x={x(i)} y={H - 10} textAnchor="middle" fontSize="11" fill="var(--muted)">{p.label}</text>
+        </g>
+      ))}
+    </svg>
+  );
+}
