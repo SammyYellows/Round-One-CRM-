@@ -336,6 +336,26 @@ updates from the import never fire automations.
     (CRON_SECRET) can deregister/register numbers when needed. Also noticed:
     unanswered Facebook/Instagram messages in Business Suite's Inbox (not in
     the CRM).
+    **Night of 12/10: tried the API-only move, blocked.** Sammy exported his
+    chats and agreed to delete the app account. The app refuses ("Cannot
+    delete account: connected to a third party service") because it's still
+    linked to **YCloud** (Settings → Account → Business Platform shows YCloud,
+    "Finish setting up in YCloud"); tapping the YCloud box does nothing, even
+    after updating the app. WhatsApp Manager (old WABA) has no delete for the
+    number. `/api/whatsapp-admin` (now also `add`, `request_code`,
+    `verify_code`, `add` with `migrate`) was refused by Meta three ways:
+    deregister ("not available for API solution for SMB businesses"), migrate
+    ("migrate_phone_number must be false") and a plain add ("Phone Numbers
+    Count Exceeded Limit Per Business": the number still holds the slot).
+    Nothing changed: the gym phone app and the CRM work as before. **Next
+    (Sammy, morning), stop at the first that works:** (1) log in to YCloud
+    and disconnect or delete the number there; (2) in the app, Settings →
+    Help → Contact us, ask WhatsApp to disconnect business platform YCloud
+    from +44 7833 399014; (3) Meta Business support again. Once the link is
+    gone: Delete account on the phone, delete the number from the old WABA,
+    then Claude adds it to WABA 1645982367314251, Sammy reads the code off
+    the phone, Claude registers it (PIN in the session scratchpad), sets
+    `WHATSAPP_PHONE_NUMBER_ID` in Vercel, redeploys and tests.
     **GymGrow message history: done (12/10).** Sammy chose "Everything":
     7,890 messages for 655 people (WhatsApp 4,347 out / 1,699 in, email
     1,360 / 51, SMS 382 / 46, calls 1 / 4) are in `gymgrow_messages`, read
