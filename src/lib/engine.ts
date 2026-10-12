@@ -918,6 +918,19 @@ export function addNote(s: State, contactId: string, text: string, by = "Staff")
   log(s, "note.added", c.id, `${by} added a note on ${c.name}: “${t.slice(0, 80)}${t.length > 80 ? "…" : ""}”`);
 }
 
+/**
+ * "No reply needed" on a WhatsApp conversation (Sammy, 12/10/2026): it stops
+ * waiting on the Enquiries page until they message again. `done` false
+ * undoes it.
+ */
+export function setWhatsAppDone(s: State, contactId: string, done: boolean, by = "Staff") {
+  const c = s.contacts.find((x) => x.id === contactId);
+  if (!c) return;
+  if (!done) { delete c.whatsappDone; return; }
+  c.whatsappDone = { at: nowIso(s), by };
+  log(s, "whatsapp.done", c.id, `${by} marked ${c.name}’s WhatsApp as no reply needed`);
+}
+
 /** Someone removed came back in by themselves (the form, a booking): they show again. */
 function comeBack(s: State, c: Contact, how: string) {
   delete c.removed;

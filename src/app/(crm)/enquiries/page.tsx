@@ -5,9 +5,14 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ago } from "@/lib/format";
 import { useStore } from "@/lib/store";
+import { WhatsAppInbox } from "./WhatsAppInbox";
+import { SEEN_EMAIL, SEEN_EVENT, SEEN_WHATSAPP, lastSeenAt, markSeen, whatsappCounts } from "@/lib/whatsappInbox";
 
-// Emails to info@ with an AI-drafted reply for staff to check. Nothing here
-// sends until Send is pressed and then confirmed (docs/email-enquiries.md).
+// Two inboxes behind two buttons (Sammy, 12/10/2026), so the sidebar stays
+// short. Email: emails to info@ with an AI-drafted reply for staff to check;
+// nothing sends until Send is pressed and then confirmed
+// (docs/email-enquiries.md). WhatsApp: every incoming message, one row per
+// person.
 
 interface Enquiry {
   id: string;
@@ -28,12 +33,83 @@ interface Enquiry {
   error: string | null;
 }
 
+type Tab = "email" | "whatsapp";
+
+export default function EnquiriesPage() {
+  const { s, now, live } = useStore();
+  const [tab, setTab] = useState<Tab | null>(null);
+  const [email, setEmail] = useState({ open: 0, fresh: 0 });
+  const [seenTick, setSeenTick] = useState(0);
+
+  // Open on the tab asked for (?tab=whatsapp), or WhatsApp when only it has something new.
+  useEffect(() => {
+    const asked = new URLSearchParams(window.location.search).get("tab");
+    if (asked === "whatsapp" || asked === "email") { setTab(asked); return; }
+    if (new URLSearchParams(window.location.search).get("id")) { setTab("email"); return; }
+    setTab(whatsappCounts(s, lastSeenAt(SEEN_WHATSAPP)).fresh > 0 ? "whatsapp" : "email");
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Looking at a tab clears its red number; what still waits shows grey.
+  useEffect(() => {
+    if (!tab) return;
+    markSeen(tab === "email" ? SEEN_EMAIL : SEEN_WHATSAPP, now);
+    setSeenTick((t) => t + 1);
+  }, [tab, now]);
+  useEffect(() => {
+    const on = () => setSeenTick((t) => t + 1);
+    window.addEventListener(SEEN_EVENT, on);
+    return () => window.removeEventListener(SEEN_EVENT, on);
+  }, []);
+
+  useEffect(() => {
+    if (!live) return;
+    const since = lastSeenAt(SEEN_EMAIL);
+    fetch(`/api/enquiries/count${since ? `?since=${encodeURIComponent(since)}` : ""}`, { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((j: { open: number; new: number } | null) => { if (j) setEmail({ open: j.open, fresh: j.new }); })
+      .catch(() => undefined);
+  }, [live, seenTick]);
+
+  const wa = whatsappCounts(s, lastSeenAt(SEEN_WHATSAPP));
+  const pick = (t: Tab) => {
+    setTab(t);
+    const u = new URL(window.location.href);
+    u.searchParams.set("tab", t);
+    u.searchParams.delete("id");
+    window.history.replaceState(null, "", u);
+  };
+  const badge = (fresh: number, waiting: number, what: string) =>
+    fresh > 0 ? <span className="nav-badge" aria-label={`${fresh} new`}>{fresh}</span>
+    : waiting > 0 ? <span className="nav-badge quiet" aria-label={`${waiting} ${what}`}>{waiting}</span>
+    : null;
+
+  return (
+    <>
+      <header className="page-head">
+        <div>
+          <div className="eyebrow">{live ? `${email.open + wa.waiting} waiting for a reply` : "Live data only"}</div>
+          <h1 className="h h1">Enquiries</h1>
+        </div>
+      </header>
+      <div className="enq-tabs" role="tablist" aria-label="Inbox">
+        {([["email", "Email", tab === "email" ? null : badge(email.fresh, email.open, "waiting")], ["whatsapp", "WhatsApp", tab === "whatsapp" ? null : badge(wa.fresh, wa.waiting, "waiting")]] as [Tab, string, React.ReactNode][]).map(([t, label, b]) => (
+          <button key={t} role="tab" aria-selected={tab === t} className={`btn ${tab === t ? "btn-red" : "btn-ghost"}`} onClick={() => pick(t)}>
+            {label}{b}
+          </button>
+        ))}
+      </div>
+      {tab === "email" && <EmailInbox />}
+      {tab === "whatsapp" && <WhatsAppInbox />}
+    </>
+  );
+}
+
 type View = "open" | "sent" | "dismissed" | "other";
 const needsReply = (e: Enquiry) => e.kind !== "other" && (e.status === "new" || e.status === "drafted");
 const inView = (e: Enquiry, v: View) =>
   v === "open" ? needsReply(e) : v === "sent" ? e.status === "sent" : v === "dismissed" ? e.status === "dismissed" : e.kind === "other" && e.status !== "sent" && e.status !== "dismissed";
 
-export default function EnquiriesPage() {
+function EmailInbox() {
   const manager = useIsManager();
   const { now, live } = useStore();
   const [list, setList] = useState<Enquiry[] | null>(null);
@@ -139,15 +215,11 @@ export default function EnquiriesPage() {
 
   return (
     <>
-      <header className="page-head">
-        <div>
-          <div className="eyebrow">{live ? `${counts.open} waiting for a reply` : "Live data only"}</div>
-          <h1 className="h h1">Enquiries</h1>
+      {manager && (
+        <div className="actions" style={{ marginBottom: 16 }}>
+          <button className="btn btn-ghost btn-sm" onClick={() => setShowFacts((v) => !v)}>{showFacts ? "Hide gym facts" : "Gym facts"}</button>
         </div>
-        <div className="actions">
-          {manager && <button className="btn btn-ghost" onClick={() => setShowFacts((v) => !v)}>{showFacts ? "Hide gym facts" : "Gym facts"}</button>}
-        </div>
-      </header>
+      )}
 
       {live && (!setup.receiving || !setup.ai) && (
         <div className="card" style={{ padding: "14px 22px", marginBottom: 20 }}>

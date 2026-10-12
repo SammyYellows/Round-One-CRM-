@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { useStore } from "@/lib/store";
 import { PAYMENT_FAILED_AT } from "@/lib/types";
 import { isManagementPath, isManagerRole } from "@/lib/roles";
+import { SEEN_EVENT, whatsappCounts } from "@/lib/whatsappInbox";
 
 const NAV = [
   { href: "/", label: "Today", icon: <path d="M3 11 12 4l9 7v9H3z" /> },
@@ -37,11 +38,19 @@ export function Sidebar({ staff }: { staff?: { name: string; role: string } }) {
   const lastSeen = (href: string) => { try { return localStorage.getItem(seenKey(href)); } catch { return null; } };
   const [seenTick, setSeenTick] = useState(0);
   useEffect(() => {
-    if (path === "/enquiries" || path === "/cancellations" || path === "/payments") {
+    // Enquiries marks each tab seen itself (Email, WhatsApp).
+    if (path === "/cancellations" || path === "/payments") {
       try { localStorage.setItem(seenKey(path), new Date(now).toISOString()); } catch { /* private mode */ }
       setSeenTick((t) => t + 1);
     }
   }, [path, now]);
+
+  useEffect(() => {
+    const on = () => setSeenTick((t) => t + 1);
+    window.addEventListener(SEEN_EVENT, on);
+    return () => window.removeEventListener(SEEN_EVENT, on);
+  }, []);
+  const wa = whatsappCounts(s, lastSeen("/enquiries/whatsapp"));
 
   const [enq, setEnq] = useState({ open: 0, fresh: 0 });
   useEffect(() => {
@@ -69,7 +78,7 @@ export function Sidebar({ staff }: { staff?: { name: string; role: string } }) {
   const freshFailing = failing.filter((c) => flaggedIds.has(c.id)).length;
   // A red number for what's new since you last looked; a quiet grey mark when older items are still waiting.
   const marks = (href: string): { fresh: number; waiting: number; what: string } =>
-    href === "/enquiries" ? { fresh: enq.fresh, waiting: enq.open, what: "waiting for a reply" }
+    href === "/enquiries" ? { fresh: enq.fresh + wa.fresh, waiting: enq.open + wa.waiting, what: "waiting for a reply (email and WhatsApp)" }
     : href === "/cancellations" ? { fresh: freshNotices, waiting: notices.length, what: "gave notice in the last 7 days" }
     : href === "/payments" ? { fresh: freshFailing, waiting: failing.length, what: `with ${PAYMENT_FAILED_AT}+ failed payment attempts` }
     : { fresh: 0, waiting: 0, what: "" };
