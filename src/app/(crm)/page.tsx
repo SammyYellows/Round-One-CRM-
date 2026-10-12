@@ -2,12 +2,41 @@
 
 import { useIsManager } from "@/components/StaffContext";
 import Link from "next/link";
-import { BarList, ColumnChart, Meter, Sparkline } from "@/components/charts";
+import { BarList, ColumnChart, MembersLine, Meter, Sparkline } from "@/components/charts";
 import { demoAdLink } from "@/lib/engine";
 import { ago, dayTime, gbp, isSameDay, longDate, time } from "@/lib/format";
 import { daily, funnelCounts, showRate, sourceCounts, weekLoad } from "@/lib/metrics";
 import { useStore } from "@/lib/store";
 import { sumMetrics } from "@/lib/types";
+import { conversations } from "@/lib/whatsappInbox";
+import { useEffect, useState } from "react";
+
+// Needs you (Sammy, 12/10/2026): kept until done, ten at a time, with the
+// total above and a line that changes every half hour to keep everyone at it.
+const NEEDS_SHOWN = 10;
+const CHEER = [
+  "Every one ticked off is someone who feels looked after.",
+  "Pick one, finish it, tick it. Then the next.",
+  "A quick reply today keeps someone coming back tomorrow.",
+  "Leads go cold fast. Answer within the hour and the booking is yours.",
+  "Clear two before your next class.",
+  "Every line here is a person. Let’s not keep them waiting.",
+  "Great gyms are built on small follow-ups.",
+  "Fewer than this morning is a good day.",
+  "Members notice when we follow up. Make it every time.",
+  "Managers, pick one up and lead the way.",
+  "Ten minutes now saves an awkward conversation later.",
+  "Every lapsed member you call is one step closer to back on the mat.",
+  "The list only goes one way if we all chip in.",
+  "Train hard, reply fast.",
+  "This is how Round One looks after its people.",
+  "Start with the one you’ve been putting off.",
+];
+const cheerFor = (now: number, left: number) =>
+  left === 0 ? "All clear. Nice work, team." : CHEER[Math.floor(now / 1800e3) % CHEER.length];
+
+interface MemberNumbers { asOf: string; members: number; joined: number; left: number; net: number; pastDays: number; droppingOff: number; forecastDays: number; forecastNet: number; forecastMembers: number; averageDays: number; months: { month: string; label: string; membersAtEnd: number }[] }
+const signed = (n: number) => (n > 0 ? `+${n}` : String(n));
 
 const shortDay = (ms: number) => new Date(ms).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" });
 
@@ -51,8 +80,19 @@ export default function TodayPage() {
   // ---- Lists ----
   const trials = s.contacts.filter((c) => c.stage === "booked" && c.trialAt).sort((a, b) => Date.parse(a.trialAt!) - Date.parse(b.trialAt!));
   const trialsToday = trials.filter((c) => isSameDay(Date.parse(c.trialAt!), now)).length;
-  const waiting = s.contacts.filter((c) => s.messages.filter((m) => m.contactId === c.id).at(-1)?.dir === "in");
+  // WhatsApps still waiting for a reply (as on Enquiries), then open tasks, newest first.
+  const waiting = conversations(s).filter((c) => c.waiting);
   const openTasks = s.tasks.filter((t) => !t.done);
+  const needsTotal = waiting.length + openTasks.length;
+  const shownWaiting = waiting.slice(0, NEEDS_SHOWN);
+  const shownTasks = openTasks.slice(0, Math.max(0, NEEDS_SHOWN - shownWaiting.length));
+
+  // Member numbers from TeamUp, as on Reports (counts only, so every login sees them).
+  const [mem, setMem] = useState<MemberNumbers | null>(null);
+  useEffect(() => {
+    if (!live) return;
+    fetch("/api/today/members", { cache: "no-store" }).then((r) => (r.ok ? r.json() : null)).then((j) => { if (j && typeof j.members === "number") setMem(j); }).catch(() => undefined);
+  }, [live]);
 
   const change = leadsPrev7 ? Math.round(((leads7 - leadsPrev7) / leadsPrev7) * 100) : 0;
   const tiles = [
@@ -80,23 +120,26 @@ export default function TodayPage() {
 
       <div className="grid cols-today">
         <section className="card needs">
-          <div className="card-head">
-            <h2 className="h h2">Needs you</h2>
-            <span className="small muted">{openTasks.length + waiting.length} things</span>
+          <div className="card-head" style={{ alignItems: "flex-start" }}>
+            <div>
+              <h2 className="h h2">Needs you</h2>
+              <div className="small" style={{ marginTop: 6 }}>{cheerFor(now, needsTotal)}</div>
+            </div>
+            <span className="small muted" style={{ flexShrink: 0, textAlign: "right" }}>
+              {needsTotal === 0 ? "Nothing to do" : `${needsTotal} to do${needsTotal > NEEDS_SHOWN ? ` · showing ${NEEDS_SHOWN}` : ""}`}
+            </span>
           </div>
-          {waiting.map((c) => (
+          {shownWaiting.map(({ contact: c, last }) => (
             <div key={c.id} className="row">
               <span className="chip chip-light" style={{ width: 96, flexShrink: 0 }}>WhatsApp</span>
               <div className="needs-text" style={{ flex: 1, minWidth: 0 }}>
                 <div className="strong">{c.name} is waiting for a reply</div>
-                <div className="small muted">
-                  {s.messages.filter((m) => m.contactId === c.id).at(-1)?.text.slice(0, 70)}
-                </div>
+                <div className="small muted">{last.text.slice(0, 70)}</div>
               </div>
-              <Link className="btn btn-ghost btn-sm" href={`/contacts/${c.id}`}>Reply</Link>
+              <Link className="btn btn-ghost btn-sm" href={`/enquiries?tab=whatsapp&contact=${c.id}`}>Reply</Link>
             </div>
           ))}
-          {openTasks.map((t) => (
+          {shownTasks.map((t) => (
             <div key={t.id} className="row">
               <span className="chip chip-red" style={{ width: 96, flexShrink: 0 }}>Task</span>
               <div className="needs-text" style={{ flex: 1, minWidth: 0 }}>
@@ -107,7 +150,7 @@ export default function TodayPage() {
               <button className="btn btn-ghost btn-sm" onClick={() => act("completeTask", t.id)}>Done</button>
             </div>
           ))}
-          {openTasks.length + waiting.length === 0 && <div className="empty">Nothing waiting on you.</div>}
+          {needsTotal === 0 && <div className="empty">Nothing waiting on you.</div>}
         </section>
 
         <div style={{ display: "flex", flexDirection: "column", gap: 16, minWidth: 0 }}>
@@ -137,6 +180,32 @@ export default function TodayPage() {
             ))}
             {trials.length === 0 && <div className="empty">No appointments booked.</div>}
           </section>
+          {mem && (
+            <section className="card pad" style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 12, flexWrap: "wrap" }}>
+                <h2 className="h h2">Members</h2>
+                {manager ? <Link href="/reports" className="small">Reports</Link> : <span className="small muted">From TeamUp, last night</span>}
+              </div>
+              <div className="mem-figs">
+                {[
+                  { label: "Members now", value: String(mem.members), note: "membership running in TeamUp" },
+                  { label: `Growth, last ${mem.pastDays} days`, value: signed(mem.net), note: `${mem.joined} joined, ${mem.left} left` },
+                  { label: "Dropping off in 30 days", value: String(mem.droppingOff), note: "notice given or ending" },
+                  { label: `Next ${mem.forecastDays} days`, value: signed(mem.forecastNet), note: `about ${mem.forecastMembers} members at this rate` },
+                ].map((f) => (
+                  <div key={f.label}>
+                    <div className="eyebrow">{f.label}</div>
+                    <div className="h num" style={{ fontSize: 34, lineHeight: 1.1 }}>{f.value}</div>
+                    <div className="small muted">{f.note}</div>
+                  </div>
+                ))}
+              </div>
+              <div>
+                <div className="eyebrow" style={{ marginBottom: 4 }}>Members at month end</div>
+                <MembersLine pts={mem.months} compact />
+              </div>
+            </section>
+          )}
         </div>
       </div>
 
