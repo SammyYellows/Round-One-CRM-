@@ -106,6 +106,9 @@ export interface Contact {
   removed?: { at: string; by: string };
   // Staff notes, newest first (Sammy, 12/10/2026).
   notes?: { id: string; at: string; by: string; text: string }[];
+  // Staff pressed "No reply needed" on their WhatsApp conversation (Sammy,
+  // 12/10/2026). A newer message from them makes it wait for a reply again.
+  whatsappDone?: { at: string; by: string };
 }
 
 export interface Safety {
@@ -266,6 +269,7 @@ export type EventType =
   | "class.booked" // booked into a TeamUp class through Champ
   | "contact.removed" // management took them off the CRM
   | "note.added" // a staff note on the contact page
+  | "whatsapp.done" // staff marked a WhatsApp conversation "No reply needed"
   | "contact.restored" // put back, by staff or because they came back in
   | "appointment.booked"
   | "appointment.updated";
@@ -310,10 +314,11 @@ export type Trigger =
  * for that route.
  */
 export type Via = "crm" | "teamup";
-// Email enquiry senders become contacts but stay off the Meta pipeline
-// (Sammy, 11/10/2026) unless staff tag them with this from the contact page.
+// Email enquiry senders (Sammy, 11/10/2026) and new people who message the
+// WhatsApp number (12/10/2026) become contacts but stay off the Meta pipeline
+// unless staff tag them with this from the contact page.
 export const ON_PIPELINE = "on-pipeline";
-export const onMetaPipeline = (c: Contact) => c.source !== "teamup" && (c.source !== "email" || c.tags.includes(ON_PIPELINE));
+export const onMetaPipeline = (c: Contact) => c.source !== "teamup" && ((c.source !== "email" && c.source !== "whatsapp") || c.tags.includes(ON_PIPELINE));
 
 export const viaOf = (c: { source: Source }): Via => (c.source === "teamup" ? "teamup" : "crm");
 export const viaLabel = (v: Via) => (v === "crm" ? "Came through the CRM" : "Signed up in TeamUp");

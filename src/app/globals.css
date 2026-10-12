@@ -130,6 +130,7 @@ button, input, select, textarea { font-family: var(--ui); }
 .msg.in .mmeta { color: #D4D5D4; }
 .qr { height: 36px; padding: 0 12px; border: 1px solid var(--line); background: transparent; color: var(--white); font-size: 12px; cursor: pointer; }
 .qr:hover { border-color: var(--white); }
+.qr.on { border-color: var(--red); }
 .segs { display: flex; gap: 4px; }
 .segs > div { flex: 1; height: 4px; background: var(--line); }
 .segs > div.on { background: var(--red); }
@@ -323,6 +324,9 @@ table.sr-only { display: block; } /* a table ignores width: 1px, which made phon
 .enq-mail { margin: 0 22px 18px; padding: 16px 18px; background: var(--char); white-space: pre-wrap; font-size: 14px; line-height: 1.5; max-height: 320px; overflow-y: auto; }
 .enq-text { height: auto; padding: 12px 14px; line-height: 1.5; resize: vertical; }
 .enq-confirm { border: 1px solid var(--red); padding: 16px 18px; display: flex; flex-direction: column; gap: 10px; }
+.enq-tabs { display: flex; gap: 10px; margin-bottom: 20px; }
+.enq-tabs .btn { display: inline-flex; align-items: center; gap: 10px; min-width: 150px; justify-content: center; }
+.enq-tabs .nav-badge { margin-left: 0; }
 @media (max-width: 900px) { .enq { grid-template-columns: 1fr; } }
 
 /* ---- Questionnaire answers on the contact page ---- */

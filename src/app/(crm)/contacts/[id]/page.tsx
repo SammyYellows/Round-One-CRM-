@@ -2,17 +2,15 @@
 
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { describeStep, firstName } from "@/lib/engine";
 import { ago, dayTime, shortDate, time, toLocalInput } from "@/lib/format";
 import { useStore } from "@/lib/store";
 import { LOST_REASONS, ON_PIPELINE, STAGES, Stage, apptStatusLabel, sourceLabel, stageLabel, teamupCustomerUrl } from "@/lib/types";
 import { PRIORITY_LABEL, inactivityAdvice } from "@/lib/inactivity";
 import { useIsManager } from "@/components/StaffContext";
+import { WhatsAppThread, replyWindow } from "@/components/WhatsAppThread";
 
-const STATUS: Record<string, string> = { queued: "Sending", sent: "Sent", delivered: "Delivered", read: "Read", failed: "Not delivered" };
-
-const FAKE_REPLIES = ["Sounds good, see you then", "Can I bring a friend?", "What should I wear?", "Great, thanks"];
 
 export default function ContactPage() {
   const { id } = useParams<{ id: string }>();
@@ -28,7 +26,6 @@ export default function ContactPage() {
     d.setHours(18, 0, 0, 0);
     return toLocalInput(d.getTime());
   });
-  const threadRef = useRef<HTMLDivElement>(null);
   const [inactiveDaysSetting, setInactiveDaysSetting] = useState(20);
   useEffect(() => { if (live) fetch("/api/members/inactivity", { cache: "no-store" }).then((r) => (r.ok ? r.json() : null)).then((j) => { if (j?.days) setInactiveDaysSetting(j.days); }).catch(() => undefined); }, [live]);
 
@@ -36,9 +33,6 @@ export default function ContactPage() {
   const msgs = s.messages.filter((m) => m.contactId === id);
   const advice = c ? inactivityAdvice(c, now, inactiveDaysSetting) : null;
 
-  useEffect(() => {
-    threadRef.current?.scrollTo({ top: threadRef.current.scrollHeight });
-  }, [msgs.length]);
 
   const gone = c ? undefined : removed.find((x) => x.id === id);
   if (gone) {
@@ -69,20 +63,12 @@ export default function ContactPage() {
   }
 
   // WhatsApp only allows free-text replies within 24 hours of their last message.
-  const lastIn = [...msgs].reverse().find((m) => m.dir === "in");
-  const windowLeft = lastIn ? 24 - (now - Date.parse(lastIn.at)) / 3600e3 : 0;
-  const windowOpen = windowLeft > 0;
+  const windowOpen = replyWindow(c.id, msgs, now).open;
 
   const runs = s.runs.filter((r) => r.contactId === id && r.status === "waiting");
   const appts = s.appointments.filter((a) => a.contactId === id).sort((a, b) => Date.parse(b.start) - Date.parse(a.start)).slice(0, 6);
   const timeline = s.events.filter((e) => e.contactId === id).slice(0, 12);
   const submitted = s.events.find((e) => e.contactId === id && e.type === "form.submitted");
-
-  const send = () => {
-    if (!draft.trim() || !windowOpen) return;
-    act("sendMessage", c.id, draft);
-    setDraft("");
-  };
 
   return (
     <>
@@ -314,6 +300,7 @@ export default function ContactPage() {
                 {c.gymgrow ? "Imported from GymGrow, which didn’t include their answers. Ask them at the intro meeting."
                   : c.source === "teamup" ? "Signed up straight in TeamUp, so they never filled in the questionnaire."
                   : c.source === "email" ? "Came in by email, so they never filled in the questionnaire."
+                  : c.source === "whatsapp" ? "Messaged us on WhatsApp first, so they never filled in the questionnaire."
                   : "They haven’t filled in the questionnaire. Ask them at the intro meeting, or send them the form."}
               </div>
             </section>
@@ -358,66 +345,7 @@ export default function ContactPage() {
           ))}
         </section>
 
-        <section className="card">
-          <div className="card-head" style={{ alignItems: "center" }}>
-            <h2 className="h" style={{ fontSize: 24 }}>WhatsApp</h2>
-            {windowOpen
-              ? <span className="chip chip-light">Reply window open · {Math.ceil(windowLeft)}h left</span>
-              : <span className="chip">Window closed · templates only</span>}
-          </div>
-          <div className="thread" ref={threadRef}>
-            {msgs.length === 0 && <div className="faint small">No messages yet.</div>}
-            {msgs.map((m) => (
-              <div key={m.id} className={`msg ${m.dir}`}>
-                <div>{m.text}</div>
-                <div className="mmeta">
-                  {m.dir === "out" ? (m.template ? `${m.by} · ${m.template}` : m.by ?? "You") : firstName(c)} · {time(m.at)}
-                  {m.dir === "out" && m.status && STATUS[m.status] ? ` · ${STATUS[m.status]}` : ""}
-                </div>
-                {m.status === "failed" && m.error && <div className="mmeta" style={{ color: "var(--red-btn)" }}>{m.error}</div>}
-              </div>
-            ))}
-          </div>
-
-          {windowOpen ? (
-            <>
-              <QuickReplies onPick={setDraft} />
-              <div style={{ padding: "12px 22px 0", display: "flex", gap: 8 }}>
-                <input
-                  className="input"
-                  aria-label={`Message ${firstName(c)} on WhatsApp`}
-                  placeholder="Write a message"
-                  value={draft}
-                  onChange={(e) => setDraft(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === "Enter") send(); }}
-                />
-                <button className="btn btn-red" onClick={send}>Send</button>
-              </div>
-            </>
-          ) : (
-            <div style={{ padding: "14px 22px 0", display: "flex", flexDirection: "column", gap: 8 }}>
-              <div className="small muted">
-                It’s been more than 24 hours since {firstName(c)} last messaged, so WhatsApp only allows approved templates.
-              </div>
-              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                {Object.keys(s.templates).map((t) => (
-                  <button key={t} className="qr" title={s.templates[t]} onClick={() => act("sendTemplateTo", c.id, t)}>{t}</button>
-                ))}
-              </div>
-              <QuickReplies />
-            </div>
-          )}
-          {!live && (
-            <div style={{ padding: "12px 22px 22px" }}>
-              <button
-                className="link-btn faint"
-                onClick={() => act("receiveMessage", c.id, FAKE_REPLIES[msgs.length % FAKE_REPLIES.length])}
-              >
-                Simulate a reply from {firstName(c)}
-              </button>
-            </div>
-          )}
-        </section>
+        <WhatsAppThread contactId={c.id} draft={draft} setDraft={setDraft} />
 
         {live && <EarlierMessages contactId={c.id} />}
         </div>
@@ -474,47 +402,6 @@ export default function ContactPage() {
         </div>
       </div>
     </>
-  );
-}
-
-/**
- * One-tap lines for WhatsApp replies, shared by all staff. With `onPick`, the
- * lines are buttons that fill the reply box; without it (outside the 24-hour
- * window, when free text can't be sent) only the edit link shows.
- */
-function QuickReplies({ onPick }: { onPick?: (text: string) => void }) {
-  const { s, act } = useStore();
-  const [editing, setEditing] = useState<string[] | null>(null);
-
-  if (editing) {
-    const set = (i: number, v: string) => setEditing(editing.map((x, j) => (j === i ? v : x)));
-    return (
-      <div style={{ padding: "14px 22px 0", display: "flex", flexDirection: "column", gap: 8 }}>
-        <div className="label" style={{ margin: 0 }}>Quick replies</div>
-        {editing.map((line, i) => (
-          <div key={i} style={{ display: "flex", gap: 8 }}>
-            <input className="input" aria-label={`Quick reply ${i + 1}`} value={line} maxLength={500} onChange={(e) => set(i, e.target.value)} placeholder="e.g. Wear trainers and comfy gym clothes" />
-            <button className="icon-btn" aria-label={`Remove quick reply ${i + 1}`} onClick={() => setEditing(editing.filter((_, j) => j !== i))}>✕</button>
-          </div>
-        ))}
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-          <button className="btn btn-ghost btn-sm" onClick={() => setEditing([...editing, ""])} disabled={editing.length >= 20}>Add a line</button>
-          <button className="btn btn-red btn-sm" onClick={() => { act("setQuickReplies", editing); setEditing(null); }}>Save</button>
-          <button className="btn btn-ghost btn-sm" onClick={() => setEditing(null)}>Cancel</button>
-        </div>
-        <div className="small faint">Everyone who logs in sees the same lines. Tapping one puts it in the reply box; nothing sends until you press Send.</div>
-      </div>
-    );
-  }
-
-  return (
-    <div style={{ padding: "14px 22px 0", display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-      {onPick && s.quickReplies.map((q) => <button key={q} className="qr" onClick={() => onPick(q)}>{q}</button>)}
-      {onPick && s.quickReplies.length === 0 && <span className="small faint">No quick replies yet.</span>}
-      <button className="link-btn small" onClick={() => setEditing(s.quickReplies.length ? [...s.quickReplies] : [""])}>
-        {s.quickReplies.length ? "Edit quick replies" : "Add quick replies"}
-      </button>
-    </div>
   );
 }
 

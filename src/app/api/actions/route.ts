@@ -17,9 +17,9 @@ export async function POST(req: Request) {
   }
   // Messages to customers and settings are management's to change (Sammy, 10/10/2026).
   if (MANAGEMENT_ACTIONS.has(body.name) && !isManagerRole(auth.staff.role)) return Response.json({ error: "Only management can change that" }, { status: 403 });
-  // Who removed, put back or wrote a note on a contact is whoever is signed in, whatever the page sent.
+  // Who removed, put back wrote a note or marked a WhatsApp done is whoever is signed in, whatever the page sent.
   const args = body.name === "removeContact" || body.name === "restoreContact" ? [body.args[0], auth.staff.name]
-    : body.name === "addNote" ? [body.args[0], body.args[1], auth.staff.name]
+    : body.name === "addNote" || body.name === "setWhatsAppDone" ? [body.args[0], body.args[1], auth.staff.name]
     : body.args;
   try {
     return Response.json(await applyAction(body.name, args as never));

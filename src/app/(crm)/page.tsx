@@ -123,7 +123,7 @@ export default function TodayPage() {
           </div>
           <section className="card">
             <div className="card-head">
-              <h2 className="h h2">Upcoming trials</h2>
+              <h2 className="h h2">Appointments</h2>
               <Link href="/calendar" className="small">Calendar</Link>
             </div>
             {trials.slice(0, 6).map((c) => (
@@ -135,7 +135,7 @@ export default function TodayPage() {
                 <span className="small muted">{ago(c.trialAt!, now)}</span>
               </Link>
             ))}
-            {trials.length === 0 && <div className="empty">No trials booked.</div>}
+            {trials.length === 0 && <div className="empty">No appointments booked.</div>}
           </section>
         </div>
       </div>
