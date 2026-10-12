@@ -324,6 +324,18 @@ updates from the import never fire automations.
     redeploys, checks; 6 test. Messages to the number are lost between 2
     and 5 (30-60 min). Not started; nothing changed yet. The phone app's
     Business Platform screen shows YCloud as connected.
+    **12/10: YCloud never replied. Meta support (chat) confirmed currency
+    can't change and offered a manual migration by their team into our GBP
+    account 1645982367314251, keeping the app and chats (contradicts their
+    docs, so unproven).** Sammy wants to keep the app as a backup, so we're
+    trying Meta's route first: Direct Support case 29114108551548626 (Phone
+    Migration, source 1438210021679060, destination 1645982367314251), opened
+    12/10 22:42, updates to sammyaittales@hotmail.com. The display name can't
+    be edited in WhatsApp Manager (the app owns the profile). If Meta doesn't
+    act, fall back to the API-only plan above. `/api/whatsapp-admin`
+    (CRON_SECRET) can deregister/register numbers when needed. Also noticed:
+    unanswered Facebook/Instagram messages in Business Suite's Inbox (not in
+    the CRM).
 
 17. **GymGrow leftovers to check** (11/10, when Meta lets Sammy back into
     Business settings; use Edge). Main access is gone (Gym Grow and
