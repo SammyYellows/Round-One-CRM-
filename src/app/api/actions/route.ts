@@ -3,6 +3,8 @@
 
 import { SERVER_REFUSES, isActionName } from "@/lib/actions";
 import { applyAction } from "@/lib/server/state";
+import { afterResponse } from "@/lib/server/background";
+import { noteFollowUp } from "@/lib/server/followUp";
 import { requireStaff } from "@/lib/server/staff";
 import { MANAGEMENT_ACTIONS, isManagerRole } from "@/lib/roles";
 
@@ -17,12 +19,19 @@ export async function POST(req: Request) {
   }
   // Messages to customers and settings are management's to change (Sammy, 10/10/2026).
   if (MANAGEMENT_ACTIONS.has(body.name) && !isManagerRole(auth.staff.role)) return Response.json({ error: "Only management can change that" }, { status: 403 });
-  // Who removed, put back wrote a note or marked a WhatsApp done is whoever is signed in, whatever the page sent.
+  // Who removed, put back, wrote a note or marked a WhatsApp done is whoever is signed in, whatever the page sent.
   const args = body.name === "removeContact" || body.name === "restoreContact" ? [body.args[0], auth.staff.name]
     : body.name === "addNote" || body.name === "setWhatsAppDone" ? [body.args[0], body.args[1], auth.staff.name]
     : body.args;
   try {
-    return Response.json(await applyAction(body.name, args as never));
+    const after = await applyAction(body.name, args as never);
+    // A WhatsApp reply that promised something goes on Needs you (Sammy, 12/10/2026).
+    if (body.name === "sendMessage") {
+      const [contactId, text] = args as [string, string];
+      const sent = after.messages.filter((m) => m.contactId === contactId && m.dir === "out" && m.text === String(text).trim()).at(-1);
+      if (sent) await afterResponse(noteFollowUp(contactId, sent.text, "WhatsApp", `todo_${sent.id}`));
+    }
+    return Response.json(after);
   } catch (e) {
     console.error("[actions]", body.name, e);
     return Response.json({ error: "Couldn’t save that change. Try again." }, { status: 500 });

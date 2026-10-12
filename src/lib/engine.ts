@@ -1005,6 +1005,20 @@ export function leaveAccountability(s: State, contactId: string, reason = "") {
   log(s, "accountability.left", c.id, `${c.name} left the accountability programme${reason ? `: ${reason}` : ""}`);
 }
 
+/**
+ * A to-do for staff spotted in a message (Sammy, 12/10/2026): an email or
+ * WhatsApp that needs something doing, or a reply of ours that promised
+ * something. Server-only. `id` comes from the message, so a message only
+ * ever makes one.
+ */
+export function addTask(s: State, input: { id: string; contactId?: string; text: string }) {
+  if (s.tasks.some((t) => t.id === input.id)) return;
+  const text = input.text.trim().replace(/\s+/g, " ").slice(0, 300);
+  if (!text || (input.contactId && !s.contacts.some((c) => c.id === input.contactId))) return;
+  s.tasks.unshift({ id: input.id, contactId: input.contactId, text, done: false, at: nowIso(s) });
+  log(s, "task.created", input.contactId, `To do: ${text}`);
+}
+
 export function completeTask(s: State, taskId: string) {
   const t = s.tasks.find((x) => x.id === taskId);
   if (t) t.done = true;
