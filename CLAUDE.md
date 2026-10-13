@@ -54,7 +54,7 @@ In place so far:
   `/api/forms/<slug>/submit`.
 - **Staff login** with Supabase Auth. Everything needs a signed-in staff
   member except `/login`, `/auth/*`, the public forms and their submit
-  route, the booking pages (`/book/<contact id>`, `/api/book/<id>`),
+  route, the booking pages (`/book/<contact id>`, `/api/book/<id>`), the privacy policy (`/privacy`, needed to publish the Meta app; keep it true to what the CRM stores),
   `/api/webhooks/*` and `/api/cron`. A login only gets in if it matches a
   row in `staff`.
 - **Email** goes through Resend, from bookings@round1boxfit.co.uk: login

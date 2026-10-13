@@ -342,6 +342,11 @@ table.sr-only { display: block; } /* a table ignores width: 1px, which made phon
 .unsub-bar { background: var(--black); padding: 18px 24px; }
 .unsub-box { max-width: 520px; margin: 0 auto; padding: 40px 24px; display: flex; flex-direction: column; gap: 16px; font-size: 16px; line-height: 1.5; }
 .unsub-box p { margin: 0; }
+.privacy { max-width: 720px; gap: 12px; }
+.privacy h2 { font-family: var(--ui); font-size: 18px; font-weight: 700; margin: 16px 0 0; }
+.privacy ul, .privacy ol { margin: 0; padding-left: 22px; display: flex; flex-direction: column; gap: 6px; }
+.privacy a { color: var(--black); text-decoration: underline; }
+.privacy-date { color: var(--char); font-size: 14px; }
 
 /* ---- Mailouts ---- */
 .mo { display: grid; grid-template-columns: 360px minmax(0, 1fr); gap: 20px; align-items: start; }
