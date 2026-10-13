@@ -5,13 +5,22 @@
 // background and from the 5-minute scheduler, inside Resend's daily
 // allowance. Every email carries an unsubscribe link; anyone opted out or
 // bounced is skipped.
+//
+// WhatsApp mailouts (Sammy, 13/10/2026) work the same way with one approved
+// template instead of a subject and message: one queued row per mobile
+// number, sent through the engine (so each lands in the person's thread),
+// a few dozen every 5 minutes inside WHATSAPP_MAILOUT_DAILY_LIMIT, because
+// Meta caps how many new people a number can message a day. Opted-out
+// people are skipped.
 
-import { fill, setMarketingOptOut } from "@/lib/engine";
+import { fill, placeholders, sendTemplate, setMarketingOptOut, templateParams } from "@/lib/engine";
+import { waNumber } from "@/lib/phone";
 import { GYM } from "@/lib/gym";
 import { Contact, Membership, STAGES, Stage } from "@/lib/types";
 import { unsubscribeFooter, unsubscribeHeaders, unsubscribeLink } from "./deliver";
 import { enquiriesFrom } from "./enquiries";
 import { sendEmail } from "./email";
+import { sendTemplate as sendWhatsAppTemplate } from "./whatsapp";
 import { applyMany } from "./state";
 import { db } from "./supabase";
 
@@ -28,13 +37,20 @@ export interface Audience {
   neverJoined?: boolean;
   /** For those: only people who came in within this many days. */
   cameInWithinDays?: number;
+  /** Anyone who has chatted with the gym on WhatsApp (in the CRM or before, in GymGrow). */
+  chattedOnWhatsApp?: boolean;
 }
+
+export type Channel = "email" | "whatsapp";
 
 export type MailoutStatus = "draft" | "sending" | "sent";
 export type RecipientStatus = "queued" | "sent" | "delivered" | "opened" | "clicked" | "bounced" | "complained" | "failed";
 
 export interface Mailout {
   id: string;
+  channel: Channel;
+  /** WhatsApp mailouts: the approved template that goes. */
+  template: string | null;
   subject: string;
   body: string;
   audience: Audience;
@@ -54,6 +70,13 @@ export const dailyLimit = () => {
   return Number.isFinite(n) && n > 0 ? n : Infinity;
 };
 
+/** WhatsApp: a new number may message about 250 new people a day; stay under it. */
+export const whatsappDailyLimit = () => {
+  const n = Number(process.env.WHATSAPP_MAILOUT_DAILY_LIMIT ?? 200);
+  return Number.isFinite(n) && n > 0 ? n : 200;
+};
+const WA_PER_RUN = 40; // each one goes through the engine and a save, so keep a run short
+
 const BATCH = 100; // Resend's batch endpoint takes up to 100 emails
 const PER_RUN = 300; // at most three batches per call, well inside a function's time
 
@@ -68,6 +91,7 @@ function normaliseAudience(a: Partial<Audience> | null | undefined): Audience {
     leadStages: Array.isArray(a?.leadStages) ? a!.leadStages.filter((x): x is Stage => stageIds.has(x as Stage)) : [],
     neverJoined: a?.neverJoined === true,
     cameInWithinDays: typeof a?.cameInWithinDays === "number" && a.cameInWithinDays > 0 ? Math.round(a.cameInWithinDays) : undefined,
+    chattedOnWhatsApp: a?.chattedOnWhatsApp === true,
   };
 }
 
@@ -75,18 +99,17 @@ const EMAIL_OK = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 interface Pick { id: string; name: string; email: string; phone: string; source: string; stage: Stage; trialAt?: string; membership: Membership | null; teamup?: boolean; createdAt?: string }
 
-async function allContacts(): Promise<Pick[]> {
+async function allContacts(channel: Channel = "email"): Promise<Pick[]> {
   const out: Pick[] = [];
   const PAGE = 1000;
   for (let from = 0; ; from += PAGE) {
-    const { data, error } = await db()
+    let q = db()
       .from("contacts")
       .select("id, name, email, phone, source, stage, trial_at, membership, teamup, created_at, marketing_opt_out, email_bounced")
       .eq("marketing_opt_out", false)
-      .eq("email_bounced", false)
-      .is("removed", null)
-      .order("created_at", { ascending: false })
-      .range(from, from + PAGE - 1);
+      .is("removed", null);
+    if (channel === "email") q = q.eq("email_bounced", false);
+    const { data, error } = await q.order("created_at", { ascending: false }).range(from, from + PAGE - 1);
     if (error) throw new Error(`Loading contacts: ${error.message}`);
     for (const r of data as Row[]) {
       out.push({
@@ -100,17 +123,37 @@ async function allContacts(): Promise<Pick[]> {
   return out;
 }
 
-/** Who a mailout would go to right now: one row per email address. */
-export async function resolveAudience(input: Partial<Audience>): Promise<Pick[]> {
+/** Everyone who has a WhatsApp conversation with the gym, in the CRM or from GymGrow. */
+async function whatsappChatters(): Promise<Set<string>> {
+  const ids = new Set<string>();
+  for (const table of ["messages", "gymgrow_messages"] as const) {
+    for (let from = 0; ; from += 1000) {
+      let q = db().from(table).select("contact_id");
+      if (table === "gymgrow_messages") q = q.eq("channel", "whatsapp");
+      const { data, error } = await q.range(from, from + 999);
+      if (error) throw new Error(`Loading WhatsApp chats: ${error.message}`);
+      for (const r of data as Row[]) if (r.contact_id) ids.add(r.contact_id as string);
+      if (!data || data.length < 1000) break;
+    }
+  }
+  return ids;
+}
+
+/** Who a mailout would go to right now: one row per email address (or, for WhatsApp, per mobile number). */
+export async function resolveAudience(input: Partial<Audience>, channel: Channel = "email"): Promise<Pick[]> {
   const a = normaliseAudience(input);
   const now = Date.now();
   const seen = new Set<string>();
   const out: Pick[] = [];
-  for (const c of await allContacts()) {
-    if (!EMAIL_OK.test(c.email) || seen.has(c.email)) continue;
+  const chatters = a.chattedOnWhatsApp ? await whatsappChatters() : null;
+  for (const c of await allContacts(channel)) {
+    const key = channel === "whatsapp" ? waNumber(c.phone) : c.email;
+    if ((channel === "whatsapp" ? key.length < 10 : !EMAIL_OK.test(c.email)) || seen.has(key)) continue;
     const m = c.membership;
-    let wanted = false;
-    if (m && a.membership !== "none") {
+    let wanted = !!chatters?.has(c.id);
+    if (wanted) {
+      // already in, as someone who has chatted on WhatsApp
+    } else if (m && a.membership !== "none") {
       const active = m.status === "active" || m.status === "on_hold";
       const ended = m.status === "ended";
       const recentEnough = !a.endedWithinDays || !m.endsAt || now - Date.parse(m.endsAt) <= a.endedWithinDays * 86400e3;
@@ -124,7 +167,7 @@ export async function resolveAudience(input: Partial<Audience>): Promise<Pick[]>
       wanted = c.source !== "teamup" && a.leadStages.includes(c.stage);
     }
     if (!wanted) continue;
-    seen.add(c.email);
+    seen.add(key);
     out.push(c);
   }
   return out;
@@ -138,7 +181,7 @@ export async function membershipCategories(): Promise<string[]> {
 // ---- Mailouts -------------------------------------------------------------
 
 const mailoutFrom = (r: Row, counts: Mailout["counts"]): Mailout => ({
-  id: r.id as string, subject: (r.subject as string) ?? "", body: (r.body as string) ?? "", audience: normaliseAudience(r.audience as Partial<Audience>),
+  id: r.id as string, channel: r.channel === "whatsapp" ? "whatsapp" : "email", template: (r.template as string) ?? null, subject: (r.subject as string) ?? "", body: (r.body as string) ?? "", audience: normaliseAudience(r.audience as Partial<Audience>),
   status: r.status as MailoutStatus, createdAt: r.created_at as string, createdBy: (r.created_by as string) ?? null,
   startedAt: (r.started_at as string) ?? null, finishedAt: (r.finished_at as string) ?? null, counts,
 });
@@ -176,20 +219,22 @@ export async function getMailout(id: string): Promise<Mailout | null> {
   return mailoutFrom(data as Row, counts.get(id) ?? zeroCounts());
 }
 
-export async function createMailout(input: { subject: string; body: string; audience: Partial<Audience> }, by: string) {
+export async function createMailout(input: { subject: string; body: string; audience: Partial<Audience>; channel?: Channel; template?: string | null }, by: string) {
   const id = crypto.randomUUID();
-  const { error } = await db().from("mailouts").insert({ id, subject: input.subject.slice(0, 200), body: input.body.slice(0, 20000), audience: normaliseAudience(input.audience), created_by: by });
+  const channel: Channel = input.channel === "whatsapp" ? "whatsapp" : "email";
+  const { error } = await db().from("mailouts").insert({ id, channel, template: channel === "whatsapp" ? input.template ?? null : null, subject: input.subject.slice(0, 200), body: input.body.slice(0, 20000), audience: normaliseAudience(input.audience), created_by: by });
   if (error) throw new Error(`Saving mailout: ${error.message}`);
   return id;
 }
 
-export async function updateMailout(id: string, input: { subject?: string; body?: string; audience?: Partial<Audience> }) {
+export async function updateMailout(id: string, input: { subject?: string; body?: string; audience?: Partial<Audience>; template?: string | null }) {
   const m = await getMailout(id);
   if (!m || m.status !== "draft") return false;
   const patch: Row = {};
   if (typeof input.subject === "string") patch.subject = input.subject.slice(0, 200);
   if (typeof input.body === "string") patch.body = input.body.slice(0, 20000);
   if (input.audience) patch.audience = normaliseAudience(input.audience);
+  if (m.channel === "whatsapp" && (typeof input.template === "string" || input.template === null)) patch.template = input.template;
   const { error } = await db().from("mailouts").update(patch).eq("id", id);
   if (error) throw new Error(`Saving mailout: ${error.message}`);
   return true;
@@ -223,11 +268,39 @@ export async function sendTest(id: string, to: string, staffName: string) {
   return res.ok ? { ok: true as const, dryRun: res.dryRun, asIf: asIf.name } : { ok: false as const, error: res.error };
 }
 
+/** Sends a WhatsApp mailout's template to one mobile (a staff member's), filled in as if for the first recipient. Not recorded on any contact. */
+export async function sendWhatsAppTest(id: string, to: string) {
+  const m = await getMailout(id);
+  if (!m || m.channel !== "whatsapp" || !m.template) return { ok: false as const, error: "Pick the template first" };
+  const mobile = waNumber(to);
+  if (mobile.length < 10) return { ok: false as const, error: "That mobile number doesn’t look right" };
+  const { data: t } = await db().from("templates").select("name, body, language, header_video, button_url").eq("name", m.template).maybeSingle();
+  if (!t) return { ok: false as const, error: `No template called ${m.template}` };
+  const sample = (await resolveAudience(m.audience, "whatsapp"))[0];
+  const v = placeholders({ ...(sample ?? { id: "test", name: "Sam Taylor", email: "", phone: mobile, source: "walk_in", stage: "new" }), tags: [], answers: [], createdAt: "" } as unknown as Contact);
+  const row = t as Row;
+  const res = await sendWhatsAppTemplate(mobile, {
+    name: row.name as string, language: (row.language as string) || "en_GB",
+    params: templateParams(row.body as string).map((k) => v[k] ?? k),
+    videoUrl: row.header_video ? `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/whatsapp-media/${row.header_video}` : undefined,
+    buttonParam: (row.button_url as string | null)?.includes("{{1}}") ? (sample?.id ?? "test") : undefined,
+  });
+  return res.ok ? { ok: true as const, dryRun: res.dryRun, asIf: sample?.name } : { ok: false as const, error: res.error };
+}
+
+/** WhatsApp templates a mailout can use: approved, from the templates table. */
+export async function whatsappTemplates() {
+  const { data, error } = await db().from("templates").select("name, body, category, meta_status, button_text").order("name");
+  if (error) throw new Error(`Loading templates: ${error.message}`);
+  return (data as Row[]).map((t) => ({ name: t.name as string, body: t.body as string, category: t.category as string, status: (t.meta_status as string) ?? "draft", button: (t.button_text as string) ?? null }));
+}
+
 /** Staff pressed Send and confirmed: queue everyone, then start working through it. */
 export async function startMailout(id: string, staffName: string) {
   const m = await getMailout(id);
   if (!m) return { ok: false as const, error: "That mailout isn’t there any more" };
   if (m.status !== "draft") return { ok: false as const, error: "This mailout has already been sent" };
+  if (m.channel === "whatsapp") return startWhatsAppMailout(m, staffName);
   if (!m.subject.trim() || !m.body.trim()) return { ok: false as const, error: "It needs a subject and a message" };
   const people = await resolveAudience(m.audience);
   if (!people.length) return { ok: false as const, error: "Nobody matches this audience" };
@@ -243,20 +316,43 @@ export async function startMailout(id: string, staffName: string) {
   return { ok: true as const, queued: people.length, ...first };
 }
 
-/** How many mailout emails have gone today (UK day), for the daily allowance. */
-async function sentToday() {
+async function startWhatsAppMailout(m: Mailout, staffName: string) {
+  if (!m.template) return { ok: false as const, error: "Pick the WhatsApp template to send" };
+  const t = (await whatsappTemplates()).find((x) => x.name === m.template);
+  if (!t) return { ok: false as const, error: `No template called ${m.template}` };
+  if (t.status !== "approved") return { ok: false as const, error: `${m.template} isn’t approved by Meta yet` };
+  const people = await resolveAudience(m.audience, "whatsapp");
+  if (!people.length) return { ok: false as const, error: "Nobody with a mobile number matches this audience" };
+  const rows = people.map((p) => ({ id: crypto.randomUUID(), mailout_id: m.id, contact_id: p.id, phone: waNumber(p.phone) }));
+  for (let i = 0; i < rows.length; i += 500) {
+    const { error } = await db().from("mailout_recipients").insert(rows.slice(i, i + 500));
+    if (error) throw new Error(`Queueing recipients: ${error.message}`);
+  }
+  const { error } = await db().from("mailouts").update({ status: "sending", started_at: new Date().toISOString(), created_by: m.createdBy ?? staffName }).eq("id", m.id);
+  if (error) throw new Error(`Starting mailout: ${error.message}`);
+  const first = await drainWhatsApp();
+  return { ok: true as const, queued: people.length, ...first };
+}
+
+/** Start of today (UK) in UTC, for the daily allowances. */
+function ukDayStart() {
   const uk = new Date().toLocaleDateString("en-CA", { timeZone: "Europe/London" }); // yyyy-mm-dd
   const start = new Date(`${uk}T00:00:00`);
   const offsetMin = (new Date(start.toLocaleString("en-US", { timeZone: "Europe/London" })).getTime() - start.getTime()) / 60000;
-  const startUtc = new Date(start.getTime() - offsetMin * 60000).toISOString();
-  const { count, error } = await db().from("mailout_recipients").select("id", { count: "exact", head: true }).gte("sent_at", startUtc).neq("status", "queued");
+  return new Date(start.getTime() - offsetMin * 60000).toISOString();
+}
+
+/** How many mailout emails (or WhatsApps) have gone today (UK day), for the daily allowance. */
+async function sentToday(channel: Channel = "email") {
+  const q = db().from("mailout_recipients").select("id", { count: "exact", head: true }).gte("sent_at", ukDayStart()).neq("status", "queued");
+  const { count, error } = await (channel === "whatsapp" ? q.not("phone", "is", null) : q.is("phone", null));
   if (error) throw new Error(`Counting today’s sends: ${error.message}`);
   return count ?? 0;
 }
 
 /** Are there emails waiting? Cheap check for the scheduler. */
 export async function queuedCount() {
-  const { count } = await db().from("mailout_recipients").select("id", { count: "exact", head: true }).eq("status", "queued");
+  const { count } = await db().from("mailout_recipients").select("id", { count: "exact", head: true }).eq("status", "queued").is("phone", null);
   return count ?? 0;
 }
 
@@ -269,7 +365,7 @@ export async function drainQueue() {
   const limit = dailyLimit();
   const room = limit === Infinity ? PER_RUN : Math.min(PER_RUN, Math.max(0, limit - (await sentToday())));
   if (room <= 0) return { sent: 0, waitingForTomorrow: true };
-  const { data, error } = await db().from("mailout_recipients").select("id, mailout_id, contact_id, email").eq("status", "queued").order("mailout_id").limit(room);
+  const { data, error } = await db().from("mailout_recipients").select("id, mailout_id, contact_id, email").eq("status", "queued").is("phone", null).order("mailout_id").limit(room);
   if (error) throw new Error(`Reading the queue: ${error.message}`);
   const queue = data as Row[];
   if (!queue.length) return { sent: 0 };
@@ -320,6 +416,54 @@ export async function drainQueue() {
     if (!count) await db().from("mailouts").update({ status: "sent", finished_at: new Date().toISOString() }).eq("id", id).eq("status", "sending");
   }
   return { sent, remaining: Math.max(0, queue.length - sent) };
+}
+
+/**
+ * Sends the next few queued WhatsApps, within today's allowance. Each goes
+ * through the engine as an ordinary template send by "Mailout", so it shows
+ * in the person's thread and Meta's delivery updates land on it. Called
+ * right after Send and by /api/cron every 5 minutes until the queue is empty.
+ */
+export async function drainWhatsApp() {
+  const room = Math.min(WA_PER_RUN, Math.max(0, whatsappDailyLimit() - (await sentToday("whatsapp"))));
+  if (room <= 0) return { sent: 0, waitingForTomorrow: true };
+  const { data, error } = await db().from("mailout_recipients").select("id, mailout_id, contact_id").eq("status", "queued").not("phone", "is", null).order("mailout_id").limit(room);
+  if (error) throw new Error(`Reading the WhatsApp queue: ${error.message}`);
+  const queue = data as Row[];
+  if (!queue.length) return { sent: 0 };
+  const mailoutIds = [...new Set(queue.map((r) => r.mailout_id as string))];
+  const { data: mrows } = await db().from("mailouts").select("id, template").in("id", mailoutIds);
+  const templateFor = new Map((mrows as Row[]).map((r) => [r.id as string, r.template as string]));
+  const outcome = new Map<string, string | null>(); // row id -> error, or null when handed over
+  await applyMany((s) => {
+    for (const r of queue) {
+      const c = s.contacts.find((x) => x.id === r.contact_id && !x.removed);
+      const t = templateFor.get(r.mailout_id as string);
+      if (!c) { outcome.set(r.id as string, "Contact no longer in the CRM"); continue; }
+      if (c.marketingOptOut) { outcome.set(r.id as string, "Opted out"); continue; }
+      if (!t || !s.templates[t]) { outcome.set(r.id as string, `No template called ${t}`); continue; }
+      sendTemplate(s, c, t, "Mailout");
+      outcome.set(r.id as string, null);
+    }
+  });
+  const now = new Date().toISOString();
+  let sent = 0;
+  await Promise.all(queue.map((r) => {
+    const err = outcome.get(r.id as string);
+    if (err === null) sent++;
+    return db().from("mailout_recipients").update(err === null ? { status: "sent", sent_at: now, updated_at: now } : { status: "failed", error: err ?? "Not sent", updated_at: now }).eq("id", r.id);
+  }));
+  for (const id of mailoutIds) {
+    const { count } = await db().from("mailout_recipients").select("id", { count: "exact", head: true }).eq("mailout_id", id).eq("status", "queued");
+    if (!count) await db().from("mailouts").update({ status: "sent", finished_at: new Date().toISOString() }).eq("id", id).eq("status", "sending");
+  }
+  return { sent };
+}
+
+/** Are there WhatsApps waiting? Cheap check for the scheduler. */
+export async function whatsappQueuedCount() {
+  const { count } = await db().from("mailout_recipients").select("id", { count: "exact", head: true }).eq("status", "queued").not("phone", "is", null);
+  return count ?? 0;
 }
 
 // ---- What Resend tells us afterwards --------------------------------------

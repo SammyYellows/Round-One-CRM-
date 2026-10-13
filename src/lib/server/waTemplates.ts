@@ -1,7 +1,8 @@
 // Puts the CRM's WhatsApp templates on a WhatsApp account for Meta to approve
 // (the same as scripts/whatsapp-templates.mjs, but run on the server, where
 // the WhatsApp key lives). Used when the gym number lands in a new account
-// (Sammy, 13/10/2026). Submits only; nothing is ever sent to anyone.
+// (Sammy, 13/10/2026). Submits only; nothing is ever sent to anyone. Records
+// Meta's status on each template so screens show what's approved.
 
 import { db } from "./supabase";
 
@@ -34,6 +35,10 @@ async function upload(name: string, type: string, bytes: Buffer) {
 
 const SAMPLE_PDF = "%PDF-1.4\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj\n2 0 obj<</Type/Pages/Kids[3 0 R]/Count 1>>endobj\n3 0 obj<</Type/Page/Parent 2 0 R/MediaBox[0 0 595 842]>>endobj\nxref\n0 4\n0000000000 65535 f \n0000000009 00000 n \n0000000052 00000 n \n0000000101 00000 n \ntrailer<</Size 4/Root 1 0 R>>\nstartxref\n160\n%%EOF";
 
+// Meta's status words, as the templates table records them.
+const STATUS: Record<string, string> = { APPROVED: "approved", REJECTED: "rejected", PENDING: "submitted", IN_APPEAL: "submitted", PAUSED: "approved", DISABLED: "rejected" };
+const setStatus = (name: string, status: string) => db().from("templates").update({ meta_status: STATUS[status] ?? "submitted", updated_at: new Date().toISOString() }).eq("name", name);
+
 type Row = { name: string; body: string; category: string; language?: string; header_video?: string; header_document?: boolean; button_text?: string; button_url?: string };
 
 /** Submits each template the account doesn't have yet (or only `only`). Returns one line per template. */
@@ -51,7 +56,7 @@ export async function submitTemplates(waba: string, opts: { only?: string[]; sta
   const out: string[] = [];
   for (const t of rows) {
     const have = existing.get(t.name);
-    if (have) { out.push(`${t.name}: ${have.status.toLowerCase()}${have.rejected_reason && have.rejected_reason !== "NONE" ? ` (${have.rejected_reason})` : ""}`); continue; }
+    if (have) { await setStatus(t.name, have.status); out.push(`${t.name}: ${have.status.toLowerCase()}${have.rejected_reason && have.rejected_reason !== "NONE" ? ` (${have.rejected_reason})` : ""}`); continue; }
     if (opts.statusOnly) { out.push(`${t.name}: not submitted`); continue; }
     const keys = [...t.body.matchAll(/\{(\w+)\}/g)].map((m) => m[1]);
     let n = 0;
@@ -74,6 +79,7 @@ export async function submitTemplates(waba: string, opts: { only?: string[]; sta
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: t.name, language: t.language || "en_GB", category: t.category.toUpperCase(), components }),
       })) as { status?: string };
+      await setStatus(t.name, String(res.status ?? "PENDING"));
       out.push(`${t.name}: submitted (${String(res.status).toLowerCase()})`);
     } catch (e) {
       out.push(`${t.name}: not submitted. ${e instanceof Error ? e.message : e}`);

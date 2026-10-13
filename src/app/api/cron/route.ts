@@ -7,7 +7,7 @@
 import { db } from "@/lib/server/supabase";
 import { loadAndTick } from "@/lib/server/state";
 import { STAGES, runStage, syncTeamUp, type Stage } from "@/lib/server/teamupSync";
-import { drainQueue, queuedCount } from "@/lib/server/mailouts";
+import { drainQueue, drainWhatsApp, queuedCount, whatsappQueuedCount } from "@/lib/server/mailouts";
 import { catchUpReceived } from "@/lib/server/enquiries";
 import { runDueReports } from "@/lib/server/reports";
 import { accountabilityTick } from "@/lib/server/accountability";
@@ -31,6 +31,8 @@ export async function GET(req: Request) {
 
   // Mailout emails still queued (within today's allowance) go out first.
   const mailout = (await queuedCount()) > 0 ? await drainQueue() : undefined;
+  // WhatsApp mailouts likewise, a few dozen at a time inside the daily limit.
+  const whatsappMailout = (await whatsappQueuedCount()) > 0 ? await drainWhatsApp().catch((e) => ({ error: e instanceof Error ? e.message : String(e) })) : undefined;
   // Any received email the webhook missed is pulled in.
   const enquiries = await catchUpReceived().catch((e) => ({ error: e instanceof Error ? e.message : String(e) }));
   // The managers' reports, when their time has come (Reports → Settings).
@@ -45,8 +47,8 @@ export async function GET(req: Request) {
     .lte("resume_at", new Date().toISOString())
     .limit(1);
   if (error) throw new Error(`Checking for due runs: ${error.message}`);
-  if (!data?.length) return Response.json({ ok: true, due: false, mailout, enquiries, reports, accountability });
+  if (!data?.length) return Response.json({ ok: true, due: false, mailout, whatsappMailout, enquiries, reports, accountability });
 
   await loadAndTick();
-  return Response.json({ ok: true, due: true, mailout, enquiries, reports, accountability });
+  return Response.json({ ok: true, due: true, mailout, whatsappMailout, enquiries, reports, accountability });
 }
