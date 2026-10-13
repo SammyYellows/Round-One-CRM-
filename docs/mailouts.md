@@ -65,3 +65,17 @@ Built and merged; migration applied; webhook events widened. Not yet used
 for real. Tests are E1 to E9 in `docs/test-log.md`. Still to do: Sammy
 upgrades Resend to Pro before the first big send, then
 `MAILOUT_DAILY_LIMIT=0` in Vercel.
+
+## WhatsApp mailouts (13/10/2026)
+
+**New WhatsApp** on the Mailouts screen: a name, one Meta-approved template
+(`templates` with `meta_status = approved`), the same audience picker plus
+**Everyone who has chatted with us on WhatsApp** (CRM messages or GymGrow
+history). Test goes to a mobile the staff member types in (not recorded on
+a contact). Send and confirm queues one `mailout_recipients` row per mobile
+(`phone` set, `email` empty); `drainWhatsApp` sends up to 40 per run, at once
+and from `/api/cron`, within `WHATSAPP_MAILOUT_DAILY_LIMIT` (default 200, a
+new number may message about 250 new people a day), each through the
+engine's `sendTemplate` by "Mailout" so it lands in the person's thread and
+Meta's delivery updates arrive on it. Marketing opt-outs are skipped.
+Migration `20261013000000_whatsapp_mailouts.sql` (applied).

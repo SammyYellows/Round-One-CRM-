@@ -13,6 +13,7 @@ const PUBLIC = [
   /^\/book\/[^/]+$/, // someone's own booking page, from the form or a WhatsApp button
   /^\/api\/book\/[^/]+$/, // booking a slot there
   /^\/privacy$/, // privacy policy (Meta needs it public to publish the app)
+  /^\/contact(\.vcf)?$/, // the gym's contact card (save our number), linked from messages
   /^\/u\/[^/]+$/, // unsubscribe page from a mailout
   /^\/api\/unsubscribe\/[^/]+$/, // and its one-click form
   /^\/api\/webhooks\//, // WhatsApp, Meta, TeamUp and Resend (they check their own signatures)

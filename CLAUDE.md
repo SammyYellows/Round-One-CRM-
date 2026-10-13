@@ -138,6 +138,11 @@ In place so far:
   `/api/unsubscribe/<id>`) that sets `marketingOptOut`; bounces set
   `emailBounced`; both are skipped next time. Delivery events come back
   through `/api/webhooks/resend`.
+  **WhatsApp mailouts** (13/10): New WhatsApp sends one approved template
+  the same way (confirm the count, up to `WHATSAPP_MAILOUT_DAILY_LIMIT` a
+  day, through the engine so it lands in each thread). The "save our number"
+  card is `/contact` and `/contact.vcf` (public); gym numbers live in
+  `src/lib/gym.ts`.
 
 - **Accountability programme** (`docs/accountability.md`). Opt-in: a member
   gets a personalised link to `/f/accountability`; their commitment lands

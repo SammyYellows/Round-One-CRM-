@@ -5,19 +5,22 @@ import { ago } from "@/lib/format";
 import { useStore } from "@/lib/store";
 import { STAGES, Stage } from "@/lib/types";
 
-// One email to many people: members, ex-members and old leads picked from the
-// CRM. Nothing sends until Send is pressed and the count confirmed
+// One email, or one approved WhatsApp template, to many people: members,
+// ex-members, old leads and anyone who has chatted on WhatsApp, picked from
+// the CRM. Nothing sends until Send is pressed and the count confirmed
 // (docs/mailouts.md).
 
-interface Audience { membership: "any" | "active" | "ended" | "none"; categories: string[]; endedWithinDays?: number; leadStages: Stage[]; neverJoined?: boolean; cameInWithinDays?: number }
+interface Audience { membership: "any" | "active" | "ended" | "none"; categories: string[]; endedWithinDays?: number; leadStages: Stage[]; neverJoined?: boolean; cameInWithinDays?: number; chattedOnWhatsApp?: boolean }
+interface Template { name: string; body: string; category: string; status: string; button: string | null }
 type Counts = { total: number; queued: number; sent: number; delivered: number; opened: number; clicked: number; bounced: number; complained: number; failed: number };
-interface Mailout { id: string; subject: string; body: string; audience: Audience; status: "draft" | "sending" | "sent"; createdAt: string; createdBy: string | null; startedAt: string | null; finishedAt: string | null; counts: Counts }
+interface Mailout { id: string; channel: "email" | "whatsapp"; template: string | null; subject: string; body: string; audience: Audience; status: "draft" | "sending" | "sent"; createdAt: string; createdBy: string | null; startedAt: string | null; finishedAt: string | null; counts: Counts }
 
 const LEAD_STAGES = STAGES.filter((s) => !["sold_programme", "sold_membership"].includes(s.id));
 const PLACEHOLDERS = "{first} {name} {gym} {team} {address} {unsubscribe}";
 
 const describeAudience = (a: Audience) => {
   const parts: string[] = [];
+  if (a.chattedOnWhatsApp) parts.push("Everyone who has chatted on WhatsApp");
   if (a.membership !== "none") {
     const who = a.membership === "active" ? "Current members" : a.membership === "ended" ? "Ex-members" : "Current and ex-members";
     parts.push(`${who}${a.categories.length ? ` (${a.categories.join(", ")})` : ""}${a.membership !== "active" && a.endedWithinDays ? `, ended within ${a.endedWithinDays} days` : ""}`);
@@ -31,7 +34,10 @@ export default function MailoutsPage() {
   const { now, live } = useStore();
   const [list, setList] = useState<Mailout[] | null>(null);
   const [categories, setCategories] = useState<string[]>([]);
-  const [setup, setSetup] = useState<{ dailyLimit: number | null; sending: boolean }>({ dailyLimit: null, sending: false });
+  const [setup, setSetup] = useState<{ dailyLimit: number | null; sending: boolean; whatsappDailyLimit: number; whatsappSending: boolean }>({ dailyLimit: null, sending: false, whatsappDailyLimit: 200, whatsappSending: false });
+  const [templates, setTemplates] = useState<Template[]>([]);
+  const [template, setTemplate] = useState<string>("");
+  const [testTo, setTestTo] = useState("");
   const [selected, setSelected] = useState<string | null>(null);
   const [subject, setSubject] = useState("");
   const [body, setBody] = useState("");
@@ -44,8 +50,9 @@ export default function MailoutsPage() {
   const load = useCallback(async () => {
     const res = await fetch("/api/mailouts", { cache: "no-store" });
     if (!res.ok) { setList([]); return; }
-    const j = (await res.json()) as { mailouts: Mailout[]; categories: string[]; dailyLimit: number | null; sending: boolean };
-    setList(j.mailouts); setCategories(j.categories); setSetup({ dailyLimit: j.dailyLimit, sending: j.sending });
+    const j = (await res.json()) as { mailouts: Mailout[]; categories: string[]; dailyLimit: number | null; sending: boolean; templates: Template[]; whatsappDailyLimit: number; whatsappSending: boolean };
+    setList(j.mailouts); setCategories(j.categories); setTemplates(j.templates ?? []);
+    setSetup({ dailyLimit: j.dailyLimit, sending: j.sending, whatsappDailyLimit: j.whatsappDailyLimit, whatsappSending: j.whatsappSending });
   }, []);
   useEffect(() => { if (live) load(); else setList([]); }, [live, load]);
 
@@ -59,7 +66,7 @@ export default function MailoutsPage() {
   const current = useMemo(() => list?.find((m) => m.id === selected) ?? null, [list, selected]);
   useEffect(() => {
     if (!current) return;
-    setSubject(current.subject); setBody(current.body); setAudience(current.audience); setConfirming(false); setNote(null);
+    setSubject(current.subject); setBody(current.body); setAudience(current.audience); setTemplate(current.template ?? ""); setConfirming(false); setNote(null);
   }, [current]);
 
   // Live count of who the audience reaches.
@@ -67,24 +74,27 @@ export default function MailoutsPage() {
     if (!live || !current || current.status !== "draft") { setCount(null); return; }
     let gone = false;
     const t = setTimeout(async () => {
-      const res = await fetch("/api/mailouts/count", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(audience) });
+      const res = await fetch(`/api/mailouts/count${current.channel === "whatsapp" ? "?channel=whatsapp" : ""}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(audience) });
       if (!gone && res.ok) setCount(await res.json());
     }, 300);
     return () => { gone = true; clearTimeout(t); };
   }, [audience, current, live]);
 
-  const dirty = !!current && current.status === "draft" && (subject !== current.subject || body !== current.body || JSON.stringify(audience) !== JSON.stringify(current.audience));
+  const isWa = current?.channel === "whatsapp";
+  const tpl = templates.find((t) => t.name === template);
+  const dirty = !!current && current.status === "draft" && (subject !== current.subject || body !== current.body || JSON.stringify(audience) !== JSON.stringify(current.audience) || (isWa && template !== (current.template ?? "")));
+  const ready = isWa ? !!subject.trim() && tpl?.status === "approved" : !!subject.trim() && !!body.trim();
 
-  async function newMailout() {
+  async function newMailout(channel: "email" | "whatsapp" = "email") {
     setBusy("new");
-    const res = await fetch("/api/mailouts", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ subject: "", body: `Hi {first},\n\n\n\n${"{team}"}`, audience: { membership: "active", categories: [], leadStages: [] } }) });
+    const res = await fetch("/api/mailouts", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ channel, subject: "", body: channel === "email" ? `Hi {first},\n\n\n\n${"{team}"}` : "", audience: { membership: "active", categories: [], leadStages: [] } }) });
     const j = (await res.json()) as { id: string };
     await load(); setSelected(j.id); setBusy(null);
   }
   async function save() {
     if (!current) return;
     setBusy("save");
-    await fetch(`/api/mailouts/${current.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ subject, body, audience }) });
+    await fetch(`/api/mailouts/${current.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ subject, body, audience, ...(isWa ? { template: template || null } : {}) }) });
     await load(); setBusy(null);
   }
   async function remove() {
@@ -96,10 +106,10 @@ export default function MailoutsPage() {
     if (!current) return;
     if (dirty) await save();
     setBusy("test");
-    const res = await fetch(`/api/mailouts/${current.id}/test`, { method: "POST" });
+    const res = await fetch(`/api/mailouts/${current.id}/test`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(isWa ? { to: testTo } : {}) });
     const j = (await res.json()) as { ok: boolean; to?: string; asIf?: string; dryRun?: boolean; error?: string };
     setBusy(null);
-    setNote(j.ok ? `Test sent to ${j.to}${j.asIf ? `, filled in as if for ${j.asIf}` : ""}${j.dryRun ? " (email isn’t switched on here)" : ""}` : j.error ?? "Couldn’t send the test");
+    setNote(j.ok ? `Test sent to ${j.to}${j.asIf ? `, filled in as if for ${j.asIf}` : ""}${j.dryRun ? (isWa ? " (WhatsApp isn’t switched on here)" : " (email isn’t switched on here)") : ""}` : j.error ?? "Couldn’t send the test");
   }
   async function send() {
     if (!current) return;
@@ -109,7 +119,7 @@ export default function MailoutsPage() {
     const j = (await res.json()) as { ok: boolean; queued?: number; sent?: number; waitingForTomorrow?: boolean; error?: string };
     setConfirming(false); setBusy(null);
     if (!j.ok) { setNote(j.error ?? "Couldn’t send"); return; }
-    setNote(`Queued ${j.queued}. ${j.sent ?? 0} sent straight away${j.waitingForTomorrow ? "; the rest go out from tomorrow" : (j.queued ?? 0) > (j.sent ?? 0) ? "; the rest follow every few minutes" : ""}.`);
+    setNote(`Queued ${j.queued}. ${j.sent ?? 0} sent straight away${j.waitingForTomorrow ? "; the rest go out from tomorrow" : (j.queued ?? 0) > (j.sent ?? 0) ? `; the rest follow every few minutes${isWa ? `, up to ${setup.whatsappDailyLimit} a day` : ""}` : ""}.`);
     await load();
   }
 
@@ -125,11 +135,12 @@ export default function MailoutsPage() {
           <h1 className="h h1">Mailouts</h1>
         </div>
         <div className="actions">
-          <button className="btn btn-red" disabled={!live || busy === "new"} onClick={newMailout}>New mailout</button>
+          <button className="btn btn-ghost" disabled={!live || busy === "new"} onClick={() => newMailout("whatsapp")}>New WhatsApp</button>
+          <button className="btn btn-red" disabled={!live || busy === "new"} onClick={() => newMailout("email")}>New email</button>
         </div>
       </header>
 
-      {live && (setup.dailyLimit || !setup.sending) && (
+      {live && current?.channel !== "whatsapp" && (setup.dailyLimit || !setup.sending) && (
         <div className="card" style={{ padding: "14px 22px", marginBottom: 20 }}>
           <div className="small muted">
             {!setup.sending && "Email sending isn’t switched on here, so mailouts are only recorded. "}
@@ -140,11 +151,11 @@ export default function MailoutsPage() {
 
       <div className="mo">
         <section className="card">
-          {list === null ? <div className="empty">Loading…</div> : list.length === 0 ? <div className="empty">No mailouts yet. Press New mailout to write one.</div> : (
+          {list === null ? <div className="empty">Loading…</div> : list.length === 0 ? <div className="empty">No mailouts yet. Press New email or New WhatsApp to write one.</div> : (
             list.map((m) => (
               <button key={m.id} className={`mo-row ${selected === m.id ? "on" : ""}`} onClick={() => setSelected(m.id)}>
                 <div style={{ display: "flex", justifyContent: "space-between", gap: 10 }}>
-                  <span className="strong">{m.subject || "(no subject)"}</span>
+                  <span className="strong">{m.channel === "whatsapp" ? "WhatsApp · " : ""}{m.subject || (m.channel === "whatsapp" ? m.template ?? "(no template)" : "(no subject)")}</span>
                   <span className="faint small">{ago(m.startedAt ?? m.createdAt, now)}</span>
                 </div>
                 <div className="small muted" style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{describeAudience(m.audience)}</div>
@@ -159,7 +170,7 @@ export default function MailoutsPage() {
         </section>
 
         <section className="card">
-          {!current ? <div className="empty">Pick a mailout on the left, or press New mailout.</div> : current.status !== "draft" ? (
+          {!current ? <div className="empty">Pick a mailout on the left, or press New email or New WhatsApp.</div> : current.status !== "draft" ? (
             <>
               <div className="card-head">
                 <div>
@@ -175,7 +186,7 @@ export default function MailoutsPage() {
                     <div key={k} className="mo-stat"><span className="num">{current.counts[k]}</span><span className="eyebrow">{label}</span></div>
                   ))}
               </div>
-              <div className="enq-mail" style={{ marginBottom: 22 }}>{current.body}</div>
+              <div className="enq-mail" style={{ marginBottom: 22 }}>{current.channel === "whatsapp" ? `WhatsApp template ${current.template}:\n\n${templates.find((t) => t.name === current.template)?.body ?? ""}` : current.body}</div>
             </>
           ) : (
             <>
@@ -187,6 +198,13 @@ export default function MailoutsPage() {
                 <button className="btn btn-ghost btn-sm" onClick={remove}>Delete draft</button>
               </div>
               <div className="mo-aud">
+                <div>
+                  <div className="label">WhatsApp</div>
+                  <div className="opts">
+                    <button className={`fchip fchip-sm ${audience.chattedOnWhatsApp ? "on" : ""}`} aria-pressed={!!audience.chattedOnWhatsApp} onClick={() => setAudience({ ...audience, chattedOnWhatsApp: !audience.chattedOnWhatsApp })}>Everyone who has chatted with us on WhatsApp</button>
+                  </div>
+                </div>
+                <div className="label">Members</div>
                 <div className="opts">
                   {([["active", "Current members"], ["ended", "Ex-members"], ["any", "Both"], ["none", "No members"]] as [Audience["membership"], string][]).map(([v, l]) => (
                     <button key={v} className={`fchip fchip-sm ${audience.membership === v ? "on" : ""}`} aria-pressed={audience.membership === v} onClick={() => setAudience({ ...audience, membership: v })}>{l}</button>
@@ -238,31 +256,49 @@ export default function MailoutsPage() {
                   </div>
                 </div>
                 <div className="mo-count" aria-live="polite">
-                  {count === null ? "Counting…" : count.count === 0 ? "Nobody matches yet." : <><span className="strong">{count.count} {count.count === 1 ? "person" : "people"}</span> with an email address who haven’t opted out{count.sample.length ? <span className="muted">, e.g. {count.sample.join(", ")}</span> : null}.</>}
+                  {count === null ? "Counting…" : count.count === 0 ? "Nobody matches yet." : <><span className="strong">{count.count} {count.count === 1 ? "person" : "people"}</span> with {isWa ? "a mobile number" : "an email address"} who haven’t opted out{count.sample.length ? <span className="muted">, e.g. {count.sample.join(", ")}</span> : null}.{isWa && count.count > setup.whatsappDailyLimit ? <span className="muted"> Goes out over about {Math.ceil(count.count / setup.whatsappDailyLimit)} days, {setup.whatsappDailyLimit} a day.</span> : null}</>}
                 </div>
               </div>
 
               <div style={{ padding: "0 22px 22px", display: "flex", flexDirection: "column", gap: 12, borderTop: "1px solid var(--line)", paddingTop: 18 }}>
                 <div>
-                  <label className="label" htmlFor="mo-subject">Subject</label>
-                  <input id="mo-subject" className="input" value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="e.g. New Saturday classes at Round One" />
+                  <label className="label" htmlFor="mo-subject">{isWa ? "Name (for this list only)" : "Subject"}</label>
+                  <input id="mo-subject" className="input" value={subject} onChange={(e) => setSubject(e.target.value)} placeholder={isWa ? "e.g. New WhatsApp number" : "e.g. New Saturday classes at Round One"} />
                 </div>
-                <div>
-                  <label className="label" htmlFor="mo-body">Message</label>
-                  <textarea id="mo-body" className="input enq-text" rows={14} value={body} onChange={(e) => setBody(e.target.value)} />
-                  <div className="small faint" style={{ marginTop: 6 }}>Plain text, from info@round1boxfit.co.uk. You can use {PLACEHOLDERS}. An unsubscribe line is added at the bottom of every email.</div>
-                </div>
+                {isWa ? (
+                  <div>
+                    <label className="label" htmlFor="mo-template">Template</label>
+                    <select id="mo-template" className="select" value={template} onChange={(e) => setTemplate(e.target.value)}>
+                      <option value="">Pick a template</option>
+                      {templates.map((t) => <option key={t.name} value={t.name} disabled={t.status !== "approved"}>{t.name}{t.status !== "approved" ? ` (${t.status === "submitted" ? "waiting for Meta" : t.status})` : ""}</option>)}
+                    </select>
+                    {tpl && <div className="enq-mail" style={{ margin: "10px 0 0" }}>{tpl.body}{tpl.button ? `\n\n[ ${tpl.button} ]` : ""}</div>}
+                    <div className="small faint" style={{ marginTop: 6 }}>WhatsApp only allows Meta-approved templates for messages the gym starts. {"{first}"} is filled in for each person. Sent from the gym’s WhatsApp number; anyone who replied STOP is skipped. Each message costs a few pence.</div>
+                  </div>
+                ) : (
+                  <div>
+                    <label className="label" htmlFor="mo-body">Message</label>
+                    <textarea id="mo-body" className="input enq-text" rows={14} value={body} onChange={(e) => setBody(e.target.value)} />
+                    <div className="small faint" style={{ marginTop: 6 }}>Plain text, from info@round1boxfit.co.uk. You can use {PLACEHOLDERS}. An unsubscribe line is added at the bottom of every email.</div>
+                  </div>
+                )}
+                {isWa && (
+                  <div>
+                    <label className="label" htmlFor="mo-testto">Your mobile, for a test</label>
+                    <input id="mo-testto" className="input" style={{ maxWidth: 260 }} value={testTo} onChange={(e) => setTestTo(e.target.value)} placeholder="07…" inputMode="tel" />
+                  </div>
+                )}
                 {note && <div className="small muted" aria-live="polite">{note}</div>}
                 {!confirming ? (
                   <div className="actions" style={{ gap: 10, flexWrap: "wrap" }}>
-                    <button className="btn btn-red" disabled={busy !== null || !subject.trim() || !body.trim() || !count?.count} onClick={() => setConfirming(true)}>Send</button>
-                    <button className="btn btn-ghost" disabled={busy !== null || !subject.trim() || !body.trim()} onClick={test}>{busy === "test" ? "Sending test" : "Send me a test"}</button>
+                    <button className="btn btn-red" disabled={busy !== null || !ready || !count?.count} onClick={() => setConfirming(true)}>Send</button>
+                    <button className="btn btn-ghost" disabled={busy !== null || !ready || (isWa && testTo.replace(/\D/g, "").length < 10)} onClick={test}>{busy === "test" ? "Sending test" : isWa ? "Send me a test WhatsApp" : "Send me a test"}</button>
                     <button className="btn btn-ghost" disabled={busy !== null || !dirty} onClick={save}>{busy === "save" ? "Saving" : "Save draft"}</button>
                   </div>
                 ) : (
                   <div className="mo-confirm" role="alertdialog" aria-labelledby="mo-confirm-h">
-                    <div id="mo-confirm-h" className="strong">Send “{subject}” to {count?.count} {count?.count === 1 ? "person" : "people"}?</div>
-                    <div className="small muted">{describeAudience(audience)}. It goes from info@round1boxfit.co.uk with an unsubscribe link. This can’t be undone.</div>
+                    <div id="mo-confirm-h" className="strong">Send {isWa ? `the WhatsApp “${template}”` : `“${subject}”`} to {count?.count} {count?.count === 1 ? "person" : "people"}?</div>
+                    <div className="small muted">{describeAudience(audience)}. {isWa ? `It goes from the gym’s WhatsApp number, up to ${setup.whatsappDailyLimit} a day until everyone has it.` : "It goes from info@round1boxfit.co.uk with an unsubscribe link."} This can’t be undone.</div>
                     <div className="actions" style={{ gap: 10 }}>
                       <button className="btn btn-red" disabled={busy === "send"} onClick={send}>{busy === "send" ? "Sending" : `Yes, send to ${count?.count}`}</button>
                       <button className="btn btn-ghost" disabled={busy === "send"} onClick={() => setConfirming(false)}>Cancel</button>
