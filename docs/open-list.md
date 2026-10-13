@@ -366,9 +366,18 @@ updates from the import never fire automations.
     approved, discovery_1 pending); Vercel `WHATSAPP_PHONE_NUMBER_ID` and
     `WHATSAPP_BUSINESS_ACCOUNT_ID` switched and redeployed (old values: test
     phone 1325014870699067, account 1645982367314251). Display name in review
-    (sending "limited" until approved). **Still to do:** Sammy's test message;
-    contact card (vCard on the CRM site) + "new number" WhatsApp template and
-    email for Sammy to approve; new number on website/Instagram/Google; the
+    (sending "limited" until approved). **Built overnight 13/10, waiting for
+    Sammy:** contact card `crm.round1boxfit.co.uk/contact` (+ `/contact.vcf`);
+    template `new_number` (marketing, "Save our number" button) submitted to
+    Meta; WhatsApp mailouts on the Mailouts screen; two drafts there: WhatsApp
+    "New WhatsApp number" (everyone who chatted on WhatsApp + current members,
+    665 people, ~4 days at 200/day) and the email (1,144 people; 80/day on
+    Resend free, so Resend Pro first). All 13 lead-journey templates approved
+    on the new account; the journey automations stay ON (Sammy, 13/10; test is
+    go-live item 17). `win_back` is ON but its template was never submitted,
+    so its WhatsApp fails until the wording is approved. **Still to do:**
+    Sammy's test message; approve and send the notices; new number on
+    website/Instagram/Google; the
     other 10 templates (Program days, win-back, manager report) once their
     wording is approved; keep the eSIM topped up. Tidy: old 07833 entry
     (unverified, holds a slot), two unknown "Round One Gym UK" messaging
