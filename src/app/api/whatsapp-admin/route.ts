@@ -11,15 +11,39 @@
 //   {action:"verify_code", phoneId, code}: the code read off the phone.
 //   {action:"register", phoneId, pin}: switches it on for the Cloud API
 //     (pin: the six-digit two-step PIN). {action:"deregister", phoneId}.
+//   {action:"phones", waba}: the account's numbers (read only).
+//   {action:"subscribe", waba}: sends that account's WhatsApp webhooks to
+//     the CRM (this app). {action:"templates", waba, only?, statusOnly?}:
+//     submits the CRM's templates there for approval (never sends one).
+
+import { submitTemplates } from "@/lib/server/waTemplates";
 
 export const dynamic = "force-dynamic";
+export const maxDuration = 60;
 
 const API = `https://graph.facebook.com/${process.env.WHATSAPP_API_VERSION || "v21.0"}`;
 
 export async function POST(req: Request) {
   const secret = process.env.CRON_SECRET;
   if (!secret || req.headers.get("authorization") !== `Bearer ${secret}`) return Response.json({ error: "Not allowed" }, { status: 401 });
-  const b = (await req.json().catch(() => ({}))) as { action?: string; phoneId?: string; pin?: string; waba?: string; number?: string; name?: string; method?: string; code?: string; migrate?: boolean };
+  const b = (await req.json().catch(() => ({}))) as { action?: string; phoneId?: string; pin?: string; waba?: string; number?: string; name?: string; method?: string; code?: string; migrate?: boolean; only?: string[]; statusOnly?: boolean };
+  const wabaOk = /^\d+$/.test(String(b.waba ?? ""));
+  if (b.action === "phones" || b.action === "subscribe") {
+    if (!wabaOk) return Response.json({ error: "Needs waba" }, { status: 400 });
+    const res = await fetch(`${API}/${b.waba}/${b.action === "phones" ? "phone_numbers?fields=id,display_phone_number,verified_name,status,code_verification_status,name_status,platform_type,quality_rating" : "subscribed_apps"}`, {
+      method: b.action === "phones" ? "GET" : "POST",
+      headers: { Authorization: `Bearer ${process.env.WHATSAPP_TOKEN}` },
+    });
+    return Response.json({ status: res.status, meta: await res.json().catch(() => ({})) });
+  }
+  if (b.action === "templates") {
+    if (!wabaOk) return Response.json({ error: "Needs waba" }, { status: 400 });
+    try {
+      return Response.json({ ok: true, result: await submitTemplates(String(b.waba), { only: b.only, statusOnly: b.statusOnly === true }) });
+    } catch (e) {
+      return Response.json({ error: e instanceof Error ? e.message : String(e) }, { status: 500 });
+    }
+  }
   if (b.action === "add") {
     const waba = String(b.waba ?? ""), number = String(b.number ?? "").replace(/\D/g, ""), name = String(b.name ?? "").trim();
     if (!/^\d+$/.test(waba) || !/^44\d{10}$/.test(number) || !name) return Response.json({ error: "Needs waba, a UK number like 447833399014, and the display name" }, { status: 400 });
