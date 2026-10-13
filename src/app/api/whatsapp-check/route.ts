@@ -39,7 +39,9 @@ export async function GET(req: Request) {
   const secret = process.env.CRON_SECRET;
   if (!secret || req.headers.get("authorization") !== `Bearer ${secret}`) return Response.json({ error: "Not allowed" }, { status: 401 });
   if (!process.env.WHATSAPP_TOKEN) return Response.json({ error: "No WHATSAPP_TOKEN" }, { status: 500 });
-  const ids = [...new Set([process.env.WHATSAPP_BUSINESS_ACCOUNT_ID, GYM_WABA].filter(Boolean) as string[])];
+  // ?waba=<id> also reads that account (e.g. a new one Meta made for the gym number).
+  const extra = new URL(req.url).searchParams.get("waba");
+  const ids = [...new Set([process.env.WHATSAPP_BUSINESS_ACCOUNT_ID, GYM_WABA, ...(extra && /^\d+$/.test(extra) ? [extra] : [])].filter(Boolean) as string[])];
   const token = await graph("debug_token", { input_token: process.env.WHATSAPP_TOKEN });
   const d = (token as { data?: { is_valid?: boolean; scopes?: string[]; granular_scopes?: { scope: string; target_ids?: string[] }[]; expires_at?: number } }).data;
   return Response.json({
