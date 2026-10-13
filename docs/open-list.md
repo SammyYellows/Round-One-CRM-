@@ -356,6 +356,26 @@ updates from the import never fire automations.
     then Claude adds it to WABA 1645982367314251, Sammy reads the code off
     the phone, Claude registers it (PIN in the session scratchpad), sets
     `WHATSAPP_PHONE_NUMBER_ID` in Vercel, redeploys and tests.
+    **13/10: YCloud link gone; waiting on a number slot.** Meta Direct
+    Support (a person) said to clear partner connections; Business Settings
+    had none. Sammy pressed **Remove from business portfolio** on the old
+    INR WABA 1438210021679060 (no confirm box; it's gone, with GymGrow's
+    old templates). An hour later the app let him **disconnect YCloud**:
+    the gym phone is now a plain WhatsApp Business app, working as normal.
+    Adding the number to WABA 1645982367314251 still fails with "Phone
+    Numbers Count Exceeded Limit Per Business" (2388386) although the
+    business only has the test number left (the test number can't be
+    deleted). Probably Meta's count still catching up; Claude retries.
+    **Sammy chose route 1 (API only, 13/10)**: keep-the-app coexistence
+    needs a Tech Provider/partner. **Don't delete the app account until the
+    add succeeds.** Then: Sammy deletes the app account in the evening,
+    Meta's 24-hour wait, Claude requests the code (SMS to the gym phone),
+    Sammy reads it out, Claude verifies and registers (PIN in the session
+    scratchpad), sets `WHATSAPP_PHONE_NUMBER_ID` in Vercel, redeploys,
+    tests. If the slot is still blocked on 14/10: Direct Support ticket
+    asking for the number limit to be raised. Note: since 1 Oct 2026 Meta
+    charges for service replies (after 1,000 free a month per number) and
+    for utility messages inside the 24-hour window.
     **GymGrow message history: done (12/10).** Sammy chose "Everything":
     7,890 messages for 655 people (WhatsApp 4,347 out / 1,699 in, email
     1,360 / 51, SMS 382 / 46, calls 1 / 4) are in `gymgrow_messages`, read
