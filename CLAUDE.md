@@ -65,8 +65,12 @@ In place so far:
   failure is logged as an `email.failed` event. No `RESEND_API_KEY` (e.g.
   locally) means emails are printed to the server log, not sent.
 
-- **WhatsApp** goes through Meta's Cloud API, on Meta's **test number**
-  until go-live (the real number stays on GymGrow until then). Same
+- **WhatsApp** goes through Meta's Cloud API on the gym's **new number
+  +44 7536 138295** (13/10/2026; an eSIM Sammy owns, never to be set up in the
+  WhatsApp app): WhatsApp account 3694606807344403 (GBP, card on file),
+  phone number ID 1285209971352773, the Meta app published (live). The old
+  07833 399014 is gone. `/api/whatsapp-admin` and `/api/whatsapp-check`
+  (CRON_SECRET) manage numbers, webhooks and templates on the server. Same
   record-then-deliver pattern: the engine adds an outgoing message to the
   thread; after the save, `deliver.ts` sends each new one (templates with
   their `{placeholder}` values, header video and "Book meeting" link) and
@@ -91,8 +95,9 @@ In place so far:
   `/api/cron` every 5 minutes with `CRON_SECRET` (kept in Supabase Vault),
   so automation waits and reminders run even when nobody has the CRM open.
   Opening the CRM also runs anything due.
-- **Meta webhook** is subscribed for the test WhatsApp account only
-  (`messages` field, to `/api/webhooks/whatsapp`).
+- **Meta webhook** (`messages` field, to `/api/webhooks/whatsapp`) is
+  subscribed on the gym's WhatsApp account 3694606807344403 (and the old test
+  account).
 
 - **TeamUp members** (`docs/teamup-members.md`). Members are contacts: the
   nightly sync (`src/lib/server/teamupSync.ts`) runs in four stages from

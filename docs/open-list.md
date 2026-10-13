@@ -356,6 +356,23 @@ updates from the import never fire automations.
     then Claude adds it to WABA 1645982367314251, Sammy reads the code off
     the phone, Claude registers it (PIN in the session scratchpad), sets
     `WHATSAPP_PHONE_NUMBER_ID` in Vercel, redeploys and tests.
+    **13/10 late: DONE on a new number.** 07833 399014 turned out to have no
+    SIM (Sammy picked it inside WhatsApp Business), so once the app account
+    was deleted it was lost. Sammy bought an eSIM: **+44 7536 138295**.
+    Meta's add-number screen (developer app → Production setup) made a new
+    WhatsApp account **3694606807344403** (Round One Gym, GBP, card added),
+    phone number ID **1285209971352773**, verified on the Cloud API. RoundOnecrm
+    has full control; webhook subscribed; the 13 CRM templates submitted (12
+    approved, discovery_1 pending); Vercel `WHATSAPP_PHONE_NUMBER_ID` and
+    `WHATSAPP_BUSINESS_ACCOUNT_ID` switched and redeployed (old values: test
+    phone 1325014870699067, account 1645982367314251). Display name in review
+    (sending "limited" until approved). **Still to do:** Sammy's test message;
+    contact card (vCard on the CRM site) + "new number" WhatsApp template and
+    email for Sammy to approve; new number on website/Instagram/Google; the
+    other 10 templates (Program days, win-back, manager report) once their
+    wording is approved; keep the eSIM topped up. Tidy: old 07833 entry
+    (unverified, holds a slot), two unknown "Round One Gym UK" messaging
+    accounts, the "India" payment configuration.
     **13/10: YCloud link gone; waiting on a number slot.** Meta Direct
     Support (a person) said to clear partner connections; Business Settings
     had none. Sammy pressed **Remove from business portfolio** on the old
