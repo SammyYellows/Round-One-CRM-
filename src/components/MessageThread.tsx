@@ -169,8 +169,8 @@ function AiDraft({ contactId, channel, windowOpen, onUse }: { contactId: string;
   const mine = s.messages.filter((m) => m.contactId === contactId);
   const lastIn = mine.filter((m) => m.dir === "in").at(-1);
   const last = mine.at(-1);
-  // Only on the conversation they last wrote in, and only while it waits for us.
-  if (!c || !lastIn || channelOf(lastIn) !== channel || last?.dir !== "in") return null;
+  // Only on the conversation they last wrote in, while it waits for us and a reply can still go.
+  if (!c || !lastIn || channelOf(lastIn) !== channel || last?.dir !== "in" || !windowOpen) return null;
   const ins = c.insight;
   const current = !!ins && Date.parse(ins.updatedAt) >= Date.parse(lastIn.at);
   if (current && ins.replyUsedAt) return null; // already in the box
@@ -200,10 +200,9 @@ function AiDraft({ contactId, channel, windowOpen, onUse }: { contactId: string;
       <div className="label" style={{ margin: 0 }}>Suggested reply · nothing goes until you send it</div>
       <div className="small" style={{ whiteSpace: "pre-wrap" }}>{ins.suggestedReply}</div>
       <div className="actions" style={{ gap: 8, flexWrap: "wrap" }}>
-        <button className="btn btn-ghost btn-sm" disabled={!windowOpen} onClick={() => { onUse(ins.suggestedReply!); act("settleInsightReply", contactId, true); }}>Use it</button>
+        <button className="btn btn-ghost btn-sm" onClick={() => { onUse(ins.suggestedReply!); act("settleInsightReply", contactId, true); }}>Use it</button>
         <button className="btn btn-ghost btn-sm" onClick={() => act("settleInsightReply", contactId, false)}>Dismiss</button>
         <button className="btn btn-ghost btn-sm" disabled={busy} onClick={draft}>{busy ? "Drafting" : "Draft again"}</button>
-        {!windowOpen && <span className="small faint">{channel === "whatsapp" ? "Their 24-hour window has closed; send a template instead." : "Too long since their last message for Meta to take a reply."}</span>}
         {note && <span className="small faint">{note}</span>}
       </div>
     </div>
