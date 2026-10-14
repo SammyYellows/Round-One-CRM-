@@ -6,7 +6,15 @@ import { nowMs } from "@/lib/engine";
 import { GYM } from "@/lib/gym";
 import { StoreProvider, useStore } from "@/lib/store";
 
-// Pick a day, then a time. Same light look as the public form.
+// Pick a day, then a time. Same light look as the public form. On a phone
+// the days are short ("Thu 15 Oct") and the times have their own heading,
+// so the two rows never read as a timetable (Sammy, 14/10/2026).
+
+/** "Thursday 15 October" → ["Thu", "15 Oct"]. */
+const shortDay = (label: string) => {
+  const [weekday, date, month] = label.split(" ");
+  return [weekday.slice(0, 3), [date, month?.slice(0, 3)].filter(Boolean).join(" ")];
+};
 
 function Shell({ children }: { children: React.ReactNode }) {
   return (
@@ -74,27 +82,30 @@ function Picker({
         <div className="help">There are no times to book online at the moment. Reply to our WhatsApp message and we’ll find you one.</div>
       ) : (
         <>
-          <div role="group" aria-label="Day" style={{ display: "flex", gap: 6, overflowX: "auto", paddingBottom: 4 }}>
+          <div className="bk-label" id="bk-day">Day</div>
+          <div role="group" aria-labelledby="bk-day" className="bk-days">
             {days.map((d) => {
               const any = d.slots.some((s) => s.free);
+              const [weekday, date] = shortDay(d.label);
               return (
                 <button
                   key={d.key}
                   type="button"
                   className={`opt ${d.key === dayKey ? "on" : ""}`}
-                  style={{ width: "auto", flexShrink: 0, flexDirection: "column", alignItems: "flex-start", justifyContent: "center", gap: 0, padding: "6px 12px" }}
                   disabled={!any}
                   aria-pressed={d.key === dayKey}
+                  aria-label={d.label}
                   onClick={() => { setDayKey(d.key); setChosen(undefined); }}
                 >
-                  <span style={{ fontWeight: 600 }}>{d.label.split(" ")[0]}</span>
-                  <span style={{ fontSize: 13 }}>{d.label.split(" ").slice(1).join(" ")}</span>
+                  <span style={{ fontWeight: 600 }}>{weekday}</span>
+                  <span style={{ fontSize: 13 }}>{date}</span>
                 </button>
               );
             })}
           </div>
+          {day && <div className="bk-label" id="bk-times">Times on {day.label}</div>}
           {day && (
-            <div role="group" aria-label={`Times on ${day.label}`} className="slots">
+            <div role="group" aria-labelledby="bk-times" className="slots">
               {day.slots.filter((s) => s.free).map((s) => (
                 <button key={s.start} type="button" className={`opt ${chosen === s.start ? "on" : ""}`} aria-pressed={chosen === s.start} onClick={() => setChosen(s.start)}>
                   {slotTime(s.start)}
