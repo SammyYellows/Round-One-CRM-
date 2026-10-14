@@ -334,6 +334,8 @@ table.sr-only { display: block; } /* a table ignores width: 1px, which made phon
 .enq-tabs .btn { display: inline-flex; align-items: center; gap: 10px; min-width: 150px; justify-content: center; }
 .enq-tabs .nav-badge { margin-left: 0; }
 @media (max-width: 900px) { .enq { grid-template-columns: 1fr; } }
+/* Side by side, the open conversation stays in view while you scroll a long list (Sammy, 14/10). */
+@media (min-width: 901px) { .enq-detail { position: sticky; top: 16px; max-height: calc(100vh - 32px); overflow-y: auto; } }
 
 /* ---- Questionnaire answers on the contact page ---- */
 .qa { margin: 0; padding: 0 22px 8px; }
