@@ -41,3 +41,42 @@ export async function eposCheck() {
   }
   return out;
 }
+
+/**
+ * A closer look for planning the cash-up (Sammy, 14/10/2026): how the till
+ * records payments (tenders and their types), its own end-of-day reports
+ * and its most recent sales. Field names, type and till names, counts and
+ * dates only; no one's details.
+ */
+export async function eposProbe() {
+  if (!eposConfigured()) return { error: "EPOSNOW_API_KEY and EPOSNOW_API_SECRET aren’t set in Vercel" };
+  const since = new Date(Date.now() - 14 * 86400e3).toISOString().slice(0, 10);
+  const today = new Date().toISOString().slice(0, 10);
+  const paths: Record<string, string> = {
+    latestSales: "V2/Transaction?OrderByDesc=DateTime&page=1",
+    salesSince: `V2/Transaction?search=(DateTime|>|${since})`,
+    tenders: "V2/Tender?page=1",
+    tendersLatest: "V2/Tender?OrderByDesc=TenderID&page=1",
+    tenderTypes: "V2/TenderType",
+    devices: "V2/Device",
+    endOfDay: `Reports/EndOfDay?FromDate=${since}&ToDate=${today}`,
+    v4Transactions: "v4/Transactions?page=1",
+  };
+  const out: Record<string, unknown> = {};
+  for (const [k, path] of Object.entries(paths)) {
+    const r = await eposGet(path);
+    const list = rows(r.json);
+    const first = list[0] ?? (r.json && typeof r.json === "object" && !Array.isArray(r.json) ? (r.json as Row) : undefined);
+    const dates = list.map((x) => String(x.DateTime ?? x.DateTimeClosed ?? x.DateClosed ?? x.EndTime ?? x.ClosedDate ?? "")).filter((d) => /^\d{4}-/.test(d)).sort();
+    out[k] = {
+      status: r.status, count: list.length,
+      fields: first ? Object.keys(first) : null,
+      dates: dates.length ? [dates[0].slice(0, 16), dates[dates.length - 1].slice(0, 16)] : null,
+      // Names of payment types and tills are safe to show; nothing else is.
+      ...(k === "tenderTypes" ? { names: list.map((x) => `${x.TenderTypeID ?? x.Id}: ${x.Name}`) } : {}),
+      ...(k === "devices" ? { names: list.map((x) => `${x.DeviceID ?? x.Id}: ${x.Name}`) } : {}),
+      ...(r.ok ? {} : { error: typeof r.json === "string" ? r.json : JSON.stringify(r.json).slice(0, 200) }),
+    };
+  }
+  return out;
+}
