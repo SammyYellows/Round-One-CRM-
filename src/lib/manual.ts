@@ -175,6 +175,7 @@ Use the search and filters at the top to find people.`,
 - Meta's time limits: within 24 hours of their last message you can write freely. From 24 hours to 7 days you can still reply, as long as a person writes it (the screen says **Staff reply only**). After 7 days Meta doesn't allow a reply until they message again. There are no templates on Facebook or Instagram.
 - Meta doesn't give us their mobile or email, only their name (Facebook) or username (Instagram), so someone new becomes a new contact, off the Meta pipeline. Ask for their mobile if they want to book.
 - Replies sent from the Facebook or Instagram app, or Meta Business Suite, show here too.
+- Earlier conversations from before the CRM was connected are copied in so you can read them (Instagram only lets us have the last 20 messages of each). Old ones are marked **No reply needed**; nothing is sent and nobody becomes a lead.
 
 ### Email
 Every email to info@round1boxfit.co.uk that looks like an enquiry appears here with a reply already drafted, using only the gym facts sheet.
