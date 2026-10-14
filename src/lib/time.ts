@@ -39,3 +39,20 @@ export function ukWeekStart(ms: number) {
   const back = (weekday + 6) % 7; // days since Monday
   return ukTime(ms, -back, 0, 0);
 }
+
+/** A UK wall-clock time (as Epos Now gives it, "2026-10-14T20:11:23") as a moment. */
+export function fromUkWallClock(local: string) {
+  const m = local.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?/);
+  if (!m) return NaN;
+  const guess = Date.UTC(+m[1], +m[2] - 1, +m[3], +m[4], +m[5], +(m[6] ?? 0));
+  let t = guess - offsetMinutes(guess) * 60000;
+  const again = guess - offsetMinutes(t) * 60000;
+  if (again !== t) t = again;
+  return t;
+}
+
+/** A moment as a UK wall-clock time, "2026-10-14T20:11:23". */
+export function toUkWallClock(ms: number) {
+  const d = new Date(ms + offsetMinutes(ms) * 60000);
+  return d.toISOString().slice(0, 19);
+}
