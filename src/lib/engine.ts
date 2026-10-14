@@ -4,7 +4,7 @@
 // routes and the automation part moves to a job runner (Inngest / Trigger.dev).
 
 import {
-  Accountability, Appointment, Automation, Channel, Checkin, Availability, Membership, Contact, CrmEvent, EventType, Form, Run, Safety, SocialChannel, Source, Stage, State, Step, apptStatusLabel, stageLabel, CHANNEL_LABEL, PAYMENT_FAILED_AT, viaOf } from "./types";
+  Accountability, Appointment, Automation, Channel, Checkin, Availability, Membership, Contact, CrmEvent, EventType, Form, Run, Safety, SocialChannel, Source, Stage, State, Step, apptStatusLabel, stageLabel, CHANNELS, CHANNEL_LABEL, PAYMENT_FAILED_AT, viaOf } from "./types";
 import { GYM } from "./gym";
 import { samePhone } from "./phone";
 import { ukParts, ukTime, ukWeekStart } from "./time";
@@ -285,7 +285,7 @@ export function shiftClock(s: State, hours: number) {
 /** A reply typed by staff, on WhatsApp (the default), Facebook or Instagram. */
 export function sendMessage(s: State, contactId: string, text: string, channel: Channel = "whatsapp") {
   const c = s.contacts.find((x) => x.id === contactId);
-  if (!c || !text.trim() || !(channel in CHANNEL_LABEL)) return;
+  if (!c || !text.trim() || !CHANNELS.includes(channel)) return;
   s.messages.push({ id: uid(), contactId, dir: "out", text: text.trim(), by: "You", at: nowIso(s), ...(channel !== "whatsapp" ? { channel } : {}) });
   if (channel === "whatsapp") log(s, "whatsapp.sent", contactId, `Reply to ${c.name}`);
   else log(s, "social.sent", contactId, `${CHANNEL_LABEL[channel]} reply to ${c.name}`);
@@ -978,6 +978,7 @@ export function setWhatsAppDone(s: State, contactId: string, done: boolean, by =
 
 /** "No reply needed" on any conversation: WhatsApp, Facebook or Instagram (14/10/2026). */
 export function setChannelDone(s: State, contactId: string, channel: Channel, done: boolean, by = "Staff") {
+  if (!CHANNELS.includes(channel)) return;
   if (channel === "whatsapp") return setWhatsAppDone(s, contactId, done, by);
   const c = s.contacts.find((x) => x.id === contactId);
   if (!c) return;
