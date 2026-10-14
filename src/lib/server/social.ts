@@ -113,9 +113,22 @@ export async function socialSubscribe(callback: string) {
 
 type GraphMessage = { id: string; created_time: string; from?: { id?: string }; message?: string; attachments?: { data?: { mime_type?: string }[] } };
 type GraphConversation = {
+  id?: string;
   participants?: { data?: { id: string; name?: string; username?: string }[] };
   messages?: { data?: GraphMessage[]; paging?: { next?: string } };
 };
+
+/**
+ * Instagram won't hand over messages inside a conversation list (it times
+ * out or asks for less), so: the conversation's last 20 message ids, then
+ * each message on its own, as Meta's Instagram docs do it.
+ */
+async function instagramMessages(conversationId: string, token: string): Promise<GraphMessage[]> {
+  const r = await graph(`${conversationId}?fields=messages.limit(20)`, token);
+  const ids = ((r.json.messages as { data?: { id: string }[] } | undefined)?.data ?? []).map((m) => m.id);
+  const got = await Promise.all(ids.map((id) => graph(`${id}?fields=id,created_time,from,message,attachments`, token)));
+  return got.filter((x) => x.ok && x.json.created_time).map((x) => x.json as unknown as GraphMessage);
+}
 
 function historyText(m: GraphMessage) {
   if (m.message?.trim()) return m.message.slice(0, 4000);
@@ -130,7 +143,7 @@ function historyText(m: GraphMessage) {
 const HISTORY_CAP = 300;
 
 /**
- * Reads up to 25 conversations (Instagram: 10 or fewer) from the Page and,
+ * Reads up to 25 conversations (Instagram: 10) from the Page and,
  * unless `dryRun`, copies their messages into the CRM for reading
  * (importSocialHistory: never sent, never leads). `after` carries on from
  * the last call's `next`. Read only when `dryRun`.
@@ -141,16 +154,16 @@ export async function socialHistory(channel: SocialChannel, opts: { dryRun: bool
   const pageId = process.env.META_PAGE_ID ?? "";
   const ig = channel === "instagram" ? await graph(`${pageId}?fields=instagram_business_account`, token) : null;
   const ours = new Set([pageId, String((ig?.json.instagram_business_account as { id?: string } | undefined)?.id ?? "")]);
-  const per = channel === "instagram" ? 20 : 100;
-  // Meta refuses big Instagram reads ("reduce the amount of data"), so ask for fewer conversations until it answers.
+  // Facebook gives messages with the conversations; Instagram only the conversations (messages fetched one by one below).
+  const fields = channel === "facebook" ? "participants,messages.limit(100){id,created_time,from,message,attachments}" : "id,participants";
   let r: Awaited<ReturnType<typeof graph>> | undefined;
-  for (const limit of channel === "instagram" ? [10, 4, 1] : [25, 10]) {
+  for (const limit of channel === "instagram" ? [10, 3] : [25, 10]) {
     r = await graph(
-      `${pageId}/conversations?platform=${channel === "facebook" ? "messenger" : "instagram"}&limit=${limit}` +
-      `&fields=participants,messages.limit(${per}){id,created_time,from,message,attachments}${opts.after ? `&after=${encodeURIComponent(opts.after)}` : ""}`,
+      `${pageId}/conversations?platform=${channel === "facebook" ? "messenger" : "instagram"}&limit=${limit}&fields=${fields}${opts.after ? `&after=${encodeURIComponent(opts.after)}` : ""}`,
       token,
     );
-    if (r.ok || !/reduce the amount of data/i.test(r.json.error?.message ?? "")) break;
+    // Too much at once: ask for fewer conversations.
+    if (r.ok || !/reduce the amount of data|timeout/i.test(r.json.error?.message ?? "")) break;
   }
   if (!r?.ok) return { error: r?.json.error?.message || `Meta said ${r?.status}` };
   const prefix = channel === "facebook" ? "fb" : "ig";
@@ -158,7 +171,7 @@ export async function socialHistory(channel: SocialChannel, opts: { dryRun: bool
   for (const conv of (r.json.data ?? []) as GraphConversation[]) {
     const them = conv.participants?.data?.find((p) => !ours.has(p.id));
     if (!them) continue;
-    const msgs = [...(conv.messages?.data ?? [])];
+    const msgs = channel === "instagram" && conv.id ? await instagramMessages(conv.id, token) : [...(conv.messages?.data ?? [])];
     let next = conv.messages?.paging?.next;
     while (channel === "facebook" && next && msgs.length < HISTORY_CAP) {
       const page = await fetch(next, { cache: "no-store" }).then((x) => x.json()).catch(() => ({})) as { data?: GraphMessage[]; paging?: { next?: string } };
