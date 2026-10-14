@@ -392,8 +392,9 @@ updates from the import never fire automations.
     Program | All members, Calendar after Pipeline, Automations after Forms.
     **14/10 evening:** Sammy's test (Kayleigh): leads_1 failed, Meta "payment
     method" error on marketing templates (utility ones send). Sammy to check
-    Billing & payments for WhatsApp account 3694606807344403; every marketing
-    template and the new-number mailout wait on this. Booking page on phones
+    Billing & payments for WhatsApp account 3694606807344403. **Retested
+    20:57 the same evening: leads_1 and discovery_1 to Kayleigh both
+    delivered, so marketing templates send again.** Booking page on phones
     fixed (short day buttons, times under their own heading).
   - **Facebook and Instagram messages** (Sammy, 14/10, option A: separate
     Enquiries buttons). Built: `/api/webhooks/meta`, replies as the Page,
