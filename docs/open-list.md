@@ -417,6 +417,13 @@ updates from the import never fire automations.
     Claude retries the morning of 15/10 (Sammy chose to try again), then
     asks before copying. AI drafts now show in the WhatsApp, Facebook and
     Instagram inboxes (Use it, then Send).
+  - **Till** (Sammy, 14/10): Epos Now connected (read only; key and secret in
+    Vercel). Till page next to Staff, management only: cash in the till since
+    the last cash-out, Cash out (count, float, confirm), Cashed out history,
+    takings and best sellers; Reports → Till; a Till card on Today for
+    management. Sums match the till's own end of day. **Waiting on Sammy:**
+    the first Cash out (the starting count). Note the till closes its own day
+    at 05:00 with nothing counted; the CRM doesn't use that.
     **13/10: YCloud link gone; waiting on a number slot.** Meta Direct
     Support (a person) said to clear partner connections; Business Settings
     had none. Sammy pressed **Remove from business portfolio** on the old
