@@ -7,6 +7,7 @@
 
 import { db } from "@/lib/server/supabase";
 import { sendTemplate } from "@/lib/server/whatsapp";
+import { waNumber } from "@/lib/phone";
 import { sendEmail } from "@/lib/server/email";
 import { summariseCancellations } from "@/lib/server/ai";
 import { Pdf } from "@/lib/server/pdf";
@@ -340,7 +341,8 @@ export async function sendReport(kind: ReportKind, to: string[], by: string) {
   const stored = await storeReport(kind, renderPdf(r));
   const results: { to: string; ok: boolean; error?: string }[] = [];
   for (const num of to) {
-    const res = await sendTemplate(num.replace(/\D/g, ""), {
+    // UK mobiles as typed (07…) need the country code for WhatsApp, as every other message does.
+    const res = await sendTemplate(waNumber(num), {
       name: "management_report", language: "en_GB",
       params: [reportName(kind), fmtDate(r.asOf), headline(r)],
       documentUrl: stored.url, documentName: fileName(kind, r.asOf),
