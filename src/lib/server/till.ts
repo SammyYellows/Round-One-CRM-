@@ -89,7 +89,16 @@ export function summarise(sales: Sale[], fromMs: number, toMs = Infinity) {
 export async function bestSellers(sales: Sale[], top = 10) {
   if (!sales.length) return [];
   const ids = new Set(sales.map((s) => s.id));
-  const items = (await allPages<Row>(`V2/TransactionItem?${q(`(TransactionID|>=|${Math.min(...ids)})`)}`)).filter((i) => ids.has(Number(i.TransactionID)));
+  const min = Math.min(...ids);
+  // Items don't filter by sale, so read the newest first and stop once past the first sale.
+  const items: Row[] = [];
+  for (let page = 1; page <= 40; page++) {
+    const r = await eposGet(`V2/TransactionItem?OrderByDesc=TransactionItemID&page=${page}`);
+    if (!r.ok) throw new Error(`Epos Now said ${r.status}`);
+    const rows = list<Row>(r.json);
+    items.push(...rows.filter((i) => ids.has(Number(i.TransactionID))));
+    if (rows.length < PAGE || rows.every((i) => Number(i.TransactionID) < min)) break;
+  }
   const products = new Map((await allPages<Row>("V2/Product", 10)).map((p) => [Number(p.ProductID ?? p.Id), String(p.Name ?? "")]));
   const byProduct = new Map<string, { name: string; qty: number; takings: number }>();
   for (const i of items) {
