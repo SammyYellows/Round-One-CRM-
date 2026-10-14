@@ -130,7 +130,7 @@ function historyText(m: GraphMessage) {
 const HISTORY_CAP = 300;
 
 /**
- * Reads up to 25 conversations from the Page (Facebook or Instagram) and,
+ * Reads up to 25 conversations (Instagram: 10 or fewer) from the Page and,
  * unless `dryRun`, copies their messages into the CRM for reading
  * (importSocialHistory: never sent, never leads). `after` carries on from
  * the last call's `next`. Read only when `dryRun`.
@@ -142,12 +142,17 @@ export async function socialHistory(channel: SocialChannel, opts: { dryRun: bool
   const ig = channel === "instagram" ? await graph(`${pageId}?fields=instagram_business_account`, token) : null;
   const ours = new Set([pageId, String((ig?.json.instagram_business_account as { id?: string } | undefined)?.id ?? "")]);
   const per = channel === "instagram" ? 20 : 100;
-  const r = await graph(
-    `${pageId}/conversations?platform=${channel === "facebook" ? "messenger" : "instagram"}&limit=25` +
-    `&fields=participants,messages.limit(${per}){id,created_time,from,message,attachments}${opts.after ? `&after=${encodeURIComponent(opts.after)}` : ""}`,
-    token,
-  );
-  if (!r.ok) return { error: r.json.error?.message || `Meta said ${r.status}` };
+  // Meta refuses big Instagram reads ("reduce the amount of data"), so ask for fewer conversations until it answers.
+  let r: Awaited<ReturnType<typeof graph>> | undefined;
+  for (const limit of channel === "instagram" ? [10, 4, 1] : [25, 10]) {
+    r = await graph(
+      `${pageId}/conversations?platform=${channel === "facebook" ? "messenger" : "instagram"}&limit=${limit}` +
+      `&fields=participants,messages.limit(${per}){id,created_time,from,message,attachments}${opts.after ? `&after=${encodeURIComponent(opts.after)}` : ""}`,
+      token,
+    );
+    if (r.ok || !/reduce the amount of data/i.test(r.json.error?.message ?? "")) break;
+  }
+  if (!r?.ok) return { error: r?.json.error?.message || `Meta said ${r?.status}` };
   const prefix = channel === "facebook" ? "fb" : "ig";
   const items = [];
   for (const conv of (r.json.data ?? []) as GraphConversation[]) {
