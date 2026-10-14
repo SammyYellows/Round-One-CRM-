@@ -288,7 +288,8 @@ table.sr-only { display: block; } /* a table ignores width: 1px, which made phon
 .cols-contact { grid-template-columns: 300px minmax(0, 1fr) 320px; gap: 20px; align-items: start; }
 .cols-auto { grid-template-columns: 400px minmax(0, 1fr); gap: 20px; align-items: start; }
 .cols-forms { grid-template-columns: 220px minmax(0, 1fr) 380px; gap: 24px; align-items: start; }
-.board { overflow-x: auto; grid-template-columns: repeat(8, minmax(200px, 1fr)); }
+/* At least five columns in view on a desktop (Sammy, 14/10): they shrink from 200px to fit five, never grow. 48px = the four gaps. */
+.board { overflow-x: auto; grid-template-columns: repeat(8, clamp(150px, calc((100% - 48px) / 5), 200px)); }
 /* Pipelines (Sammy, 11/10): the board fits the screen so its sideways scroll bar is always in view; each column scrolls on its own. */
 .board { height: calc(100vh - 330px); min-height: 420px; align-items: stretch; scrollbar-color: var(--muted) var(--well); }
 .board .col { min-height: 0; overflow-y: auto; scrollbar-color: var(--muted) var(--well); }
@@ -395,7 +396,7 @@ table.sr-only { display: block; } /* a table ignores width: 1px, which made phon
   .main { padding: 16px 16px 40px; gap: 16px; }
   .page-head .h1, h1.h1 { font-size: 40px; }
   .stats4, .stats5, .stats2 { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
-  .board { height: 75vh; min-height: 360px; }
+  .board { height: 75vh; min-height: 360px; grid-template-columns: repeat(8, minmax(200px, 1fr)); }
   .needs .row { flex-wrap: wrap; row-gap: 10px; }
   .needs .needs-text { flex: 1 1 100% !important; order: -1; }
   .crow { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); padding: 12px 16px; row-gap: 4px; }
