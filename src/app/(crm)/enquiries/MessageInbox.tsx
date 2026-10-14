@@ -77,6 +77,7 @@ export function MessageInbox({ channel }: { channel: Channel }) {
           <MessageThread
             contactId={current.contact.id}
             channel={channel}
+            aiDraft
             extra={<>
               {current.waiting
                 ? <button className="btn btn-ghost btn-sm" onClick={() => act("setChannelDone", current.contact.id, channel, true)}>No reply needed</button>

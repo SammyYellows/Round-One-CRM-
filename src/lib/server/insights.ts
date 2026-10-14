@@ -11,7 +11,8 @@ import { aiConfigured, readReplies } from "./ai";
 import { getFacts } from "./enquiries";
 import { applyMany, loadState } from "./state";
 
-export async function readContactReplies(contactId: string) {
+/** `force`: staff pressed "Draft a reply", so read it again even if nothing new has come in. */
+export async function readContactReplies(contactId: string, opts: { force?: boolean } = {}) {
   if (!aiConfigured()) return { skipped: "no AI key" };
   const s = await loadState();
   const c = s.contacts.find((x) => x.id === contactId);
@@ -22,7 +23,7 @@ export async function readContactReplies(contactId: string) {
   // Only a STOP, or something with no words: not worth a read.
   const last = incoming[incoming.length - 1].text.trim();
   if (/^\s*(stop|unsubscribe|opt ?out)\s*[.!]?\s*$/i.test(last) || last.startsWith("[")) return { skipped: "nothing to read" };
-  if (c.insight && c.insight.fromMessages === incoming.length) return { skipped: "already read" };
+  if (!opts.force && c.insight && c.insight.fromMessages === incoming.length) return { skipped: "already read" };
   const facts = await getFacts();
   const read = await readReplies({
     name: c.name, stage: stageLabel(c.stage), membership: c.membership?.name, trialAt: c.trialAt,

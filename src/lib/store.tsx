@@ -32,6 +32,8 @@ interface Store {
   act: Act;
   reset: () => void;
   live: boolean;
+  // Live: load the latest from the server now (e.g. after an AI draft is made).
+  refresh: () => void;
   // People management removed (Contact.removed). `s` leaves them out, with
   // their appointments and tasks, so no screen shows them; this list is for
   // the contact page and the Removed list on Contacts.
@@ -116,7 +118,7 @@ function useLocalStore(): Omit<Store, "removed"> | null {
   }, []);
 
   const reset = useCallback(() => setS(seed(Date.now())), []);
-  return isCurrent(s) ? { s, now: nowMs(s), act, reset, live: false } : null;
+  return isCurrent(s) ? { s, now: nowMs(s), act, reset, live: false, refresh: () => undefined } : null;
 }
 
 // ---- Live (Supabase) ------------------------------------------------------
@@ -182,7 +184,7 @@ function useLiveStore(onError: (msg: string) => void): Omit<Store, "removed"> | 
     [fetchState, onError],
   );
 
-  return isCurrent(s) ? { s, now: nowMs(s), act, reset: () => undefined, live: true } : null;
+  return isCurrent(s) ? { s, now: nowMs(s), act, reset: () => undefined, live: true, refresh } : null;
 }
 
 // ---- Provider -------------------------------------------------------------

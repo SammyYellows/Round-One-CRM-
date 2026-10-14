@@ -28,9 +28,11 @@ export function replyWindow(contactId: string, messages: { contactId: string; di
   return { open: since < 24 * 7, left: 24 * 7 - since, late: true };
 }
 
-export function MessageThread({ contactId, channel = "whatsapp", draft: outerDraft, setDraft: setOuterDraft, extra }: {
+export function MessageThread({ contactId, channel = "whatsapp", draft: outerDraft, setDraft: setOuterDraft, extra, aiDraft }: {
   contactId: string;
   channel?: Channel;
+  // Enquiries: show the AI's suggested reply above the box (the contact page has its own card).
+  aiDraft?: boolean;
   // Optional: the contact page fills the box from "Use it" on a suggested reply.
   draft?: string;
   setDraft?: (v: string) => void;
@@ -86,6 +88,7 @@ export function MessageThread({ contactId, channel = "whatsapp", draft: outerDra
         ))}
       </div>
 
+      {aiDraft && <AiDraft contactId={c.id} channel={channel} windowOpen={windowOpen} onUse={setDraft} />}
       {windowOpen ? (
         <>
           {late && (
@@ -95,16 +98,19 @@ export function MessageThread({ contactId, channel = "whatsapp", draft: outerDra
           )}
           <QuickReplies onPick={setDraft} />
           <div style={{ padding: "12px 22px 0", display: "flex", gap: 8 }}>
-            <input
+            <textarea
               className="input"
               aria-label={`Message ${firstName(c)} on ${label}`}
               placeholder="Write a message"
               value={draft}
+              // One line until a longer reply (e.g. an AI draft with a sign-off) needs more.
+              rows={draft.includes("\n") || draft.length > 70 ? 5 : 1}
+              style={{ height: "auto", minHeight: 48, paddingTop: 12, paddingBottom: 12, resize: "vertical", lineHeight: 1.45 }}
               maxLength={social ? SOCIAL_MAX_CHARS[channel] : undefined}
               onChange={(e) => setDraft(e.target.value)}
-              onKeyDown={(e) => { if (e.key === "Enter") send(); }}
+              onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } }}
             />
-            <button className="btn btn-red" onClick={send}>Send</button>
+            <button className="btn btn-red" style={{ alignSelf: "flex-end" }} onClick={send}>Send</button>
           </div>
           <div style={{ height: 22 }} />
         </>
@@ -145,6 +151,62 @@ export function MessageThread({ contactId, channel = "whatsapp", draft: outerDra
         </div>
       )}
     </section>
+  );
+}
+
+/**
+ * The AI's suggested reply to their latest message (Sammy, 14/10/2026: AI
+ * drafts on WhatsApp, Facebook and Instagram, as for email). Written when
+ * their message comes in, or when staff press "Draft a reply". Nothing is
+ * sent: Use it puts it in the box to edit, then staff press Send.
+ */
+function AiDraft({ contactId, channel, windowOpen, onUse }: { contactId: string; channel: Channel; windowOpen: boolean; onUse: (text: string) => void }) {
+  const { s, act, live, refresh } = useStore();
+  const [busy, setBusy] = useState(false);
+  const [note, setNote] = useState<string | null>(null);
+  useEffect(() => { setNote(null); }, [contactId]);
+  const c = s.contacts.find((x) => x.id === contactId);
+  const mine = s.messages.filter((m) => m.contactId === contactId);
+  const lastIn = mine.filter((m) => m.dir === "in").at(-1);
+  const last = mine.at(-1);
+  // Only on the conversation they last wrote in, and only while it waits for us.
+  if (!c || !lastIn || channelOf(lastIn) !== channel || last?.dir !== "in") return null;
+  const ins = c.insight;
+  const current = !!ins && Date.parse(ins.updatedAt) >= Date.parse(lastIn.at);
+  if (current && ins.replyUsedAt) return null; // already in the box
+  const ready = current && ins.suggestedReply && !ins.replyDismissedAt;
+
+  const draft = async () => {
+    setBusy(true);
+    setNote(null);
+    const res = await fetch(`/api/contacts/${contactId}/draft`, { method: "POST" }).catch(() => null);
+    const j = (await res?.json().catch(() => null)) as { error?: string } | null;
+    setBusy(false);
+    if (res?.ok) refresh();
+    else setNote(j?.error ?? "Couldn’t draft a reply. Try again.");
+  };
+
+  if (!ready) {
+    if (!live) return null;
+    return (
+      <div style={{ padding: "14px 22px 0", display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+        <button className="btn btn-ghost btn-sm" disabled={busy} onClick={draft}>{busy ? "Drafting" : "Draft a reply"}</button>
+        <span className="small faint">{note ?? "The AI writes a reply for you to check. Nothing sends until you press Send."}</span>
+      </div>
+    );
+  }
+  return (
+    <div style={{ margin: "14px 22px 0", padding: "12px 14px", background: "var(--char)", display: "flex", flexDirection: "column", gap: 8 }}>
+      <div className="label" style={{ margin: 0 }}>Suggested reply · nothing goes until you send it</div>
+      <div className="small" style={{ whiteSpace: "pre-wrap" }}>{ins.suggestedReply}</div>
+      <div className="actions" style={{ gap: 8, flexWrap: "wrap" }}>
+        <button className="btn btn-ghost btn-sm" disabled={!windowOpen} onClick={() => { onUse(ins.suggestedReply!); act("settleInsightReply", contactId, true); }}>Use it</button>
+        <button className="btn btn-ghost btn-sm" onClick={() => act("settleInsightReply", contactId, false)}>Dismiss</button>
+        <button className="btn btn-ghost btn-sm" disabled={busy} onClick={draft}>{busy ? "Drafting" : "Draft again"}</button>
+        {!windowOpen && <span className="small faint">{channel === "whatsapp" ? "Their 24-hour window has closed; send a template instead." : "Too long since their last message for Meta to take a reply."}</span>}
+        {note && <span className="small faint">{note}</span>}
+      </div>
+    </div>
   );
 }
 
