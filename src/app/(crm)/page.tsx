@@ -7,8 +7,8 @@ import { demoAdLink } from "@/lib/engine";
 import { ago, dayTime, gbp, isSameDay, longDate, time } from "@/lib/format";
 import { daily, funnelCounts, showRate, sourceCounts, weekLoad } from "@/lib/metrics";
 import { useStore } from "@/lib/store";
-import { sumMetrics } from "@/lib/types";
-import { conversations } from "@/lib/whatsappInbox";
+import { CHANNELS, CHANNEL_LABEL, sumMetrics } from "@/lib/types";
+import { conversations } from "@/lib/messageInbox";
 import { useEffect, useState } from "react";
 
 // Needs you (Sammy, 12/10/2026): kept until done, ten at a time, with the
@@ -80,8 +80,8 @@ export default function TodayPage() {
   // ---- Lists ----
   const trials = s.contacts.filter((c) => c.stage === "booked" && c.trialAt).sort((a, b) => Date.parse(a.trialAt!) - Date.parse(b.trialAt!));
   const trialsToday = trials.filter((c) => isSameDay(Date.parse(c.trialAt!), now)).length;
-  // WhatsApps still waiting for a reply (as on Enquiries), then open tasks, newest first.
-  const waiting = conversations(s).filter((c) => c.waiting);
+  // WhatsApp, Facebook and Instagram messages still waiting for a reply (as on Enquiries), then open tasks, newest first.
+  const waiting = CHANNELS.flatMap((ch) => conversations(s, ch)).filter((c) => c.waiting).sort((a, b) => Date.parse(b.last.at) - Date.parse(a.last.at));
   const openTasks = s.tasks.filter((t) => !t.done);
   const needsTotal = waiting.length + openTasks.length;
   const shownWaiting = waiting.slice(0, NEEDS_SHOWN);
@@ -129,14 +129,14 @@ export default function TodayPage() {
               {needsTotal === 0 ? "Nothing to do" : `${needsTotal} to do${needsTotal > NEEDS_SHOWN ? ` · showing ${NEEDS_SHOWN}` : ""}`}
             </span>
           </div>
-          {shownWaiting.map(({ contact: c, last }) => (
-            <div key={c.id} className="row">
-              <span className="chip chip-light" style={{ width: 96, flexShrink: 0 }}>WhatsApp</span>
+          {shownWaiting.map(({ contact: c, channel, last }) => (
+            <div key={`${channel}_${c.id}`} className="row">
+              <span className="chip chip-light" style={{ width: 96, flexShrink: 0 }}>{CHANNEL_LABEL[channel]}</span>
               <div className="needs-text" style={{ flex: 1, minWidth: 0 }}>
                 <div className="strong">{c.name} is waiting for a reply</div>
                 <div className="small muted">{last.text.slice(0, 70)}</div>
               </div>
-              <Link className="btn btn-ghost btn-sm" href={`/enquiries?tab=whatsapp&contact=${c.id}`}>Reply</Link>
+              <Link className="btn btn-ghost btn-sm" href={`/enquiries?tab=${channel}&contact=${c.id}`}>Reply</Link>
             </div>
           ))}
           {shownTasks.map((t) => (

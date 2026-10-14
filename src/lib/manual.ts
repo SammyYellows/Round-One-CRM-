@@ -39,7 +39,7 @@ Ask **Champ** (**Ask Champ**, in red, second in the menu). It knows this manual,
     body: `### Start of shift
 - **Today**: look at **Needs you** (tasks such as "hasn't been in for 3 weeks" or "check-in to reply to") and **Appointments**.
 - **Red waiver alert** at the top of the screen: someone is in the gym without a waiver or emergency contact. Have a word, sort it in TeamUp, then tap **Spoke to them**.
-- **Enquiries**: two buttons at the top. **Email** has emails sent to info@ with a drafted reply waiting; **WhatsApp** has everyone who has messaged the gym number. Reply, or mark **No reply needed**.
+- **Enquiries**: four buttons at the top. **Email** has emails sent to info@ with a drafted reply waiting; **WhatsApp**, **Facebook** and **Instagram** have everyone who has messaged the gym there. Reply, or mark **No reply needed**.
 - **WhatsApp replies**: contacts with a **Reply** chip on Program members → **All members**, or new messages on a contact's page.
 
 ### During the shift
@@ -53,7 +53,7 @@ Ask **Champ** (**Ask Champ**, in red, second in the menu). It knows this manual,
   {
     slug: "today", title: "Today", who: "everyone",
     summary: "The home screen: what needs you, trials coming up, and how leads are doing.",
-    body: `- **Needs you** (top left): WhatsApps waiting for a reply, then tasks for staff. Tasks stay until someone ticks **Done**; nothing clears them overnight. Ten show at a time and the total is written at the top, so as you tick them off the next ones appear. The line under the heading changes through the day. Tasks are made by the CRM: a member hasn't been in, a check-in needs a reply, a cancellation, or a message. When an email or WhatsApp comes in that needs something doing beyond a reply (book them in, call back, sort a payment in TeamUp), or a reply we send promises something ("I'll check and get back to you"), the AI writes it as a task here. Tick **Done** once it's sorted.
+    body: `- **Needs you** (top left): WhatsApp, Facebook and Instagram messages waiting for a reply, then tasks for staff. Tasks stay until someone ticks **Done**; nothing clears them overnight. Ten show at a time and the total is written at the top, so as you tick them off the next ones appear. The line under the heading changes through the day. Tasks are made by the CRM: a member hasn't been in, a check-in needs a reply, a cancellation, or a message. When an email or WhatsApp comes in that needs something doing beyond a reply (book them in, call back, sort a payment in TeamUp), or a reply we send promises something ("I'll check and get back to you"), the AI writes it as a task here. Tick **Done** once it's sorted.
 - **Appointments** (under the tiles, top right) and **Trials this week**: intro meetings booked.
 - **Members** (under Appointments): members now, growth in the last 30 days, who's dropping off, where we'll be at this rate, and members at the end of each month. From TeamUp, updated overnight; the same numbers as Reports.
 - The four tiles (top right) and the charts (leads in the last 7 days, trials, show-up rate, where leads come from, which ads book trials) show how the sales side is going.
@@ -144,6 +144,7 @@ Use the search and filters at the top to find people.`,
 
 ### A contact's page
 - **WhatsApp**: the conversation. You can write freely only within 24 hours of their last message; after that WhatsApp only allows approved template messages, and the screen says so. Pick a template to see its wording, then **Yes, send it**.
+- **Facebook** and **Instagram**: shown as well when they've messaged us there, with Meta's time limits (see Enquiries).
 - **Quick replies**: one-tap lines you can drop into a message (**Add a line** to create your own).
 - **In their words**: a short summary of what they've told us in WhatsApp, with a suggested reply. **Use it** puts it in the message box for you to edit and send; nothing is sent until you press **Send**. **No reply needed** clears it.
 - **Questionnaire**: their answers from the form. If there are none it says **No questionnaire answers** and why (for example imported from GymGrow, or signed up in TeamUp).
@@ -159,15 +160,21 @@ Use the search and filters at the top to find people.`,
 - If a removed person fills in the questionnaire or books a trial again, they come back by themselves.`,
   },
   {
-    slug: "enquiries", title: "Enquiries (email and WhatsApp)", who: "everyone",
-    summary: "Replying to emails and WhatsApp messages.",
-    body: `Two buttons at the top: **Email** and **WhatsApp**. Each shows a red number for what's new since you last opened it, and a grey number for what's still waiting for a reply. The menu's Enquiries number adds the two together.
+    slug: "enquiries", title: "Enquiries (email, WhatsApp, Facebook and Instagram)", who: "everyone",
+    summary: "Replying to emails, WhatsApp, Facebook and Instagram messages.",
+    body: `Four buttons at the top: **Email**, **WhatsApp**, **Facebook** and **Instagram**. Each shows a red number for what's new since you last opened it, and a grey number for what's still waiting for a reply. The menu's Enquiries number adds them all together.
 
 ### WhatsApp
 - Everyone who has messaged the gym's WhatsApp number, newest first. **To reply** shows the ones whose message hasn't been answered; **All** shows everyone.
 - Pick a conversation to read it and reply on the right, the same as on their contact page. Within 24 hours of their last message you can write freely; after that only approved templates can go. Pick a template to see its wording, then **Yes, send it**.
 - **No reply needed** takes it off To reply (for example a "thanks"). If they message again it comes back. **Needs a reply** undoes it.
 - Someone new who messages becomes a contact automatically, but stays off the Meta pipeline unless you press **Put on pipeline** on their contact page.
+
+### Facebook and Instagram
+- Messages to the Round One Facebook Page and Instagram account, each on its own button, working like WhatsApp: **To reply** and **All**, pick a conversation, reply on the right, **No reply needed**.
+- Meta's time limits: within 24 hours of their last message you can write freely. From 24 hours to 7 days you can still reply, as long as a person writes it (the screen says **Staff reply only**). After 7 days Meta doesn't allow a reply until they message again. There are no templates on Facebook or Instagram.
+- Meta doesn't give us their mobile or email, only their name (Facebook) or username (Instagram), so someone new becomes a new contact, off the Meta pipeline. Ask for their mobile if they want to book.
+- Replies sent from the Facebook or Instagram app, or Meta Business Suite, show here too.
 
 ### Email
 Every email to info@round1boxfit.co.uk that looks like an enquiry appears here with a reply already drafted, using only the gym facts sheet.

@@ -4,7 +4,7 @@
 // routes and the automation part moves to a job runner (Inngest / Trigger.dev).
 
 import {
-  Accountability, Appointment, Automation, Checkin, Availability, Membership, Contact, CrmEvent, EventType, Form, Run, Safety, Source, Stage, State, Step, apptStatusLabel, stageLabel, PAYMENT_FAILED_AT, viaOf } from "./types";
+  Accountability, Appointment, Automation, Channel, Checkin, Availability, Membership, Contact, CrmEvent, EventType, Form, Run, Safety, SocialChannel, Source, Stage, State, Step, apptStatusLabel, stageLabel, CHANNEL_LABEL, PAYMENT_FAILED_AT, viaOf } from "./types";
 import { GYM } from "./gym";
 import { samePhone } from "./phone";
 import { ukParts, ukTime, ukWeekStart } from "./time";
@@ -282,18 +282,21 @@ export function shiftClock(s: State, hours: number) {
   s.clockOffset += hours * 3600e3;
 }
 
-export function sendMessage(s: State, contactId: string, text: string) {
+/** A reply typed by staff, on WhatsApp (the default), Facebook or Instagram. */
+export function sendMessage(s: State, contactId: string, text: string, channel: Channel = "whatsapp") {
   const c = s.contacts.find((x) => x.id === contactId);
-  if (!c || !text.trim()) return;
-  s.messages.push({ id: uid(), contactId, dir: "out", text: text.trim(), by: "You", at: nowIso(s) });
-  log(s, "whatsapp.sent", contactId, `Reply to ${c.name}`);
+  if (!c || !text.trim() || !(channel in CHANNEL_LABEL)) return;
+  s.messages.push({ id: uid(), contactId, dir: "out", text: text.trim(), by: "You", at: nowIso(s), ...(channel !== "whatsapp" ? { channel } : {}) });
+  if (channel === "whatsapp") log(s, "whatsapp.sent", contactId, `Reply to ${c.name}`);
+  else log(s, "social.sent", contactId, `${CHANNEL_LABEL[channel]} reply to ${c.name}`);
 }
 
-export function receiveMessage(s: State, contactId: string, text: string, id = uid()) {
+export function receiveMessage(s: State, contactId: string, text: string, id = uid(), channel: Channel = "whatsapp") {
   const c = s.contacts.find((x) => x.id === contactId);
   if (!c) return;
-  s.messages.push({ id, contactId, dir: "in", text, at: nowIso(s) });
-  log(s, "whatsapp.received", contactId, `From ${c.name}`);
+  s.messages.push({ id, contactId, dir: "in", text, at: nowIso(s), ...(channel !== "whatsapp" ? { channel } : {}) });
+  if (channel === "whatsapp") log(s, "whatsapp.received", contactId, `From ${c.name}`);
+  else log(s, "social.received", contactId, `${CHANNEL_LABEL[channel]} message from ${c.name}`);
   // "STOP" (on its own, any case) opts them out of marketing messages.
   if (/^\s*(stop|unsubscribe|opt ?out)\s*[.!]?\s*$/i.test(text) && !c.marketingOptOut) setMarketingOptOut(s, contactId, true, "they replied STOP");
   // A reply ends any flow that is waiting for one (e.g. the booking push).
@@ -322,6 +325,48 @@ export function receiveWhatsApp(s: State, input: { id: string; phone: string; na
     log(s, "contact.created", c.id, `${c.name} messaged on WhatsApp`);
   }
   receiveMessage(s, c.id, input.text, input.id);
+}
+
+const socialKey = (channel: SocialChannel) => (channel === "facebook" ? "facebookId" : "instagramId");
+
+/**
+ * A Facebook or Instagram message arriving from Meta's webhook (Sammy,
+ * 14/10/2026). Finds the contact by their Facebook or Instagram id, or adds
+ * them: Meta gives a name (Facebook) or username (Instagram), never a mobile
+ * or email. `id` is based on Meta's message id, so it's never added twice.
+ */
+export function receiveSocial(s: State, input: { id: string; channel: SocialChannel; userId: string; name?: string; username?: string; text: string }) {
+  if (s.messages.some((m) => m.id === input.id)) return;
+  const key = socialKey(input.channel);
+  let c = s.contacts.find((x) => x.social?.[key] === input.userId);
+  if (!c) {
+    const name = input.name?.trim() || (input.username ? `@${input.username}` : `${CHANNEL_LABEL[input.channel]} user`);
+    c = {
+      id: uid(), name, phone: "", email: "", source: input.channel, stage: "new", tags: [], answers: [], createdAt: nowIso(s),
+      social: { [key]: input.userId, ...(input.username ? { instagramUsername: input.username } : {}) },
+    };
+    s.contacts.unshift(c);
+    log(s, "contact.created", c.id, `${c.name} messaged on ${CHANNEL_LABEL[input.channel]}`);
+  } else if (input.username && !c.social?.instagramUsername) {
+    c.social = { ...c.social, instagramUsername: input.username };
+  }
+  receiveMessage(s, c.id, input.text, input.id, input.channel);
+}
+
+/**
+ * A reply staff sent from the Facebook or Instagram app (or Meta Business
+ * Suite), which Meta copies to us, so the CRM shows it and stops waiting.
+ * Our own replies come back the same way; one matching a reply we sent in
+ * the last ten minutes is skipped.
+ */
+export function recordSocialEcho(s: State, input: { id: string; channel: SocialChannel; userId: string; text: string }) {
+  if (s.messages.some((m) => m.id === input.id)) return;
+  const c = s.contacts.find((x) => x.social?.[socialKey(input.channel)] === input.userId);
+  if (!c) return;
+  const ours = s.messages.some((m) => m.contactId === c.id && m.dir === "out" && m.channel === input.channel && m.text === input.text && nowMs(s) - Date.parse(m.at) < 10 * 60e3);
+  if (ours) return;
+  s.messages.push({ id: input.id, contactId: c.id, dir: "out", text: input.text, by: `${CHANNEL_LABEL[input.channel]} app`, at: nowIso(s), channel: input.channel, external: true, status: "sent" });
+  log(s, "social.sent", c.id, `Reply to ${c.name} from the ${CHANNEL_LABEL[input.channel]} app`);
 }
 
 export function setStage(s: State, contactId: string, stage: Stage, opts: { lostReason?: string } = {}) {
@@ -929,6 +974,18 @@ export function setWhatsAppDone(s: State, contactId: string, done: boolean, by =
   if (!done) { delete c.whatsappDone; return; }
   c.whatsappDone = { at: nowIso(s), by };
   log(s, "whatsapp.done", c.id, `${by} marked ${c.name}’s WhatsApp as no reply needed`);
+}
+
+/** "No reply needed" on any conversation: WhatsApp, Facebook or Instagram (14/10/2026). */
+export function setChannelDone(s: State, contactId: string, channel: Channel, done: boolean, by = "Staff") {
+  if (channel === "whatsapp") return setWhatsAppDone(s, contactId, done, by);
+  const c = s.contacts.find((x) => x.id === contactId);
+  if (!c) return;
+  const rest = { ...c.channelDone };
+  delete rest[channel];
+  if (!done) { c.channelDone = Object.keys(rest).length ? rest : undefined; return; }
+  c.channelDone = { ...rest, [channel]: { at: nowIso(s), by } };
+  log(s, "social.done", c.id, `${by} marked ${c.name}’s ${CHANNEL_LABEL[channel]} as no reply needed`);
 }
 
 /** Someone removed came back in by themselves (the form, a booking): they show again. */

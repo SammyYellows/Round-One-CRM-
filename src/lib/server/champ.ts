@@ -13,7 +13,7 @@
 // can carry on exactly where it left off.
 
 import { inactivityAdvice } from "@/lib/inactivity";
-import { stageLabel, sourceLabel, type Contact, type State } from "@/lib/types";
+import { CHANNEL_LABEL, channelOf, stageLabel, sourceLabel, type Contact, type State } from "@/lib/types";
 import { ukParts } from "@/lib/time";
 import { waNumber } from "@/lib/phone";
 import { inactiveDays, classStats } from "./activity";
@@ -85,7 +85,7 @@ How to write: British English, plain and friendly, like a good coach. Short answ
 
 const TOOLS: Block[] = [
   { name: "find_people", description: "Search everyone the CRM knows (members, ex-members, leads, enquiries) by name, email or phone. Returns short summaries with an id for person_details.", input_schema: { type: "object", properties: { query: { type: "string", description: "Name, part of a name, email or phone number" }, limit: { type: "integer", description: "Default 10" } }, required: ["query"] } },
-  { name: "person_details", description: "Everything about one person: membership, payments, attendance (last 60 days), waiver and emergency contact, questionnaire answers, staff notes, earlier messages from GymGrow (before the switch), accountability programme, what they've said in WhatsApp replies, trials, tasks, recent messages and history.", input_schema: { type: "object", properties: { contact_id: { type: "string" } }, required: ["contact_id"] } },
+  { name: "person_details", description: "Everything about one person: membership, payments, attendance (last 60 days), waiver and emergency contact, questionnaire answers, staff notes, earlier messages from GymGrow (before the switch), accountability programme, what they've said in WhatsApp, Facebook or Instagram messages, trials, tasks, recent messages and history.", input_schema: { type: "object", properties: { contact_id: { type: "string" } }, required: ["contact_id"] } },
   { name: "list_members", description: "List members with filters. Use for questions like 'who hasn't been in for 3 weeks', 'who has no waiver', 'who owes money', 'who's given notice', 'whose membership ends soon'.", input_schema: { type: "object", properties: {
     status: { type: "string", enum: ["active", "on_hold", "ended", "any"], description: "Default active" },
     category: { type: "string", description: "TeamUp membership category, or part of the membership name, e.g. 'Program'" },
@@ -320,7 +320,7 @@ export async function runTool(name: string, input: Block, ctx: Ctx = new Ctx()):
         whatTheyveToldUs: c.insight?.summary,
         trials: s.appointments.filter((a) => a.contactId === c.id).map((a) => ({ at: uk(a.start), status: a.status })),
         openTasks: s.tasks.filter((t) => t.contactId === c.id && !t.done).map((t) => clip(t.text, 200)),
-        recentMessages: msgs.map((m) => ({ at: uk(m.at), from: m.dir === "in" ? c.name : m.by ?? "Round One", text: clip(m.text, 300), status: m.status })),
+        recentMessages: msgs.map((m) => ({ at: uk(m.at), on: CHANNEL_LABEL[channelOf(m)], from: m.dir === "in" ? c.name : m.by ?? "Round One", text: clip(m.text, 300), status: m.status })),
         history: evs.map((e) => ({ at: uk(e.at), what: clip(e.detail, 160) })),
       };
     }

@@ -3,8 +3,8 @@
 // against the database. To add one: write it in engine.ts, then list it here.
 
 import {
-  addContact, addTag, bookTrial, completeTask, createAppointment, markNoShow, receiveMessage, receiveWhatsApp, rescheduleAppointment, sendMessage,
-  dismissCheckin, leaveAccountability, addNote, markSafetyChecked, removeContact, replyToCheckin, restoreContact, sendTemplateTo, setCoach, settleInsightReply, setAppointmentStatus, setAvailability, setEmailStep, setMarketingOptOut, setQuickReplies, setStage, setWhatsAppDone, shiftClock, stopRun, submitForm, toggleAutomation, updateForm,
+  addContact, addTag, bookTrial, completeTask, createAppointment, markNoShow, receiveMessage, receiveSocial, receiveWhatsApp, recordSocialEcho, rescheduleAppointment, sendMessage,
+  dismissCheckin, leaveAccountability, addNote, markSafetyChecked, removeContact, replyToCheckin, restoreContact, sendTemplateTo, setCoach, settleInsightReply, setAppointmentStatus, setAvailability, setChannelDone, setEmailStep, setMarketingOptOut, setQuickReplies, setStage, setWhatsAppDone, shiftClock, stopRun, submitForm, toggleAutomation, updateForm,
 } from "./engine";
 import { State } from "./types";
 
@@ -29,6 +29,7 @@ export const ACTIONS = {
   sendTemplateTo,
   setAppointmentStatus,
   setAvailability,
+  setChannelDone,
   setEmailStep,
   setMarketingOptOut,
   setQuickReplies,
@@ -39,7 +40,9 @@ export const ACTIONS = {
   updateForm,
   // Not from the staff screens (see SERVER_REFUSES).
   receiveMessage,
+  receiveSocial,
   receiveWhatsApp,
+  recordSocialEcho,
   shiftClock,
   submitForm,
 };
@@ -51,10 +54,10 @@ export type ActionArgs<N extends ActionName> = Tail<Parameters<(typeof ACTIONS)[
 /**
  * Not accepted from the staff screens on the server: fake replies and the
  * prototype clock only make sense with sample data, form submissions come
- * through the public form route, and real WhatsApp messages through Meta's
- * webhook.
+ * through the public form route, and real WhatsApp, Facebook and Instagram
+ * messages through Meta's webhooks.
  */
-export const SERVER_REFUSES = new Set<ActionName>(["receiveMessage", "receiveWhatsApp", "shiftClock", "submitForm"]);
+export const SERVER_REFUSES = new Set<ActionName>(["receiveMessage", "receiveSocial", "receiveWhatsApp", "recordSocialEcho", "shiftClock", "submitForm"]);
 
 export function isActionName(x: unknown): x is ActionName {
   return typeof x === "string" && Object.prototype.hasOwnProperty.call(ACTIONS, x);

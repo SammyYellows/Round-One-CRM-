@@ -38,7 +38,7 @@ export function waitingOnUs(s: State, c: Contact) {
 
 function haystack(s: State, c: Contact) {
   const campaign = s.campaigns.find((k) => k.utm === c.campaign)?.name;
-  return [c.name, c.email, c.phone, c.phone.replace(/\D/g, ""), c.ad, c.adset, c.campaign, campaign, sourceLabel(c.source), ...c.tags,
+  return [c.name, c.email, c.phone, c.phone.replace(/\D/g, ""), c.ad, c.adset, c.campaign, campaign, sourceLabel(c.source), c.social?.instagramUsername, ...c.tags,
     ...c.answers.map((a) => a.answer)]
     .filter(Boolean)
     .join(" ")

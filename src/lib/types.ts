@@ -36,7 +36,7 @@ export const isSold = (s: Stage) => SOLD_STAGES.includes(s);
 /** Why someone was marked Lost. Staff pick one; it's kept on the contact. */
 export const LOST_REASONS = ["Not interested", "No response", "Not qualified", "Joined elsewhere", "Price", "Other"] as const;
 
-export type Source = "meta_ad" | "walk_in" | "referral" | "website" | "whatsapp" | "teamup" | "email";
+export type Source = "meta_ad" | "walk_in" | "referral" | "website" | "whatsapp" | "teamup" | "email" | "facebook" | "instagram";
 
 export const SOURCES: { id: Source; label: string }[] = [
   { id: "meta_ad", label: "Meta ad" },
@@ -46,6 +46,8 @@ export const SOURCES: { id: Source; label: string }[] = [
   { id: "whatsapp", label: "WhatsApp" },
   { id: "teamup", label: "TeamUp member" },
   { id: "email", label: "Email enquiry" },
+  { id: "facebook", label: "Facebook message" },
+  { id: "instagram", label: "Instagram message" },
 ];
 
 export const sourceLabel = (s: Source) => SOURCES.find((x) => x.id === s)?.label ?? s;
@@ -109,6 +111,13 @@ export interface Contact {
   // Staff pressed "No reply needed" on their WhatsApp conversation (Sammy,
   // 12/10/2026). A newer message from them makes it wait for a reply again.
   whatsappDone?: { at: string; by: string };
+  // Who they are on Facebook Messenger and Instagram (Sammy, 14/10/2026):
+  // Meta's ids for this Page, and their Instagram username. Meta gives no
+  // mobile or email, so these are how their messages find them.
+  social?: { facebookId?: string; instagramId?: string; instagramUsername?: string };
+  // "No reply needed" on their Facebook or Instagram conversation, as
+  // whatsappDone is for WhatsApp.
+  channelDone?: Partial<Record<SocialChannel, { at: string; by: string }>>;
 }
 
 export interface Safety {
@@ -225,11 +234,24 @@ export interface UnpaidInvoice {
   status: "open" | "retry_failed";
 }
 
+/** Where a conversation happens. Messages without one are WhatsApp. */
+export type Channel = "whatsapp" | "facebook" | "instagram";
+export type SocialChannel = Exclude<Channel, "whatsapp">;
+export const CHANNELS: Channel[] = ["whatsapp", "facebook", "instagram"];
+export const CHANNEL_LABEL: Record<Channel, string> = { whatsapp: "WhatsApp", facebook: "Facebook", instagram: "Instagram" };
+export const channelOf = (m: { channel?: Channel }): Channel => m.channel ?? "whatsapp";
+/** Meta's longest message: Messenger takes 2,000 characters, Instagram 1,000. */
+export const SOCIAL_MAX_CHARS: Record<SocialChannel, number> = { facebook: 2000, instagram: 1000 };
+
 export interface Message {
   id: string;
   contactId: string;
   dir: "in" | "out";
   text: string;
+  channel?: Channel; // missing means WhatsApp
+  // Sent from the Facebook or Instagram app, not the CRM (Meta tells us), so
+  // it's already gone: saved as sent and never sent again.
+  external?: boolean;
   template?: string; // set when sent as an approved WhatsApp template
   by?: string; // automation name, or "You"
   at: string;
@@ -270,6 +292,10 @@ export type EventType =
   | "contact.removed" // management took them off the CRM
   | "note.added" // a staff note on the contact page
   | "whatsapp.done" // staff marked a WhatsApp conversation "No reply needed"
+  | "social.received" // a Facebook or Instagram message came in
+  | "social.sent" // we replied on Facebook or Instagram
+  | "social.failed" // Meta wouldn't take a Facebook or Instagram reply
+  | "social.done" // staff marked a Facebook or Instagram conversation "No reply needed"
   | "contact.restored" // put back, by staff or because they came back in
   | "appointment.booked"
   | "appointment.updated";
@@ -315,10 +341,12 @@ export type Trigger =
  */
 export type Via = "crm" | "teamup";
 // Email enquiry senders (Sammy, 11/10/2026) and new people who message the
-// WhatsApp number (12/10/2026) become contacts but stay off the Meta pipeline
-// unless staff tag them with this from the contact page.
+// WhatsApp number (12/10/2026), the Facebook Page or Instagram (14/10/2026)
+// become contacts but stay off the Meta pipeline unless staff tag them with
+// this from the contact page.
 export const ON_PIPELINE = "on-pipeline";
-export const onMetaPipeline = (c: Contact) => c.source !== "teamup" && ((c.source !== "email" && c.source !== "whatsapp") || c.tags.includes(ON_PIPELINE));
+const OFF_PIPELINE: Source[] = ["email", "whatsapp", "facebook", "instagram"];
+export const onMetaPipeline = (c: Contact) => c.source !== "teamup" && (!OFF_PIPELINE.includes(c.source) || c.tags.includes(ON_PIPELINE));
 
 export const viaOf = (c: { source: Source }): Via => (c.source === "teamup" ? "teamup" : "crm");
 export const viaLabel = (v: Via) => (v === "crm" ? "Came through the CRM" : "Signed up in TeamUp");
