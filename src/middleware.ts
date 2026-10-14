@@ -21,6 +21,7 @@ const PUBLIC = [
   /^\/api\/email-check$/, // email test after a key change (checks CRON_SECRET itself)
   /^\/api\/whatsapp-check$/, // WhatsApp account read-out (checks CRON_SECRET itself)
   /^\/api\/whatsapp-admin$/, // WhatsApp number on/off for the API (checks CRON_SECRET itself)
+  /^\/api\/eposnow-check$/, // Epos Now connection read-out, counts only (checks CRON_SECRET itself)
 ];
 
 export async function middleware(req: NextRequest) {
