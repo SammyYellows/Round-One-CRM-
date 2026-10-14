@@ -3,6 +3,7 @@
 import { useIsManager } from "@/components/StaffContext";
 import Link from "next/link";
 import { BarList, ColumnChart, MembersLine, Meter, Sparkline } from "@/components/charts";
+import { pounds } from "@/components/TillSales";
 import { demoAdLink } from "@/lib/engine";
 import { ago, dayTime, gbp, isSameDay, longDate, time } from "@/lib/format";
 import { daily, funnelCounts, showRate, sourceCounts, weekLoad } from "@/lib/metrics";
@@ -86,6 +87,13 @@ export default function TodayPage() {
   const needsTotal = waiting.length + openTasks.length;
   const shownWaiting = waiting.slice(0, NEEDS_SHOWN);
   const shownTasks = openTasks.slice(0, Math.max(0, NEEDS_SHOWN - shownWaiting.length));
+
+  // The till, for management only (Sammy, 14/10/2026): taken today and the cash that should be in it.
+  const [till, setTill] = useState<{ connected: boolean; today?: { total: number; sales: number }; inTill?: { expected: number } | null } | null>(null);
+  useEffect(() => {
+    if (!live || !manager) return;
+    fetch("/api/till?summary=1", { cache: "no-store" }).then((r) => (r.ok ? r.json() : null)).then(setTill).catch(() => undefined);
+  }, [live, manager]);
 
   // Member numbers from TeamUp, as on Reports (counts only, so every login sees them).
   const [mem, setMem] = useState<MemberNumbers | null>(null);
@@ -204,6 +212,27 @@ export default function TodayPage() {
                 <div className="eyebrow" style={{ marginBottom: 4 }}>Members at month end</div>
                 <MembersLine pts={mem.months} compact />
               </div>
+            </section>
+          )}
+          {manager && till?.connected && till.today && (
+            <section className="card pad" style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 12, flexWrap: "wrap" }}>
+                <h2 className="h h2">Till</h2>
+                <span className="small muted">From Epos Now · management only</span>
+              </div>
+              <div className="mem-figs">
+                <div>
+                  <div className="eyebrow">Taken today</div>
+                  <div className="h num" style={{ fontSize: 34, lineHeight: 1.1 }}>{pounds(till.today.total)}</div>
+                  <div className="small muted">{till.today.sales} sale{till.today.sales === 1 ? "" : "s"}</div>
+                </div>
+                <div>
+                  <div className="eyebrow">Cash in the till</div>
+                  <div className="h num" style={{ fontSize: 34, lineHeight: 1.1 }}>{till.inTill ? pounds(till.inTill.expected) : "–"}</div>
+                  <div className="small muted">{till.inTill ? "since the last cash-out" : "not cashed out yet"}</div>
+                </div>
+              </div>
+              <div className="actions"><Link href="/till" className="btn btn-ghost btn-sm">Cash out</Link></div>
             </section>
           )}
         </div>

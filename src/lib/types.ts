@@ -296,6 +296,7 @@ export type EventType =
   | "social.sent" // we replied on Facebook or Instagram
   | "social.failed" // Meta wouldn't take a Facebook or Instagram reply
   | "social.done" // staff marked a Facebook or Instagram conversation "No reply needed"
+  | "till.cashed_out" // management cashed out the till (no amounts in the detail; staff can see events)
   | "contact.restored" // put back, by staff or because they came back in
   | "appointment.booked"
   | "appointment.updated";
