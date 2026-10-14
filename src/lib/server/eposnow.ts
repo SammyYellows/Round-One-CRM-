@@ -60,7 +60,9 @@ export async function eposProbe() {
     tenderTypes: "V2/TenderType",
     devices: "V2/Device",
     endOfDay: `Reports/EndOfDay?FromDate=${since}&ToDate=${today}`,
-    v4Transactions: "v4/Transactions?page=1",
+    items: "V2/TransactionItem?page=1",
+    itemsLatest: "V2/TransactionItem?OrderByDesc=TransactionItemID&page=1",
+    products: "V2/Product?page=1",
   };
   const out: Record<string, unknown> = {};
   for (const [k, path] of Object.entries(paths)) {
