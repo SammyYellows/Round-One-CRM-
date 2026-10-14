@@ -39,6 +39,16 @@ export default function MailoutsPage() {
   const [template, setTemplate] = useState<string>("");
   const [testTo, setTestTo] = useState("");
   const [selected, setSelected] = useState<string | null>(null);
+  // Email or WhatsApp, like the Enquiries tabs (Sammy, 14/10/2026).
+  const [tab, setTab] = useState<"email" | "whatsapp">("email");
+  useEffect(() => { if (new URLSearchParams(window.location.search).get("tab") === "whatsapp") setTab("whatsapp"); }, []);
+  const pickTab = (t: "email" | "whatsapp") => {
+    setTab(t);
+    setSelected(null);
+    const u = new URL(window.location.href);
+    u.searchParams.set("tab", t);
+    window.history.replaceState(null, "", u);
+  };
   const [subject, setSubject] = useState("");
   const [body, setBody] = useState("");
   const [audience, setAudience] = useState<Audience>({ membership: "active", categories: [], leadStages: [] });
@@ -89,7 +99,7 @@ export default function MailoutsPage() {
     setBusy("new");
     const res = await fetch("/api/mailouts", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ channel, subject: "", body: channel === "email" ? `Hi {first},\n\n\n\n${"{team}"}` : "", audience: { membership: "active", categories: [], leadStages: [] } }) });
     const j = (await res.json()) as { id: string };
-    await load(); setSelected(j.id); setBusy(null);
+    await load(); setTab(channel); setSelected(j.id); setBusy(null);
   }
   async function save() {
     if (!current) return;
@@ -126,6 +136,7 @@ export default function MailoutsPage() {
   const toggle = <T,>(arr: T[], v: T) => (arr.includes(v) ? arr.filter((x) => x !== v) : [...arr, v]);
   const drafts = (list ?? []).filter((m) => m.status === "draft");
   const done = (list ?? []).filter((m) => m.status !== "draft");
+  const shown = (list ?? []).filter((m) => m.channel === tab);
 
   return (
     <>
@@ -135,12 +146,21 @@ export default function MailoutsPage() {
           <h1 className="h h1">Mailouts</h1>
         </div>
         <div className="actions">
-          <button className="btn btn-ghost" disabled={!live || busy === "new"} onClick={() => newMailout("whatsapp")}>New WhatsApp</button>
-          <button className="btn btn-red" disabled={!live || busy === "new"} onClick={() => newMailout("email")}>New email</button>
+          <button className="btn btn-red" disabled={!live || busy === "new"} onClick={() => newMailout(tab)}>{tab === "whatsapp" ? "New WhatsApp" : "New email"}</button>
         </div>
       </header>
+      <div className="enq-tabs" role="tablist" aria-label="Channel">
+        {([["email", "Email"], ["whatsapp", "WhatsApp"]] as ["email" | "whatsapp", string][]).map(([t, label]) => {
+          const n = (list ?? []).filter((m) => m.channel === t && m.status === "draft").length;
+          return (
+            <button key={t} role="tab" aria-selected={tab === t} className={`btn ${tab === t ? "btn-red" : "btn-ghost"}`} onClick={() => pickTab(t)}>
+              {label}{n > 0 && <span className={`nav-badge ${tab === t ? "" : "quiet"}`} aria-label={`${n} draft${n === 1 ? "" : "s"}`}>{n}</span>}
+            </button>
+          );
+        })}
+      </div>
 
-      {live && current?.channel !== "whatsapp" && (setup.dailyLimit || !setup.sending) && (
+      {live && tab === "email" && (setup.dailyLimit || !setup.sending) && (
         <div className="card" style={{ padding: "14px 22px", marginBottom: 20 }}>
           <div className="small muted">
             {!setup.sending && "Email sending isn’t switched on here, so mailouts are only recorded. "}
@@ -151,8 +171,8 @@ export default function MailoutsPage() {
 
       <div className="mo">
         <section className="card">
-          {list === null ? <div className="empty">Loading…</div> : list.length === 0 ? <div className="empty">No mailouts yet. Press New email or New WhatsApp to write one.</div> : (
-            list.map((m) => (
+          {list === null ? <div className="empty">Loading…</div> : shown.length === 0 ? <div className="empty">{tab === "whatsapp" ? "No WhatsApp mailouts yet. Press New WhatsApp to send an approved template to many people." : "No email mailouts yet. Press New email to write one."}</div> : (
+            shown.map((m) => (
               <button key={m.id} className={`mo-row ${selected === m.id ? "on" : ""}`} onClick={() => setSelected(m.id)}>
                 <div style={{ display: "flex", justifyContent: "space-between", gap: 10 }}>
                   <span className="strong">{m.channel === "whatsapp" ? "WhatsApp · " : ""}{m.subject || (m.channel === "whatsapp" ? m.template ?? "(no template)" : "(no subject)")}</span>
@@ -170,7 +190,7 @@ export default function MailoutsPage() {
         </section>
 
         <section className="card">
-          {!current ? <div className="empty">Pick a mailout on the left, or press New email or New WhatsApp.</div> : current.status !== "draft" ? (
+          {!current || current.channel !== tab ? <div className="empty">Pick a mailout on the left, or press {tab === "whatsapp" ? "New WhatsApp" : "New email"}.</div> : current.status !== "draft" ? (
             <>
               <div className="card-head">
                 <div>
