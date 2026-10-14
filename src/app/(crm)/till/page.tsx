@@ -133,7 +133,7 @@ export default function TillPage() {
         {d.today && (
           <section className="card pad" style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             <div className="eyebrow">Taken today</div>
-            <div className="h num" style={{ fontSize: 44, lineHeight: 1 }}>{pounds(d.today.total)}</div>
+            <div className="h num till-fig">{pounds(d.today.total)}</div>
             <div className="small muted">{d.today.sales} sale{d.today.sales === 1 ? "" : "s"}</div>
             {Object.entries(d.today.byType).sort((a, b) => b[1] - a[1]).map(([k, v]) => (
               <div key={k} className="small" style={{ display: "flex", justifyContent: "space-between" }}><span className="muted">{k}</span><span className="num">{pounds(v)}</span></div>

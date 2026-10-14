@@ -63,8 +63,12 @@ export function stageCounts(s: State) {
 }
 
 export function sourceCounts(s: State) {
-  // Every source, TeamUp included: this is "who do we have", not the funnel.
-  return SOURCES.map((src) => ({ id: src.id, label: src.label, value: s.contacts.filter((c) => c.source === src.id).length }))
+  // Who do we have, TeamUp included, but not people who only messaged us
+  // (email, WhatsApp, Facebook, Instagram) unless they're on the pipeline:
+  // they aren't leads (Sammy, 14/10/2026).
+  const counted = s.contacts.filter((c) => c.source === "teamup" || onMetaPipeline(c));
+  return SOURCES.map((src) => ({ id: src.id, label: src.label, value: counted.filter((c) => c.source === src.id).length }))
+    .filter((x) => x.value > 0 || (x.id !== "facebook" && x.id !== "instagram"))
     .sort((a, b) => b.value - a.value);
 }
 

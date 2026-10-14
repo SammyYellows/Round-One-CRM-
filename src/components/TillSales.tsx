@@ -16,7 +16,7 @@ export function TillSales({ periods, best }: { periods: { label: string; s: Till
         {periods.map(({ label, s }) => (
           <div key={label} className="card pad" style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             <div className="eyebrow">{label}</div>
-            <div className="h num" style={{ fontSize: 44, lineHeight: 1 }}>{pounds(s.total)}</div>
+            <div className="h num till-fig">{pounds(s.total)}</div>
             <div className="small muted">{s.sales} sale{s.sales === 1 ? "" : "s"}</div>
             <div className="small" style={{ display: "flex", flexDirection: "column", gap: 2 }}>
               {Object.entries(s.byType).sort((a, b) => b[1] - a[1]).map(([k, v]) => (
