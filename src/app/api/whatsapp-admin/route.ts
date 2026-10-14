@@ -20,9 +20,14 @@
 //     Instagram account it reaches, and the webhooks set up (read only).
 //   {action:"social_subscribe"}: sends the Page's and Instagram's messages
 //     to /api/webhooks/meta (sends nothing to anyone).
+//   {action:"social_history", channel:"facebook"|"instagram", dryRun?, after?}:
+//     earlier conversations, 25 at a time (`next` carries on). dryRun only
+//     counts; otherwise copies them in for reading (never sent, never leads).
 
+import { importSocialHistory } from "@/lib/engine";
 import { appUrl } from "@/lib/server/deliver";
-import { socialCheck, socialSubscribe } from "@/lib/server/social";
+import { socialCheck, socialHistory, socialSubscribe } from "@/lib/server/social";
+import { applyMany } from "@/lib/server/state";
 import { submitTemplates } from "@/lib/server/waTemplates";
 
 export const dynamic = "force-dynamic";
@@ -33,9 +38,13 @@ const API = `https://graph.facebook.com/${process.env.WHATSAPP_API_VERSION || "v
 export async function POST(req: Request) {
   const secret = process.env.CRON_SECRET;
   if (!secret || req.headers.get("authorization") !== `Bearer ${secret}`) return Response.json({ error: "Not allowed" }, { status: 401 });
-  const b = (await req.json().catch(() => ({}))) as { action?: string; phoneId?: string; pin?: string; waba?: string; number?: string; name?: string; method?: string; code?: string; migrate?: boolean; only?: string[]; statusOnly?: boolean };
+  const b = (await req.json().catch(() => ({}))) as { action?: string; phoneId?: string; pin?: string; waba?: string; number?: string; name?: string; method?: string; code?: string; migrate?: boolean; only?: string[]; statusOnly?: boolean; channel?: string; dryRun?: boolean; after?: string };
   if (b.action === "social_check") return Response.json(await socialCheck());
   if (b.action === "social_subscribe") return Response.json(await socialSubscribe(`${appUrl()}/api/webhooks/meta`));
+  if (b.action === "social_history" && (b.channel === "facebook" || b.channel === "instagram")) {
+    return Response.json(await socialHistory(b.channel, { dryRun: b.dryRun !== false, after: b.after },
+      (items) => applyMany((st) => items.reduce((n, item) => n + importSocialHistory(st, item), 0))));
+  }
   const wabaOk = /^\d+$/.test(String(b.waba ?? ""));
   if (b.action === "phones" || b.action === "subscribe") {
     if (!wabaOk) return Response.json({ error: "Needs waba" }, { status: 400 });

@@ -403,7 +403,13 @@ updates from the import never fire automations.
     the Instagram account, make a token with the messaging permissions and
     paste it into Vercel as `META_SOCIAL_TOKEN`; then Claude runs
     `social_check`, sets `META_PAGE_ID` and runs `social_subscribe`, and they
-    test with a real message on each.
+    test with a real message on each. **14/10 late: connected** (token and
+    Page id in Vercel, webhooks on for Page "Round One" and
+    @roundonefitness). Earlier conversations: `social_history` built; Claude
+    counts first (dry run), copies them in after Sammy's go ("i just want to
+    see the old messages", not leads). Waiting: a test message from someone
+    who isn't a Page admin, and the Instagram "Allow access to messages"
+    setting on Sammy's phone.
     **13/10: YCloud link gone; waiting on a number slot.** Meta Direct
     Support (a person) said to clear partner connections; Business Settings
     had none. Sammy pressed **Remove from business portfolio** on the old

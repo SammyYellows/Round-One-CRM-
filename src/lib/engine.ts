@@ -369,6 +369,44 @@ export function recordSocialEcho(s: State, input: { id: string; channel: SocialC
   log(s, "social.sent", c.id, `Reply to ${c.name} from the ${CHANNEL_LABEL[input.channel]} app`);
 }
 
+/**
+ * Earlier Facebook or Instagram messages, copied in once so staff can read
+ * them (Sammy, 14/10/2026: "i just want to see the old messages"). Nothing
+ * is sent and nobody becomes a lead: someone new is a contact off the
+ * pipeline, with no automations. A conversation still waiting on us but too
+ * old for Meta to take a reply (7 days) is marked "No reply needed".
+ * Returns how many messages were added.
+ */
+export function importSocialHistory(s: State, input: { channel: SocialChannel; userId: string; name?: string; username?: string; messages: { id: string; dir: "in" | "out"; text: string; at: string }[] }) {
+  const have = new Set(s.messages.map((m) => m.id));
+  const fresh = input.messages.filter((m) => !have.has(m.id)).sort((a, b) => Date.parse(a.at) - Date.parse(b.at));
+  if (!fresh.length) return 0;
+  const key = socialKey(input.channel);
+  const label = CHANNEL_LABEL[input.channel];
+  let c = s.contacts.find((x) => x.social?.[key] === input.userId);
+  if (!c) {
+    c = {
+      id: uid(), name: input.name?.trim() || (input.username ? `@${input.username}` : `${label} user`), phone: "", email: "", source: input.channel,
+      stage: "contacted", tags: [], answers: [], createdAt: fresh[0].at,
+      social: { [key]: input.userId, ...(input.username ? { instagramUsername: input.username } : {}) },
+    };
+    s.contacts.push(c);
+  }
+  for (const m of fresh) {
+    s.messages.push({
+      id: m.id, contactId: c.id, dir: m.dir, text: m.text, at: m.at, channel: input.channel,
+      ...(m.dir === "out" ? { by: `${label} app`, external: true, status: "sent" as const } : {}),
+    });
+  }
+  const thread = s.messages.filter((m) => m.contactId === c.id && m.channel === input.channel);
+  const last = thread.reduce((a, b) => (Date.parse(b.at) > Date.parse(a.at) ? b : a));
+  if (last.dir === "in" && nowMs(s) - Date.parse(last.at) > 7 * 86400e3 && !c.channelDone?.[input.channel]) {
+    c.channelDone = { ...c.channelDone, [input.channel]: { at: nowIso(s), by: "Imported" } };
+  }
+  log(s, "social.received", c.id, `${fresh.length} earlier ${label} message${fresh.length === 1 ? "" : "s"} with ${c.name} copied in`);
+  return fresh.length;
+}
+
 export function setStage(s: State, contactId: string, stage: Stage, opts: { lostReason?: string } = {}) {
   const c = s.contacts.find((x) => x.id === contactId);
   if (!c || c.stage === stage) return;

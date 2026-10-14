@@ -5,6 +5,7 @@
 // the Instagram account assigned to it. Without that and META_PAGE_ID
 // nothing is sent: the message is logged instead.
 
+import type { importSocialHistory } from "@/lib/engine";
 import { SOCIAL_MAX_CHARS, type SocialChannel } from "@/lib/types";
 import type { SendResult } from "./whatsapp";
 
@@ -106,4 +107,79 @@ export async function socialSubscribe(callback: string) {
   const instagram = await sub("instagram", INSTAGRAM_FIELDS);
   const pageApps = await graph(`${process.env.META_PAGE_ID}/subscribed_apps?subscribed_fields=${PAGE_FIELDS}`, await pageToken(), { method: "POST" });
   return { page: page.json, instagram: instagram.json, pageSubscribedApps: pageApps.json };
+}
+
+// ---- Earlier messages (Sammy, 14/10/2026: "i just want to see the old messages") ----
+
+type GraphMessage = { id: string; created_time: string; from?: { id?: string }; message?: string; attachments?: { data?: { mime_type?: string }[] } };
+type GraphConversation = {
+  participants?: { data?: { id: string; name?: string; username?: string }[] };
+  messages?: { data?: GraphMessage[]; paging?: { next?: string } };
+};
+
+function historyText(m: GraphMessage) {
+  if (m.message?.trim()) return m.message.slice(0, 4000);
+  const kinds = (m.attachments?.data ?? []).map((a) => {
+    const t = a.mime_type ?? "";
+    return t.startsWith("image/") ? "Photo" : t.startsWith("video/") ? "Video" : t.startsWith("audio/") ? "Voice note" : "Attachment";
+  });
+  return kinds.length ? kinds.map((k) => `[${k}]`).join(" ") : "[Message]";
+}
+
+/** Facebook keeps a whole conversation; Instagram lets us read its last 20 messages. Long Facebook ones stop at this many. */
+const HISTORY_CAP = 300;
+
+/**
+ * Reads up to 25 conversations from the Page (Facebook or Instagram) and,
+ * unless `dryRun`, copies their messages into the CRM for reading
+ * (importSocialHistory: never sent, never leads). `after` carries on from
+ * the last call's `next`. Read only when `dryRun`.
+ */
+export async function socialHistory(channel: SocialChannel, opts: { dryRun: boolean; after?: string }, save: (items: Parameters<typeof importSocialHistory>[1][]) => Promise<number>) {
+  if (!socialConfigured()) return { error: "Needs META_SOCIAL_TOKEN and META_PAGE_ID in Vercel" };
+  const token = await pageToken();
+  const pageId = process.env.META_PAGE_ID ?? "";
+  const ig = channel === "instagram" ? await graph(`${pageId}?fields=instagram_business_account`, token) : null;
+  const ours = new Set([pageId, String((ig?.json.instagram_business_account as { id?: string } | undefined)?.id ?? "")]);
+  const per = channel === "instagram" ? 20 : 100;
+  const r = await graph(
+    `${pageId}/conversations?platform=${channel === "facebook" ? "messenger" : "instagram"}&limit=25` +
+    `&fields=participants,messages.limit(${per}){id,created_time,from,message,attachments}${opts.after ? `&after=${encodeURIComponent(opts.after)}` : ""}`,
+    token,
+  );
+  if (!r.ok) return { error: r.json.error?.message || `Meta said ${r.status}` };
+  const prefix = channel === "facebook" ? "fb" : "ig";
+  const items = [];
+  for (const conv of (r.json.data ?? []) as GraphConversation[]) {
+    const them = conv.participants?.data?.find((p) => !ours.has(p.id));
+    if (!them) continue;
+    const msgs = [...(conv.messages?.data ?? [])];
+    let next = conv.messages?.paging?.next;
+    while (channel === "facebook" && next && msgs.length < HISTORY_CAP) {
+      const page = await fetch(next, { cache: "no-store" }).then((x) => x.json()).catch(() => ({})) as { data?: GraphMessage[]; paging?: { next?: string } };
+      msgs.push(...(page.data ?? []));
+      next = page.paging?.next;
+    }
+    items.push({
+      channel, userId: them.id,
+      ...(them.name ? { name: them.name } : {}), ...(them.username ? { username: them.username } : {}),
+      messages: msgs.map((m) => ({ id: `${prefix}_${m.id}`, dir: (ours.has(m.from?.id ?? "") ? "out" : "in") as "in" | "out", text: historyText(m), at: new Date(m.created_time).toISOString() })),
+    });
+  }
+  const all = items.flatMap((i) => i.messages);
+  const times = all.map((m) => Date.parse(m.at)).sort((a, b) => a - b);
+  const recent = items.filter((i) => {
+    const last = i.messages.reduce<{ dir: string; at: string } | null>((a, b) => (!a || Date.parse(b.at) > Date.parse(a.at) ? b : a), null);
+    return last?.dir === "in" && Date.now() - Date.parse(last.at) <= 7 * 86400e3;
+  }).length;
+  const paging = r.json.paging as { next?: string; cursors?: { after?: string } } | undefined;
+  return {
+    conversations: items.length,
+    messages: all.length,
+    oldest: times.length ? new Date(times[0]).toISOString().slice(0, 10) : null,
+    newest: times.length ? new Date(times[times.length - 1]).toISOString().slice(0, 10) : null,
+    waitingLast7Days: recent,
+    added: opts.dryRun ? 0 : await save(items),
+    next: paging?.next ? paging.cursors?.after ?? null : null,
+  };
 }

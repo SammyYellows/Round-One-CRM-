@@ -3,7 +3,7 @@
 // CRM, so submitting a form or booking a trial moves the charts.
 
 import { dayKey } from "./seed";
-import { SOLD_STAGES, SOURCES, STAGES, Stage, State } from "./types";
+import { SOLD_STAGES, SOURCES, STAGES, Stage, State, onMetaPipeline } from "./types";
 
 export interface DayPoint {
   key: string;
@@ -14,9 +14,11 @@ export interface DayPoint {
   isToday: boolean;
 }
 
-// The dashboard is about the trial journey. People synced from TeamUp
-// (members, ex-members, old sign-ups) aren't leads, so they're left out.
-const leads = (s: State) => s.contacts.filter((c) => c.source !== "teamup");
+// The dashboard is about the trial journey, so leads are the people on the
+// Meta pipeline. People synced from TeamUp, and people who only emailed or
+// messaged on WhatsApp, Facebook or Instagram (Sammy, 14/10/2026: "i dont
+// want to start them with leads"), are left out unless put on the pipeline.
+const leads = (s: State) => s.contacts.filter(onMetaPipeline);
 
 const startOfDay = (ms: number) => {
   const d = new Date(ms);
