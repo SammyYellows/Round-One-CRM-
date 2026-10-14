@@ -1,7 +1,7 @@
 # Open list
 
 Everything in progress and what each item is waiting on. Sammy picks from
-this; Claude keeps it current. Last updated 10/10/2026.
+this; Claude keeps it current. Last updated 14/10/2026.
 
 **Wrap-up day, Sunday 11/10:** every open item below is on one sheet,
 `docs/wrap-up-day.md`, as a job or a yes/no to close it. After that, only
@@ -382,6 +382,14 @@ updates from the import never fire automations.
     wording is approved; keep the eSIM topped up. Tidy: old 07833 entry
     (unverified, holds a slot), two unknown "Round One Gym UK" messaging
     accounts, the "India" payment configuration.
+    **14/10:** `new_number` approved; `win_back` reworded (ends "If there is
+    something we can do to keep you here, please let us know") and
+    resubmitted. Email mailouts have no daily cap (`MAILOUT_DAILY_LIMIT=0`,
+    Resend Pro). Mailouts has Email | WhatsApp buttons. Sammy does the
+    questionnaire test on a fresh mobile this evening (go-live item 17);
+    Claude then checks it and removes the test contact. Menu reordered
+    (Sammy, 14/10): Pipeline holds Meta | TeamUp, Program members holds
+    Program | All members, Calendar after Pipeline, Automations after Forms.
     **13/10: YCloud link gone; waiting on a number slot.** Meta Direct
     Support (a person) said to clear partner connections; Business Settings
     had none. Sammy pressed **Remove from business portfolio** on the old

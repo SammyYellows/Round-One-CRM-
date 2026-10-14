@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { ContactFilters } from "@/components/ContactFilters";
+import { PIPELINE_TABS, PageTabs } from "@/components/PageTabs";
 import { ContactFilter, EMPTY_FILTER, SortKey, applyFilter, sortContacts, waitingOnUs } from "@/lib/contactQuery";
 import { ago, dayTime } from "@/lib/format";
 import { useStore } from "@/lib/store";
@@ -12,6 +13,7 @@ import { Contact, STAGES, Source, Stage, onMetaPipeline, sourceLabel } from "@/l
 // came in through ads, the form, walk-ins, referrals, WhatsApp or email;
 // "TeamUp" is everyone synced from TeamUp (members, ex-members and the
 // people who signed up and never joined), filtered by when they came in.
+// One menu item, Pipeline, with Meta and TeamUp buttons at the top (14/10).
 
 const COLUMNS = STAGES.filter((st) => st.id !== "lost");
 const SRC_CHIP: Record<Source, string> = { meta_ad: "chip-red", walk_in: "", referral: "chip-light", website: "", whatsapp: "", teamup: "", email: "" };
@@ -59,10 +61,11 @@ export function PipelineBoard({ kind }: { kind: "meta" | "teamup" }) {
       <header className="page-head">
         <div>
           <div className="eyebrow">{inPlay.length} people in play · drag a card to move it</div>
-          <h1 className="h h1">{kind === "teamup" ? "TeamUp pipeline" : "Meta pipeline"}</h1>
+          <h1 className="h h1">Pipeline</h1>
         </div>
         {kind === "meta" && <Link className="btn btn-red" href="/contacts?new=1">Add contact</Link>}
       </header>
+      <PageTabs label="Pipeline" tabs={PIPELINE_TABS} />
 
       <ContactFilters
         filter={filter}

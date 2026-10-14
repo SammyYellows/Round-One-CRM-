@@ -21,13 +21,14 @@ export const MANUAL: ManualSection[] = [
 
 ### Finding your way round
 - The menu down the left lists the screens. On a phone it's behind the **Menu** button at the top.
+- **Pipeline** and **Program members** each hold two views, with buttons at the top: Pipeline has **Meta** and **TeamUp**; Program members has **Program** and **All members**.
 - **Back** at the top of each screen goes to where you were.
 - A red number on the menu means something new since you last looked (enquiries waiting, notices to cancel, failed payments).
 - **Manual** (this) is at the bottom of the menu.
 
 ### What you can see
-- **Staff** logins see the day-to-day screens: Today, Ask Champ, Calendar, both pipelines, Contacts, Enquiries, Members, Program members, Cancellations, Accountability and Failed payments.
-- **Owner** and **Manager** logins also see Mailouts, Automations, Reports, Forms, Meta ads, Staff and Train Champ, and can change messages and settings.
+- **Staff** logins see the day-to-day screens: Today, Ask Champ, Pipeline (Meta and TeamUp), Calendar, Contacts, Program members (Program and All members), Enquiries, Cancellations, Failed payments and Accountability.
+- **Owner** and **Manager** logins also see Mailouts, Reports, Forms, Automations, Meta ads, Staff and Train Champ, and can change messages and settings.
 
 ### Getting help
 Ask **Champ** (**Ask Champ**, in red, second in the menu). It knows this manual, can look up any member, class or lead for you, and can help with training and sales ideas.`,
@@ -39,7 +40,7 @@ Ask **Champ** (**Ask Champ**, in red, second in the menu). It knows this manual,
 - **Today**: look at **Needs you** (tasks such as "hasn't been in for 3 weeks" or "check-in to reply to") and **Appointments**.
 - **Red waiver alert** at the top of the screen: someone is in the gym without a waiver or emergency contact. Have a word, sort it in TeamUp, then tap **Spoke to them**.
 - **Enquiries**: two buttons at the top. **Email** has emails sent to info@ with a drafted reply waiting; **WhatsApp** has everyone who has messaged the gym number. Reply, or mark **No reply needed**.
-- **WhatsApp replies**: contacts with a **Reply** chip on Members, or new messages on a contact's page.
+- **WhatsApp replies**: contacts with a **Reply** chip on Program members → **All members**, or new messages on a contact's page.
 
 ### During the shift
 - Book, move and mark intro meetings in the **Calendar** (attended, no-show, cancelled). Each of these sends the person a message automatically, so keep it accurate.
@@ -100,9 +101,9 @@ Ask **Champ** (**Ask Champ**, in red, second in the menu). It knows this manual,
 - Champ's answers are only as good as the data: if something looks wrong, check TeamUp.`,
   },
   {
-    slug: "pipeline", title: "Meta pipeline (leads)", who: "everyone",
+    slug: "pipeline", title: "Pipeline: Meta (leads)", who: "everyone",
     summary: "Enquiries from ads, the form, walk-ins and referrals, by stage.",
-    body: `Everyone who enquires through the questionnaire, an ad, a walk-in, a referral or WhatsApp. People who only emailed info@, or who messaged the WhatsApp number before anything else, stay off it (they're on Contacts and Enquiries) unless you press **Put on pipeline** on their contact page. Drag a card to another column to change their stage, or change it on their contact page.
+    body: `**Pipeline** in the menu, then **Meta** at the top (**TeamUp** is the other button, see below). Everyone who enquires through the questionnaire, an ad, a walk-in, a referral or WhatsApp. People who only emailed info@, or who messaged the WhatsApp number before anything else, stay off it (they're on Contacts and Enquiries) unless you press **Put on pipeline** on their contact page. Drag a card to another column to change their stage, or change it on their contact page.
 
 ### The stages
 - **New lead**: just enquired.
@@ -148,7 +149,7 @@ Use the search and filters at the top to find people.`,
 - **Questionnaire**: their answers from the form. If there are none it says **No questionnaire answers** and why (for example imported from GymGrow, or signed up in TeamUp).
 - **Notes** (above WhatsApp): type a note and press **Add note**. Each note shows who wrote it and when, newest first. For staff only; never sent to anyone. Champ can read them.
 - **Earlier messages** (under WhatsApp): the WhatsApp, text, email and call history from GymGrow, before the switch. Press **Show** to open it. Read only; nothing can be sent from here. Champ can read it too.
-- **Stage** and buttons such as **Sold programme**, **Sold membership** and **Move to nurture** (these send messages, see Meta pipeline).
+- **Stage** and buttons such as **Sold programme**, **Sold membership** and **Move to nurture** (these send messages, see Pipeline: Meta).
 - For members: their **membership** (from TeamUp), **Coach**, **Last in** and sessions in the last 30 days, a **priority** if they've lapsed with a suggested action, and their **Safety** card.
 - **No marketing messages**: tick if they don't want offers (they can also reply STOP). Messages about their own booking or membership still go.
 
@@ -178,9 +179,9 @@ Every email to info@round1boxfit.co.uk that looks like an enquiry appears here w
 - **Gym facts** (management only) is the sheet drafts are allowed to use: prices, hours, classes.`,
   },
   {
-    slug: "members", title: "Members", who: "everyone",
+    slug: "members", title: "All members", who: "everyone",
     summary: "Everyone with a TeamUp membership, who's lapsed, and who's in now.",
-    body: `Synced from TeamUp every night. Change memberships in TeamUp, not here.
+    body: `**Program members** in the menu, then **All members** at the top. Synced from TeamUp every night. Change memberships in TeamUp, not here.
 
 - **In the gym now**: who's ticked into a class that's on or came through the door recently, with waivers and emergency contacts.
 - Filter by category, status (active, on hold, ended, never joined), ending soon, opted out of marketing, **Lapsed** and **No waiver**.
@@ -192,10 +193,10 @@ Every email to info@round1boxfit.co.uk that looks like an enquiry appears here w
 - **The CRM never messages lapsed members automatically.** Contact is a person's decision. A friendly personal message or a chat when they're next in works best. Don't mention their direct debit or price, and don't offer discounts.`,
   },
   {
-    slug: "teamup-and-program", title: "TeamUp pipeline and Program members", who: "everyone",
+    slug: "teamup-and-program", title: "Pipeline: TeamUp, and the Program", who: "everyone",
     summary: "People who came through TeamUp, and the 28 Day Program.",
-    body: `- **TeamUp pipeline**: everyone synced from TeamUp (members, ex-members and people who made an account but never joined), by when they came in.
-- **Program members**: everyone on the 28 Day Program (the list at the top), where they are in it, split into those who came through the CRM and those who signed up straight in TeamUp. The Program messages are underneath (most are switched off until management approves them).
+    body: `- **Pipeline → TeamUp**: everyone synced from TeamUp (members, ex-members and people who made an account but never joined), by when they came in.
+- **Program members → Program**: everyone on the 28 Day Program (the list at the top), where they are in it, split into those who came through the CRM and those who signed up straight in TeamUp. The Program messages are underneath (most are switched off until management approves them).
 - The 28 Day Program is £79 upfront; if they finish and move onto a recurring membership, the £79 comes off, so their first 28 days end up free.`,
   },
   {
@@ -256,7 +257,7 @@ Anyone can reply STOP to stop marketing messages; messages about their own booki
 - **Reports**: weekly members, monthly growth, unpaid memberships and attendance, as PDFs; schedules to managers' WhatsApp are off until switched on in Settings.
 - **Forms**: the questionnaire's questions and end screen.
 - **Meta ads**: spend and results per ad.
-- **Settings in other screens**: Booking hours (Calendar), the "not been in" limit (Members), Gym facts (Enquiries).`,
+- **Settings in other screens**: Booking hours (Calendar), the "not been in" limit (Program members → All members), Gym facts (Enquiries).`,
   },
 ];
 
