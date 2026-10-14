@@ -424,6 +424,12 @@ updates from the import never fire automations.
     management. Sums match the till's own end of day. **Waiting on Sammy:**
     the first Cash out (the starting count). Note the till closes its own day
     at 05:00 with nothing counted; the CRM doesn't use that.
+  - **Reports to the managers' WhatsApp** (Sammy, 14/10): `management_report`
+    reworded ("Here is the {report}…", Meta refuses a variable at the start),
+    approved 14/10 22:58; numbers now get +44 (`waNumber`). Test weekly report
+    sent to Sammy (07855 284151) 22:59. **Waiting on Sammy:** is the test OK,
+    then numbers for Lee, Claire and Farida, and which schedules to switch on
+    (weekly and unpaid Mondays 08:00, monthly on the 1st).
     **13/10: YCloud link gone; waiting on a number slot.** Meta Direct
     Support (a person) said to clear partner connections; Business Settings
     had none. Sammy pressed **Remove from business portfolio** on the old
