@@ -247,6 +247,13 @@ In place so far:
   menu): one section per area; the management section is hidden from
   staff. Champ reads the whole manual and is the expert on the CRM; keep
   the manual true to the screens whenever a screen changes.
+- **Menu** (Sammy, 14/10, `NAV` in `src/components/Sidebar.tsx`): Today,
+  Ask Champ, Pipeline, Calendar, Contacts, Program members, Enquiries,
+  Cancellations, Failed payments, Mailouts, Accountability, Reports, Forms,
+  Automations, Meta ads, Staff, Manual. Pipeline (Meta | TeamUp) and
+  Program members (Program | All members) are one menu item each with
+  buttons at the top (`PageTabs`); the routes stay `/pipeline`,
+  `/pipeline/teamup`, `/program` and `/members`.
 
 Still to come: Meta Marketing API sync.
 

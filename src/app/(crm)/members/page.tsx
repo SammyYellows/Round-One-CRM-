@@ -9,9 +9,11 @@ import { Contact, Membership } from "@/lib/types";
 import { PRIORITY_LABEL, byPriority, inactivityAdvice } from "@/lib/inactivity";
 import WhoIsIn from "@/components/WhoIsIn";
 import { useIsManager } from "@/components/StaffContext";
+import { MEMBER_TABS, PageTabs } from "@/components/PageTabs";
 
 // Everyone with a TeamUp membership, synced nightly. TeamUp stays the place
 // to change memberships; this is for seeing who's on what and messaging them.
+// In the menu under Program members, on the All members button (14/10).
 
 const STATUS_LABEL: Record<Membership["status"], string> = { active: "Active", on_hold: "On hold", ended: "Ended" };
 type Ending = "all" | "7" | "30";
@@ -113,6 +115,7 @@ export default function MembersPage() {
           <h1 className="h h1">Members</h1>
         </div>
       </header>
+      <PageTabs label="Members" tabs={MEMBER_TABS} />
 
       {live && <WhoIsIn />}
 
