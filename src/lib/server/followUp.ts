@@ -8,11 +8,11 @@ import { aiConfigured, spotPromise } from "./ai";
 import { applyMany, loadState } from "./state";
 
 /**
- * After staff send an email or WhatsApp reply: if it promised something
+ * After staff send an email, WhatsApp, Facebook or Instagram reply: if it promised something
  * ("I'll check and get back to you"), that goes on Needs you. `id` is based
  * on the sent message, so it's only added once.
  */
-export async function noteFollowUp(contactId: string, text: string, channel: "email" | "WhatsApp", id: string) {
+export async function noteFollowUp(contactId: string, text: string, channel: string, id: string) {
   if (!aiConfigured() || !text.trim()) return;
   const s = await loadState();
   const c = s.contacts.find((x) => x.id === contactId);

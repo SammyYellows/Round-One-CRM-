@@ -5,14 +5,15 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ago } from "@/lib/format";
 import { useStore } from "@/lib/store";
-import { WhatsAppInbox } from "./WhatsAppInbox";
-import { SEEN_EMAIL, SEEN_EVENT, SEEN_WHATSAPP, lastSeenAt, markSeen, whatsappCounts } from "@/lib/whatsappInbox";
+import { MessageInbox } from "./MessageInbox";
+import { SEEN, SEEN_EMAIL, SEEN_EVENT, lastSeenAt, markSeen, messageCounts } from "@/lib/messageInbox";
+import { CHANNELS, CHANNEL_LABEL, Channel } from "@/lib/types";
 
-// Two inboxes behind two buttons (Sammy, 12/10/2026), so the sidebar stays
+// The inboxes behind buttons (Sammy, 12/10/2026), so the sidebar stays
 // short. Email: emails to info@ with an AI-drafted reply for staff to check;
 // nothing sends until Send is pressed and then confirmed
-// (docs/email-enquiries.md). WhatsApp: every incoming message, one row per
-// person.
+// (docs/email-enquiries.md). WhatsApp, and Facebook and Instagram each on
+// their own button (14/10/2026): every incoming message, one row per person.
 
 interface Enquiry {
   id: string;
@@ -33,7 +34,9 @@ interface Enquiry {
   error: string | null;
 }
 
-type Tab = "email" | "whatsapp";
+type Tab = "email" | Channel;
+const TABS: Tab[] = ["email", ...CHANNELS];
+const isTab = (x: unknown): x is Tab => TABS.includes(x as Tab);
 
 export default function EnquiriesPage() {
   const { s, now, live } = useStore();
@@ -41,18 +44,18 @@ export default function EnquiriesPage() {
   const [email, setEmail] = useState({ open: 0, fresh: 0 });
   const [seenTick, setSeenTick] = useState(0);
 
-  // Open on the tab asked for (?tab=whatsapp), or WhatsApp when only it has something new.
+  // Open on the tab asked for (?tab=whatsapp), or the first message tab with something new.
   useEffect(() => {
     const asked = new URLSearchParams(window.location.search).get("tab");
-    if (asked === "whatsapp" || asked === "email") { setTab(asked); return; }
+    if (isTab(asked)) { setTab(asked); return; }
     if (new URLSearchParams(window.location.search).get("id")) { setTab("email"); return; }
-    setTab(whatsappCounts(s, lastSeenAt(SEEN_WHATSAPP)).fresh > 0 ? "whatsapp" : "email");
+    setTab(CHANNELS.find((ch) => messageCounts(s, lastSeenAt(SEEN[ch]), ch).fresh > 0) ?? "email");
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Looking at a tab clears its red number; what still waits shows grey.
   useEffect(() => {
     if (!tab) return;
-    markSeen(tab === "email" ? SEEN_EMAIL : SEEN_WHATSAPP, now);
+    markSeen(tab === "email" ? SEEN_EMAIL : SEEN[tab], now);
     setSeenTick((t) => t + 1);
   }, [tab, now]);
   useEffect(() => {
@@ -70,7 +73,9 @@ export default function EnquiriesPage() {
       .catch(() => undefined);
   }, [live, seenTick]);
 
-  const wa = whatsappCounts(s, lastSeenAt(SEEN_WHATSAPP));
+  const counts = Object.fromEntries(CHANNELS.map((ch) => [ch, messageCounts(s, lastSeenAt(SEEN[ch]), ch)])) as Record<Channel, { waiting: number; fresh: number }>;
+  const tabCounts = (t: Tab) => (t === "email" ? { fresh: email.fresh, waiting: email.open } : counts[t]);
+  const waitingAll = email.open + CHANNELS.reduce((n, ch) => n + counts[ch].waiting, 0);
   const pick = (t: Tab) => {
     setTab(t);
     const u = new URL(window.location.href);
@@ -87,19 +92,19 @@ export default function EnquiriesPage() {
     <>
       <header className="page-head">
         <div>
-          <div className="eyebrow">{live ? `${email.open + wa.waiting} waiting for a reply` : "Live data only"}</div>
+          <div className="eyebrow">{live ? `${waitingAll} waiting for a reply` : "Live data only"}</div>
           <h1 className="h h1">Enquiries</h1>
         </div>
       </header>
       <div className="enq-tabs" role="tablist" aria-label="Inbox">
-        {([["email", "Email", tab === "email" ? null : badge(email.fresh, email.open, "waiting")], ["whatsapp", "WhatsApp", tab === "whatsapp" ? null : badge(wa.fresh, wa.waiting, "waiting")]] as [Tab, string, React.ReactNode][]).map(([t, label, b]) => (
+        {TABS.map((t) => (
           <button key={t} role="tab" aria-selected={tab === t} className={`btn ${tab === t ? "btn-red" : "btn-ghost"}`} onClick={() => pick(t)}>
-            {label}{b}
+            {t === "email" ? "Email" : CHANNEL_LABEL[t]}{tab === t ? null : badge(tabCounts(t).fresh, tabCounts(t).waiting, "waiting")}
           </button>
         ))}
       </div>
       {tab === "email" && <EmailInbox />}
-      {tab === "whatsapp" && <WhatsAppInbox />}
+      {tab && tab !== "email" && <MessageInbox key={tab} channel={tab} />}
     </>
   );
 }

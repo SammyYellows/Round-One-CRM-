@@ -4,24 +4,33 @@ import { useEffect, useRef, useState } from "react";
 import { firstName } from "@/lib/engine";
 import { time } from "@/lib/format";
 import { useStore } from "@/lib/store";
+import { CHANNEL_LABEL, Channel, SOCIAL_MAX_CHARS, channelOf } from "@/lib/types";
 
-// The WhatsApp card: the thread, the reply box inside the 24-hour window and
-// approved templates outside it. Shared by the contact page and the WhatsApp
-// tab on Enquiries (Sammy, 12/10/2026).
+// One conversation: the thread and the reply box. WhatsApp (Sammy,
+// 12/10/2026): free text inside the 24-hour window, approved templates
+// outside it. Facebook and Instagram (14/10/2026): free text inside 24 hours,
+// then a person's reply for up to 7 days, then nothing. Shared by the
+// contact page and the Enquiries tabs.
 
 const STATUS: Record<string, string> = { queued: "Sending", sent: "Sent", delivered: "Delivered", read: "Read", failed: "Not delivered" };
 
 const FAKE_REPLIES = ["Sounds good, see you then", "Can I bring a friend?", "What should I wear?", "Great, thanks"];
 
-/** WhatsApp only allows free-text replies within 24 hours of their last message. */
-export function replyWindow(contactId: string, messages: { contactId: string; dir: string; at: string }[], now: number) {
-  const lastIn = messages.filter((m) => m.contactId === contactId && m.dir === "in").at(-1);
-  const left = lastIn ? 24 - (now - Date.parse(lastIn.at)) / 3600e3 : 0;
-  return { open: left > 0, left };
+/**
+ * Whether staff can write freely, and for how many more hours. WhatsApp:
+ * within 24 hours of their last message. Facebook and Instagram: within 24
+ * hours, or `late` (a person's reply, Meta's human agent tag) up to 7 days.
+ */
+export function replyWindow(contactId: string, messages: { contactId: string; dir: string; at: string; channel?: Channel }[], now: number, channel: Channel = "whatsapp") {
+  const lastIn = messages.filter((m) => m.contactId === contactId && m.dir === "in" && channelOf(m) === channel).at(-1);
+  const since = lastIn ? (now - Date.parse(lastIn.at)) / 3600e3 : Infinity;
+  if (channel === "whatsapp" || since < 24) return { open: since < 24, left: 24 - since, late: false };
+  return { open: since < 24 * 7, left: 24 * 7 - since, late: true };
 }
 
-export function WhatsAppThread({ contactId, draft: outerDraft, setDraft: setOuterDraft, extra }: {
+export function MessageThread({ contactId, channel = "whatsapp", draft: outerDraft, setDraft: setOuterDraft, extra }: {
   contactId: string;
+  channel?: Channel;
   // Optional: the contact page fills the box from "Use it" on a suggested reply.
   draft?: string;
   setDraft?: (v: string) => void;
@@ -35,29 +44,32 @@ export function WhatsAppThread({ contactId, draft: outerDraft, setDraft: setOute
   const threadRef = useRef<HTMLDivElement>(null);
 
   const c = s.contacts.find((x) => x.id === contactId);
-  const msgs = s.messages.filter((m) => m.contactId === contactId);
+  const msgs = s.messages.filter((m) => m.contactId === contactId && channelOf(m) === channel);
   useEffect(() => {
     threadRef.current?.scrollTo({ top: threadRef.current.scrollHeight });
   }, [msgs.length, contactId]);
   useEffect(() => { setTemplate(null); }, [contactId]);
   if (!c) return null;
 
-  const { open: windowOpen, left: windowLeft } = replyWindow(contactId, msgs, now);
+  const label = CHANNEL_LABEL[channel];
+  const social = channel !== "whatsapp";
+  const { open: windowOpen, left: windowLeft, late } = replyWindow(contactId, msgs, now, channel);
   const send = () => {
     if (!draft.trim() || !windowOpen) return;
-    act("sendMessage", c.id, draft);
+    if (social) act("sendMessage", c.id, draft, channel);
+    else act("sendMessage", c.id, draft);
     setDraft("");
   };
 
   return (
     <section className="card">
       <div className="card-head" style={{ alignItems: "center", flexWrap: "wrap", gap: 8 }}>
-        <h2 className="h" style={{ fontSize: 24 }}>WhatsApp</h2>
+        <h2 className="h" style={{ fontSize: 24 }}>{label}</h2>
         <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
           {extra}
-          {windowOpen
-            ? <span className="chip chip-light">Reply window open · {Math.ceil(windowLeft)}h left</span>
-            : <span className="chip">Window closed · templates only</span>}
+          {windowOpen && !late && <span className="chip chip-light">Reply window open · {Math.ceil(windowLeft)}h left</span>}
+          {windowOpen && late && <span className="chip">Staff reply only · {Math.ceil(windowLeft / 24)} day{Math.ceil(windowLeft / 24) === 1 ? "" : "s"} left</span>}
+          {!windowOpen && <span className="chip">{social ? "Can’t reply" : "Window closed · templates only"}</span>}
         </div>
       </div>
       <div className="thread" ref={threadRef}>
@@ -76,13 +88,19 @@ export function WhatsAppThread({ contactId, draft: outerDraft, setDraft: setOute
 
       {windowOpen ? (
         <>
+          {late && (
+            <div className="small muted" style={{ padding: "14px 22px 0" }}>
+              It’s been more than 24 hours since {firstName(c)} last messaged. Meta still allows a reply written by a person, up to 7 days after their last message.
+            </div>
+          )}
           <QuickReplies onPick={setDraft} />
           <div style={{ padding: "12px 22px 0", display: "flex", gap: 8 }}>
             <input
               className="input"
-              aria-label={`Message ${firstName(c)} on WhatsApp`}
+              aria-label={`Message ${firstName(c)} on ${label}`}
               placeholder="Write a message"
               value={draft}
+              maxLength={social ? SOCIAL_MAX_CHARS[channel] : undefined}
               onChange={(e) => setDraft(e.target.value)}
               onKeyDown={(e) => { if (e.key === "Enter") send(); }}
             />
@@ -90,6 +108,12 @@ export function WhatsAppThread({ contactId, draft: outerDraft, setDraft: setOute
           </div>
           <div style={{ height: 22 }} />
         </>
+      ) : social ? (
+        <div className="small muted" style={{ padding: "14px 22px 22px" }}>
+          {msgs.some((m) => m.dir === "in")
+            ? `It’s been more than 7 days since ${firstName(c)} last messaged on ${label}, so Meta doesn’t allow a reply. If they message again, you can reply here.`
+            : `${firstName(c)} hasn’t messaged us on ${label}. Meta only lets us reply to people who message first.`}
+        </div>
       ) : (
         <div style={{ padding: "14px 22px 22px", display: "flex", flexDirection: "column", gap: 8 }}>
           <div className="small muted">
@@ -115,7 +139,7 @@ export function WhatsAppThread({ contactId, draft: outerDraft, setDraft: setOute
       )}
       {!live && (
         <div style={{ padding: "0 22px 22px" }}>
-          <button className="link-btn faint" onClick={() => act("receiveMessage", c.id, FAKE_REPLIES[msgs.length % FAKE_REPLIES.length])}>
+          <button className="link-btn faint" onClick={() => act("receiveMessage", c.id, FAKE_REPLIES[msgs.length % FAKE_REPLIES.length], undefined, channel)}>
             Simulate a reply from {firstName(c)}
           </button>
         </div>

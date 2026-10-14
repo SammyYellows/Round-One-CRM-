@@ -16,7 +16,7 @@ import { Contact, STAGES, Source, Stage, onMetaPipeline, sourceLabel } from "@/l
 // One menu item, Pipeline, with Meta and TeamUp buttons at the top (14/10).
 
 const COLUMNS = STAGES.filter((st) => st.id !== "lost");
-const SRC_CHIP: Record<Source, string> = { meta_ad: "chip-red", walk_in: "", referral: "chip-light", website: "", whatsapp: "", teamup: "", email: "" };
+const SRC_CHIP: Record<Source, string> = { meta_ad: "chip-red", walk_in: "", referral: "chip-light", website: "", whatsapp: "", teamup: "", email: "", facebook: "", instagram: "" };
 const TEAMUP_STATUS: Record<string, string> = { prospect: "Prospect", prospect_drop_off: "Dropped off", at_risk: "At risk", converted: "Converted", churned: "Churned", lost: "Lost" };
 
 export function PipelineBoard({ kind }: { kind: "meta" | "teamup" }) {

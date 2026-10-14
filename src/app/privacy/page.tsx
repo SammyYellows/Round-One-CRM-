@@ -7,7 +7,7 @@ import { GYM } from "@/lib/gym";
 
 export const metadata: Metadata = { title: "Privacy policy | Round One" };
 
-const UPDATED = "13 October 2026";
+const UPDATED = "14 October 2026";
 const EMAIL = "info@round1boxfit.co.uk";
 
 export default function PrivacyPage() {
@@ -23,14 +23,14 @@ export default function PrivacyPage() {
 
         <h2>Who we are</h2>
         <p>{GYM.name} is a boxing and strength gym run by Lee Haskins Ltd (“we”, “us”), {GYM.address}. We are responsible for the personal information described here. You can contact us at <a href={`mailto:${EMAIL}`}>{EMAIL}</a> or on 0117 2510 120.</p>
-        <p>This policy covers how we handle your information when you enquire about the gym, book an intro meeting, message us on WhatsApp or by email, or become a member.</p>
+        <p>This policy covers how we handle your information when you enquire about the gym, book an intro meeting, message us on WhatsApp, Facebook, Instagram or by email, or become a member.</p>
 
         <h2>What we keep</h2>
         <ul>
           <li><strong>Contact details:</strong> your name, mobile number and email address.</li>
           <li><strong>Your answers:</strong> what you tell us on our enquiry form, such as your goals and how you like to train.</li>
           <li><strong>Bookings:</strong> intro meetings you book with us and whether you came.</li>
-          <li><strong>Messages:</strong> WhatsApp messages and emails between you and us, and whether they were delivered and read.</li>
+          <li><strong>Messages:</strong> WhatsApp, Facebook and Instagram messages and emails between you and us, and whether they were delivered and read. When you message us on Facebook or Instagram we keep your name or username and the id Meta gives us for replying to you.</li>
           <li><strong>Membership:</strong> from our booking system (TeamUp), your membership type, start and end dates, whether payments have gone through (not your card details) and the classes you attend.</li>
           <li><strong>Door entries:</strong> from our door system (Kisi), the times you came into the gym.</li>
           <li><strong>Safety:</strong> whether you have signed our waiver, and your emergency contact.</li>
@@ -58,7 +58,7 @@ export default function PrivacyPage() {
           <li>Supabase: our database (London).</li>
           <li>Vercel: hosts our system (Dublin).</li>
           <li>Resend: sends our emails.</li>
-          <li>Meta: WhatsApp messages.</li>
+          <li>Meta: WhatsApp, Facebook and Instagram messages.</li>
           <li>Anthropic: the AI described above.</li>
           <li>TeamUp: bookings and memberships.</li>
           <li>Kisi: door access.</li>

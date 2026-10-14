@@ -53,6 +53,8 @@ const contactFrom = (r: Row): Contact => ({
   ...(r.removed ? { removed: r.removed as Contact["removed"] } : {}),
   ...(r.notes ? { notes: r.notes as Contact["notes"] } : {}),
   ...(r.whatsapp_done ? { whatsappDone: r.whatsapp_done as Contact["whatsappDone"] } : {}),
+  ...(r.social ? { social: r.social as Contact["social"] } : {}),
+  ...(r.channel_done ? { channelDone: r.channel_done as Contact["channelDone"] } : {}),
 });
 const contactTo = (c: Contact): Row => ({
   id: c.id, name: c.name, first_name: c.firstName ?? null, phone: c.phone, email: c.email, source: c.source,
@@ -61,17 +63,20 @@ const contactTo = (c: Contact): Row => ({
   trial_at: c.trialAt ?? null, created_at: c.createdAt,
   membership: c.membership ?? null, marketing_opt_out: !!c.marketingOptOut, email_bounced: !!c.emailBounced, teamup: c.teamup ?? null,
   accountability: c.accountability ?? null, insight: c.insight ?? null, coach_id: c.coachId ?? null, activity: c.activity ?? null, safety: c.safety ?? null, gymgrow: c.gymgrow ?? null, removed: c.removed ?? null, notes: c.notes ?? null, whatsapp_done: c.whatsappDone ?? null,
+  social: c.social ?? null, channel_done: c.channelDone ?? null,
 });
 
 const messageFrom = (r: Row): Message => ({
   id: r.id as string, contactId: r.contact_id as string, dir: r.dir as Message["dir"], text: r.text as string,
   template: opt(r.template), by: opt(r.by), at: r.at as string, status: opt(r.status), error: opt(r.error),
+  ...(r.channel === "facebook" || r.channel === "instagram" ? { channel: r.channel } : {}),
 });
 // New outgoing messages are saved as queued; deliver.ts sends them and Meta's
-// webhook moves them on to sent, delivered, read or failed.
+// webhook moves them on to sent, delivered, read or failed. A reply staff
+// sent from the Facebook or Instagram app has already gone.
 const messageTo = (m: Message): Row => ({
   id: m.id, contact_id: m.contactId, dir: m.dir, text: m.text, template: m.template ?? null, by: m.by ?? null, at: m.at,
-  status: m.dir === "in" ? "received" : "queued",
+  channel: m.channel ?? "whatsapp", status: m.dir === "in" ? "received" : m.external ? "sent" : "queued",
 });
 
 const eventFrom = (r: Row): CrmEvent => {

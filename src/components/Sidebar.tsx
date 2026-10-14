@@ -6,7 +6,8 @@ import { useEffect, useState } from "react";
 import { useStore } from "@/lib/store";
 import { PAYMENT_FAILED_AT } from "@/lib/types";
 import { isManagementPath, isManagerRole } from "@/lib/roles";
-import { SEEN_EVENT, whatsappCounts } from "@/lib/whatsappInbox";
+import { SEEN, SEEN_EVENT, lastSeenAt, messageCounts } from "@/lib/messageInbox";
+import { CHANNELS } from "@/lib/types";
 
 // Menu order (Sammy, 14/10/2026). Pipeline holds Meta and TeamUp; Program
 // members holds Program and All members (buttons at the top of each).
@@ -50,7 +51,8 @@ export function Sidebar({ staff }: { staff?: { name: string; role: string } }) {
     window.addEventListener(SEEN_EVENT, on);
     return () => window.removeEventListener(SEEN_EVENT, on);
   }, []);
-  const wa = whatsappCounts(s, lastSeen("/enquiries/whatsapp"));
+  // WhatsApp, Facebook and Instagram together, each "new" since its own tab was last opened.
+  const msgs = CHANNELS.map((ch) => messageCounts(s, lastSeenAt(SEEN[ch]), ch)).reduce((a, b) => ({ waiting: a.waiting + b.waiting, fresh: a.fresh + b.fresh }));
 
   const [enq, setEnq] = useState({ open: 0, fresh: 0 });
   useEffect(() => {
@@ -78,7 +80,7 @@ export function Sidebar({ staff }: { staff?: { name: string; role: string } }) {
   const freshFailing = failing.filter((c) => flaggedIds.has(c.id)).length;
   // A red number for what's new since you last looked; a quiet grey mark when older items are still waiting.
   const marks = (href: string): { fresh: number; waiting: number; what: string } =>
-    href === "/enquiries" ? { fresh: enq.fresh + wa.fresh, waiting: enq.open + wa.waiting, what: "waiting for a reply (email and WhatsApp)" }
+    href === "/enquiries" ? { fresh: enq.fresh + msgs.fresh, waiting: enq.open + msgs.waiting, what: "waiting for a reply (email, WhatsApp, Facebook and Instagram)" }
     : href === "/cancellations" ? { fresh: freshNotices, waiting: notices.length, what: "gave notice in the last 7 days" }
     : href === "/payments" ? { fresh: freshFailing, waiting: failing.length, what: `with ${PAYMENT_FAILED_AT}+ failed payment attempts` }
     : { fresh: 0, waiting: 0, what: "" };

@@ -1,12 +1,12 @@
-// After a WhatsApp reply lands: Claude reads the thread and leaves a note
-// for staff on the contact, with a suggested reply that only a person can
-// send (improvement item 16, Sammy 09/10/2026: "approval required before
-// sending, don't want chatbot arguments"). Server-only; called by the
-// WhatsApp webhook after the message is saved. Without ANTHROPIC_API_KEY
+// After a WhatsApp, Facebook or Instagram message lands: Claude reads the
+// thread and leaves a note for staff on the contact, with a suggested reply
+// that only a person can send (improvement item 16, Sammy 09/10/2026: "approval required before
+// sending, don't want chatbot arguments"). Server-only; called by Meta's
+// webhooks after the message is saved. Without ANTHROPIC_API_KEY
 // nothing happens.
 
 import { addTask, setInsight } from "@/lib/engine";
-import { stageLabel } from "@/lib/types";
+import { CHANNEL_LABEL, stageLabel } from "@/lib/types";
 import { aiConfigured, readReplies } from "./ai";
 import { getFacts } from "./enquiries";
 import { applyMany, loadState } from "./state";
@@ -26,7 +26,7 @@ export async function readContactReplies(contactId: string) {
   const facts = await getFacts();
   const read = await readReplies({
     name: c.name, stage: stageLabel(c.stage), membership: c.membership?.name, trialAt: c.trialAt,
-    answers: c.answers.filter((a) => a.answer), thread: thread.map((m) => ({ dir: m.dir, text: m.text, at: m.at })), facts,
+    answers: c.answers.filter((a) => a.answer), thread: thread.map((m) => ({ dir: m.dir, text: m.text, at: m.at, ...(m.channel ? { channel: CHANNEL_LABEL[m.channel] } : {}) })), facts,
   });
   const lastIn = incoming[incoming.length - 1];
   await applyMany((st) => {

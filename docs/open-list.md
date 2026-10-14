@@ -390,6 +390,19 @@ updates from the import never fire automations.
     Claude then checks it and removes the test contact. Menu reordered
     (Sammy, 14/10): Pipeline holds Meta | TeamUp, Program members holds
     Program | All members, Calendar after Pipeline, Automations after Forms.
+    **14/10 evening:** Sammy's test (Kayleigh): leads_1 failed, Meta "payment
+    method" error on marketing templates (utility ones send). Sammy to check
+    Billing & payments for WhatsApp account 3694606807344403; every marketing
+    template and the new-number mailout wait on this. Booking page on phones
+    fixed (short day buttons, times under their own heading).
+  - **Facebook and Instagram messages** (Sammy, 14/10, option A: separate
+    Enquiries buttons). Built: `/api/webhooks/meta`, replies as the Page,
+    echoes from the apps, read receipts, contact page cards, Needs you,
+    manual, privacy page. **Waiting on Sammy:** give RoundOnecrm the Page and
+    the Instagram account, make a token with the messaging permissions and
+    paste it into Vercel as `META_SOCIAL_TOKEN`; then Claude runs
+    `social_check`, sets `META_PAGE_ID` and runs `social_subscribe`, and they
+    test with a real message on each.
     **13/10: YCloud link gone; waiting on a number slot.** Meta Direct
     Support (a person) said to clear partner connections; Business Settings
     had none. Sammy pressed **Remove from business portfolio** on the old

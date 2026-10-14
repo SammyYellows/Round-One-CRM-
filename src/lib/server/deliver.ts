@@ -1,14 +1,15 @@
 // Sends what the engine only recorded. The engine is pure and also runs in
 // the browser, so it just logs an "email.sent" event, or adds an outgoing
-// WhatsApp message to the thread; after the server has saved a change, this
-// sends each email and WhatsApp that change created. Each is saved once, so
-// nothing is sent twice. Server-only.
+// WhatsApp, Facebook or Instagram message to the thread; after the server
+// has saved a change, this sends each one that change created. Each is
+// saved once, so nothing is sent twice. Server-only.
 
 import { placeholders, templateParams } from "@/lib/engine";
 import { waNumber } from "@/lib/phone";
-import { Contact, Message, sourceLabel, State } from "@/lib/types";
+import { CHANNEL_LABEL, Contact, Message, SocialChannel, sourceLabel, State } from "@/lib/types";
 import { db } from "./supabase";
 import { sendEmail } from "./email";
+import { sendSocial } from "./social";
 import { sendTemplate, sendText } from "./whatsapp";
 
 export const appUrl = () => (process.env.APP_URL || "https://round-one-crm.vercel.app").replace(/\/$/, "");
@@ -94,20 +95,51 @@ async function sendWhatsApp(m: Message, c: Contact | undefined, templates: Map<s
   }
 }
 
-export async function deliver(before: State, after: State) {
-  // WhatsApps and emails go out side by side. Each stays in order within
-  // itself: a contact's WhatsApps arrive in the order they were written, and
-  // emails go one at a time (Resend limits how fast we can send).
-  await Promise.all([deliverWhatsApps(before, after), deliverEmails(before, after)]);
+/**
+ * A staff reply on Facebook or Instagram (Sammy, 14/10/2026). Meta takes it
+ * within 24 hours of their last message, or up to 7 days as a person's reply
+ * (the human agent tag); after that, not at all.
+ */
+async function sendSocialReply(m: Message, c: Contact | undefined, s: State) {
+  const channel = m.channel as SocialChannel;
+  const label = CHANNEL_LABEL[channel];
+  const userId = c?.social?.[channel === "facebook" ? "facebookId" : "instagramId"];
+  const lastIn = s.messages.filter((x) => x.contactId === m.contactId && x.dir === "in" && x.channel === channel).at(-1);
+  const hours = lastIn ? (Date.parse(m.at) - Date.parse(lastIn.at)) / 3600e3 : Infinity;
+  const res = !userId ? { ok: false as const, error: `They haven’t messaged us on ${label}` }
+    : hours > 24 * 7 ? { ok: false as const, error: `More than 7 days since their last ${label} message, so Meta won’t take a reply` }
+    : await sendSocial(channel, userId, m.text, hours > 24);
+  if (res.ok) {
+    if (!res.dryRun) await setMessage(m.id, { status: "sent", ...(res.id ? { provider_id: res.id } : {}) });
+  } else {
+    console.error("[deliver]", label, res.error);
+    await setMessage(m.id, { status: "failed", error: res.error });
+    await recordEvent("social.failed", c?.id, `${label} reply to ${c?.name ?? "unknown"} wasn’t sent: ${res.error}`);
+  }
 }
 
-async function deliverWhatsApps(before: State, after: State) {
+export async function deliver(before: State, after: State) {
+  // Messages and emails go out side by side. Each stays in order within
+  // itself: a contact's messages arrive in the order they were written, and
+  // emails go one at a time (Resend limits how fast we can send).
+  await Promise.all([deliverMessages(before, after), deliverEmails(before, after)]);
+}
+
+async function deliverMessages(before: State, after: State) {
   const sentBefore = new Set(before.messages.map((m) => m.id));
-  const outgoing = after.messages.filter((m) => m.dir === "out" && !sentBefore.has(m.id));
+  // Replies staff sent from the Facebook or Instagram app have already gone.
+  const outgoing = after.messages.filter((m) => m.dir === "out" && !m.external && !sentBefore.has(m.id));
   if (!outgoing.length) return;
-  const { data } = await db().from("templates").select("name, body, language, category, header_video, button_url");
-  const templates = new Map(((data ?? []) as TemplateRow[]).map((t) => [t.name, t]));
-  for (const m of outgoing) await sendWhatsApp(m, after.contacts.find((x) => x.id === m.contactId), templates);
+  let templates: Map<string, TemplateRow> | undefined;
+  for (const m of outgoing) {
+    const c = after.contacts.find((x) => x.id === m.contactId);
+    if (m.channel === "facebook" || m.channel === "instagram") { await sendSocialReply(m, c, after); continue; }
+    if (!templates) {
+      const { data } = await db().from("templates").select("name, body, language, category, header_video, button_url");
+      templates = new Map(((data ?? []) as TemplateRow[]).map((t) => [t.name, t]));
+    }
+    await sendWhatsApp(m, c, templates);
+  }
 }
 
 async function deliverEmails(before: State, after: State) {

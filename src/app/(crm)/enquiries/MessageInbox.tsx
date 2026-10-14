@@ -4,21 +4,23 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { ago } from "@/lib/format";
 import { useStore } from "@/lib/store";
-import { sourceLabel } from "@/lib/types";
-import { SEEN_WHATSAPP, conversations, lastSeenAt } from "@/lib/whatsappInbox";
-import { WhatsAppThread } from "@/components/WhatsAppThread";
+import { CHANNEL_LABEL, Channel, sourceLabel } from "@/lib/types";
+import { SEEN, conversations, lastSeenAt } from "@/lib/messageInbox";
+import { MessageThread } from "@/components/MessageThread";
 
-// The WhatsApp tab on Enquiries (Sammy, 12/10/2026): everyone who has
-// messaged the gym number, newest first, with the conversation on the right.
-// Replies follow WhatsApp's 24-hour rule, as on the contact page.
+// The WhatsApp, Facebook and Instagram tabs on Enquiries (Sammy, 12/10 and
+// 14/10/2026): everyone who has messaged on that channel, newest first, with
+// the conversation on the right. Replies follow Meta's time limits, as on
+// the contact page.
 
 type View = "waiting" | "all";
 
-export function WhatsAppInbox() {
+export function MessageInbox({ channel }: { channel: Channel }) {
   const { s, now, act } = useStore();
+  const label = CHANNEL_LABEL[channel];
   // What counted as new when the tab opened, so those rows stay marked during this visit.
-  const [seenBefore] = useState(() => lastSeenAt(SEEN_WHATSAPP));
-  const all = conversations(s);
+  const [seenBefore] = useState(() => lastSeenAt(SEEN[channel]));
+  const all = conversations(s, channel);
   const waiting = all.filter((c) => c.waiting);
   const [view, setView] = useState<View>(() => (waiting.length ? "waiting" : "all"));
   const [selected, setSelected] = useState<string | null>(null);
@@ -45,7 +47,7 @@ export function WhatsAppInbox() {
           ))}
         </div>
         {shown.length === 0 ? (
-          <div className="empty">{view === "waiting" ? "Nothing waiting. New WhatsApp messages show up here." : "No WhatsApp messages yet."}</div>
+          <div className="empty">{view === "waiting" ? `Nothing waiting. New ${label} messages show up here.` : `No ${label} messages yet.`}</div>
         ) : (
           shown.map(({ contact: c, last, lastIn, waiting: w }) => (
             <button key={c.id} className={`enq-row ${selected === c.id ? "on" : ""}`} onClick={() => open(c.id)}>
@@ -61,6 +63,7 @@ export function WhatsAppInbox() {
                 {w && !isNew(lastIn.at) && <span className="chip">Waiting for a reply</span>}
                 {!w && last.dir === "in" && <span className="chip">No reply needed</span>}
                 <span className="chip chip-light">{c.membership ? "Member" : sourceLabel(c.source)}</span>
+                {channel === "instagram" && c.social?.instagramUsername && c.name !== `@${c.social.instagramUsername}` && <span className="chip">@{c.social.instagramUsername}</span>}
               </div>
             </button>
           ))
@@ -71,12 +74,13 @@ export function WhatsAppInbox() {
         {!current ? (
           <section className="card"><div className="empty">Pick a conversation on the left.</div></section>
         ) : (
-          <WhatsAppThread
+          <MessageThread
             contactId={current.contact.id}
+            channel={channel}
             extra={<>
               {current.waiting
-                ? <button className="btn btn-ghost btn-sm" onClick={() => act("setWhatsAppDone", current.contact.id, true)}>No reply needed</button>
-                : current.last.dir === "in" && <button className="btn btn-ghost btn-sm" onClick={() => act("setWhatsAppDone", current.contact.id, false)}>Needs a reply</button>}
+                ? <button className="btn btn-ghost btn-sm" onClick={() => act("setChannelDone", current.contact.id, channel, true)}>No reply needed</button>
+                : current.last.dir === "in" && <button className="btn btn-ghost btn-sm" onClick={() => act("setChannelDone", current.contact.id, channel, false)}>Needs a reply</button>}
               <Link href={`/contacts/${current.contact.id}`} className="btn btn-ghost btn-sm">Contact</Link>
             </>}
           />

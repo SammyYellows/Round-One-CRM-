@@ -15,7 +15,14 @@
 //   {action:"subscribe", waba}: sends that account's WhatsApp webhooks to
 //     the CRM (this app). {action:"templates", waba, only?, statusOnly?}:
 //     submits the CRM's templates there for approval (never sends one).
+// Facebook and Instagram messages (Sammy, 14/10/2026):
+//   {action:"social_check"}: what META_SOCIAL_TOKEN can do, the Pages and
+//     Instagram account it reaches, and the webhooks set up (read only).
+//   {action:"social_subscribe"}: sends the Page's and Instagram's messages
+//     to /api/webhooks/meta (sends nothing to anyone).
 
+import { appUrl } from "@/lib/server/deliver";
+import { socialCheck, socialSubscribe } from "@/lib/server/social";
 import { submitTemplates } from "@/lib/server/waTemplates";
 
 export const dynamic = "force-dynamic";
@@ -27,6 +34,8 @@ export async function POST(req: Request) {
   const secret = process.env.CRON_SECRET;
   if (!secret || req.headers.get("authorization") !== `Bearer ${secret}`) return Response.json({ error: "Not allowed" }, { status: 401 });
   const b = (await req.json().catch(() => ({}))) as { action?: string; phoneId?: string; pin?: string; waba?: string; number?: string; name?: string; method?: string; code?: string; migrate?: boolean; only?: string[]; statusOnly?: boolean };
+  if (b.action === "social_check") return Response.json(await socialCheck());
+  if (b.action === "social_subscribe") return Response.json(await socialSubscribe(`${appUrl()}/api/webhooks/meta`));
   const wabaOk = /^\d+$/.test(String(b.waba ?? ""));
   if (b.action === "phones" || b.action === "subscribe") {
     if (!wabaOk) return Response.json({ error: "Needs waba" }, { status: 400 });

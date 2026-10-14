@@ -6,10 +6,10 @@ import { useEffect, useState } from "react";
 import { describeStep, firstName } from "@/lib/engine";
 import { ago, dayTime, shortDate, time, toLocalInput } from "@/lib/format";
 import { useStore } from "@/lib/store";
-import { LOST_REASONS, ON_PIPELINE, STAGES, Stage, apptStatusLabel, sourceLabel, stageLabel, teamupCustomerUrl } from "@/lib/types";
+import { CHANNELS, Channel, LOST_REASONS, ON_PIPELINE, STAGES, Stage, apptStatusLabel, channelOf, sourceLabel, stageLabel, teamupCustomerUrl } from "@/lib/types";
 import { PRIORITY_LABEL, inactivityAdvice } from "@/lib/inactivity";
 import { useIsManager } from "@/components/StaffContext";
-import { WhatsAppThread, replyWindow } from "@/components/WhatsAppThread";
+import { MessageThread, replyWindow } from "@/components/MessageThread";
 
 
 export default function ContactPage() {
@@ -62,8 +62,16 @@ export default function ContactPage() {
     );
   }
 
-  // WhatsApp only allows free-text replies within 24 hours of their last message.
-  const windowOpen = replyWindow(c.id, msgs, now).open;
+  // Their conversations: WhatsApp unless they've only messaged on Facebook or
+  // Instagram, plus each of those they've used (14/10/2026). A suggested reply
+  // goes in the box for wherever they last messaged.
+  const used = (ch: Channel) => msgs.some((m) => channelOf(m) === ch) || (ch === "facebook" ? !!c.social?.facebookId : ch === "instagram" ? !!c.social?.instagramId : !!c.phone);
+  const threads = CHANNELS.filter(used);
+  if (!threads.length) threads.push("whatsapp");
+  const lastInChannel = msgs.filter((m) => m.dir === "in").at(-1);
+  const primary: Channel = lastInChannel ? channelOf(lastInChannel) : threads[0];
+  // Meta only allows free-text replies for a while after their last message.
+  const windowOpen = replyWindow(c.id, msgs, now, primary).open;
 
   const runs = s.runs.filter((r) => r.contactId === id && r.status === "waiting");
   const appts = s.appointments.filter((a) => a.contactId === id).sort((a, b) => Date.parse(b.start) - Date.parse(a.start)).slice(0, 6);
@@ -301,6 +309,8 @@ export default function ContactPage() {
                   : c.source === "teamup" ? "Signed up straight in TeamUp, so they never filled in the questionnaire."
                   : c.source === "email" ? "Came in by email, so they never filled in the questionnaire."
                   : c.source === "whatsapp" ? "Messaged us on WhatsApp first, so they never filled in the questionnaire."
+                  : c.source === "facebook" ? "Messaged us on Facebook first, so they never filled in the questionnaire."
+                  : c.source === "instagram" ? "Messaged us on Instagram first, so they never filled in the questionnaire."
                   : "They haven’t filled in the questionnaire. Ask them at the intro meeting, or send them the form."}
               </div>
             </section>
@@ -319,7 +329,7 @@ export default function ContactPage() {
                   <div className="label" style={{ margin: 0 }}>Suggested reply · nothing goes until you send it</div>
                   <div className="small" style={{ whiteSpace: "pre-wrap" }}>{c.insight.suggestedReply}</div>
                   <div className="actions" style={{ gap: 8 }}>
-                    <button className="btn btn-ghost btn-sm" disabled={!windowOpen} title={windowOpen ? "Puts it in the message box to edit and send" : "Their 24-hour reply window has closed; only templates can go"} onClick={() => { setDraft(c.insight!.suggestedReply!); act("settleInsightReply", c.id, true); }}>Use it</button>
+                    <button className="btn btn-ghost btn-sm" disabled={!windowOpen} title={windowOpen ? "Puts it in the message box to edit and send" : "Their reply window has closed"} onClick={() => { setDraft(c.insight!.suggestedReply!); act("settleInsightReply", c.id, true); }}>Use it</button>
                     <button className="btn btn-ghost btn-sm" onClick={() => act("settleInsightReply", c.id, false)}>No reply needed</button>
                     {!windowOpen && <span className="small faint">Reply window closed.</span>}
                   </div>
@@ -345,7 +355,9 @@ export default function ContactPage() {
           ))}
         </section>
 
-        <WhatsAppThread contactId={c.id} draft={draft} setDraft={setDraft} />
+        {threads.map((ch) => ch === primary
+          ? <MessageThread key={ch} contactId={c.id} channel={ch} draft={draft} setDraft={setDraft} />
+          : <MessageThread key={ch} contactId={c.id} channel={ch} />)}
 
         {live && <EarlierMessages contactId={c.id} />}
         </div>

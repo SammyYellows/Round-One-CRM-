@@ -254,11 +254,12 @@ export async function readCheckin(input: { first: string; floor: number; stretch
 }
 
 /**
- * Reads what a contact has said in their WhatsApp replies and writes a short
+ * Reads what a contact has said in their WhatsApp, Facebook or Instagram
+ * messages and writes a short
  * note for staff plus a suggested reply (improvement item 16). The reply is
  * only ever sent by a person; this never argues, sells hard or promises.
  */
-export async function readReplies(input: { name: string; stage: string; membership?: string; trialAt?: string; answers: { question: string; answer: string }[]; thread: { dir: "in" | "out"; text: string; at: string }[]; facts: string }): Promise<{ summary: string; suggestedReply: string; action: string }> {
+export async function readReplies(input: { name: string; stage: string; membership?: string; trialAt?: string; answers: { question: string; answer: string }[]; thread: { dir: "in" | "out"; text: string; at: string; channel?: string }[]; facts: string }): Promise<{ summary: string; suggestedReply: string; action: string }> {
   const key = process.env.ANTHROPIC_API_KEY;
   if (!key) throw new Error("ANTHROPIC_API_KEY isn’t set");
   const res = await fetch("https://api.anthropic.com/v1/messages", {
@@ -282,7 +283,7 @@ export async function readReplies(input: { name: string; stage: string; membersh
       messages: [{ role: "user", content:
         `Contact: ${input.name}. Pipeline stage: ${input.stage}.${input.membership ? ` Membership: ${input.membership}.` : ""}${input.trialAt ? ` Intro meeting booked: ${input.trialAt}.` : ""}\n` +
         (input.answers.length ? `Questionnaire: ${input.answers.map((a) => `${a.question} ${a.answer}`).join(" | ")}\n` : "") +
-        `WhatsApp thread, oldest first (OUT is us, IN is them):\n${input.thread.map((m) => `${m.dir === "in" ? "IN" : "OUT"} ${m.at.slice(0, 16)}: ${m.text}`).join("\n")}\n\n` +
+        `Message thread, oldest first (OUT is us, IN is them; WhatsApp unless it says Facebook or Instagram):\n${input.thread.map((m) => `${m.dir === "in" ? "IN" : "OUT"}${m.channel ? ` [${m.channel}]` : ""} ${m.at.slice(0, 16)}: ${m.text}`).join("\n")}\n\n` +
         `Write the staff note from what THEY said (the IN messages). Then suggest a reply to their latest message. The reply must not argue, haggle, defend the gym, or make offers that aren't on the facts sheet; if the right move is a human conversation, say so briefly and warmly and leave it there. A staff member decides whether to send it.` }],
     }),
   });
@@ -298,7 +299,7 @@ export async function readReplies(input: { name: string; stage: string; membersh
  * later, as a to-do for Needs you (Sammy, 12/10/2026). Empty when it
  * promised nothing.
  */
-export async function spotPromise(input: { name: string; channel: "email" | "WhatsApp"; text: string }): Promise<string> {
+export async function spotPromise(input: { name: string; channel: string; text: string }): Promise<string> {
   const key = process.env.ANTHROPIC_API_KEY;
   if (!key) throw new Error("ANTHROPIC_API_KEY isn’t set");
   const res = await fetch("https://api.anthropic.com/v1/messages", {
