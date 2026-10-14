@@ -123,11 +123,15 @@ type GraphConversation = {
  * out or asks for less), so: the conversation's last 20 message ids, then
  * each message on its own, as Meta's Instagram docs do it.
  */
-async function instagramMessages(conversationId: string, token: string): Promise<GraphMessage[]> {
-  const r = await graph(`${conversationId}?fields=messages.limit(20)`, token);
+async function instagramConversation(conversationId: string, token: string): Promise<GraphConversation> {
+  const r = await graph(`${conversationId}?fields=participants,messages.limit(20)`, token);
   const ids = ((r.json.messages as { data?: { id: string }[] } | undefined)?.data ?? []).map((m) => m.id);
   const got = await Promise.all(ids.map((id) => graph(`${id}?fields=id,created_time,from,message,attachments`, token)));
-  return got.filter((x) => x.ok && x.json.created_time).map((x) => x.json as unknown as GraphMessage);
+  return {
+    id: conversationId,
+    participants: r.json.participants as GraphConversation["participants"],
+    messages: { data: got.filter((x) => x.ok && x.json.created_time).map((x) => x.json as unknown as GraphMessage) },
+  };
 }
 
 function historyText(m: GraphMessage) {
@@ -155,9 +159,9 @@ export async function socialHistory(channel: SocialChannel, opts: { dryRun: bool
   const ig = channel === "instagram" ? await graph(`${pageId}?fields=instagram_business_account`, token) : null;
   const ours = new Set([pageId, String((ig?.json.instagram_business_account as { id?: string } | undefined)?.id ?? "")]);
   // Facebook gives messages with the conversations; Instagram only the conversations (messages fetched one by one below).
-  const fields = channel === "facebook" ? "participants,messages.limit(100){id,created_time,from,message,attachments}" : "id,participants";
+  const fields = channel === "facebook" ? "participants,messages.limit(100){id,created_time,from,message,attachments}" : "id";
   let r: Awaited<ReturnType<typeof graph>> | undefined;
-  for (const limit of channel === "instagram" ? [10, 3] : [25, 10]) {
+  for (const limit of channel === "instagram" ? [10, 3, 1] : [25, 10]) {
     r = await graph(
       `${pageId}/conversations?platform=${channel === "facebook" ? "messenger" : "instagram"}&limit=${limit}&fields=${fields}${opts.after ? `&after=${encodeURIComponent(opts.after)}` : ""}`,
       token,
@@ -168,10 +172,11 @@ export async function socialHistory(channel: SocialChannel, opts: { dryRun: bool
   if (!r?.ok) return { error: r?.json.error?.message || `Meta said ${r?.status}` };
   const prefix = channel === "facebook" ? "fb" : "ig";
   const items = [];
-  for (const conv of (r.json.data ?? []) as GraphConversation[]) {
+  for (const listed of (r.json.data ?? []) as GraphConversation[]) {
+    const conv = channel === "instagram" && listed.id ? await instagramConversation(listed.id, token) : listed;
     const them = conv.participants?.data?.find((p) => !ours.has(p.id));
     if (!them) continue;
-    const msgs = channel === "instagram" && conv.id ? await instagramMessages(conv.id, token) : [...(conv.messages?.data ?? [])];
+    const msgs = [...(conv.messages?.data ?? [])];
     let next = conv.messages?.paging?.next;
     while (channel === "facebook" && next && msgs.length < HISTORY_CAP) {
       const page = await fetch(next, { cache: "no-store" }).then((x) => x.json()).catch(() => ({})) as { data?: GraphMessage[]; paging?: { next?: string } };
