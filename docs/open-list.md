@@ -409,7 +409,14 @@ updates from the import never fire automations.
     counts first (dry run), copies them in after Sammy's go ("i just want to
     see the old messages", not leads). Waiting: a test message from someone
     who isn't a Page admin, and the Instagram "Allow access to messages"
-    setting on Sammy's phone.
+    setting on Sammy's phone. **Facebook history copied in (14/10, Sammy's
+    yes):** 285 conversations, 926 messages back to April 2021, 268 people
+    (source facebook, off the pipeline, nothing sent); 194 old ones marked
+    No reply needed, 4 from the last week waiting. **Instagram history:**
+    Meta times out past Vercel's 60 seconds however small the request;
+    Claude retries the morning of 15/10 (Sammy chose to try again), then
+    asks before copying. AI drafts now show in the WhatsApp, Facebook and
+    Instagram inboxes (Use it, then Send).
     **13/10: YCloud link gone; waiting on a number slot.** Meta Direct
     Support (a person) said to clear partner connections; Business Settings
     had none. Sammy pressed **Remove from business portfolio** on the old
