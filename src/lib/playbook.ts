@@ -68,7 +68,7 @@ export const TEMPLATES: TemplateDef[] = [
   // Win-back (09/10/2026): goes with the win-back email, to the number on the account.
   {
     name: "win_back", category: "marketing",
-    body: "Hi {first}, we saw you’ve given notice on your membership. No hard feelings. If it’s about time or money there may be a membership that fits better, or a hold for a while. If something put you off, tell us, we’d rather hear it than guess. Reply here or grab a coach next time you’re in.\n\n{team}",
+    body: "Hi {first}, we saw you’ve given notice on your membership. No hard feelings. If it’s about time or money there may be a membership that fits better, or a hold for a while. If something put you off, tell us, we’d rather hear it than guess. Reply here or grab a coach next time you’re in. If there is something we can do to keep you here, please let us know.\n\nThe Round One team",
   },
   // Program schedule (06/10/2026): service messages, one per email in the sequence.
   {
