@@ -28,7 +28,7 @@ export const MANUAL: ManualSection[] = [
 
 ### What you can see
 - **Staff** logins see the day-to-day screens: Today, Ask Champ, Pipeline (Meta and TeamUp), Calendar, Contacts, Program members (Program and All members), Enquiries, Cancellations, Failed payments and Accountability.
-- **Owner** and **Manager** logins also see Mailouts, Reports, Forms, Automations, Meta ads, Staff and Train Champ, and can change messages and settings.
+- **Owner** and **Manager** logins also see Mailouts, Reports, Forms, Automations, Meta ads, Till, Staff and Train Champ, and can change messages and settings.
 
 ### Getting help
 Ask **Champ** (**Ask Champ**, in red, second in the menu). It knows this manual, can look up any member, class or lead for you, and can help with training and sales ideas.`,
@@ -263,7 +263,8 @@ Anyone can reply STOP to stop marketing messages; messages about their own booki
 - **Everyone's** on Champ: read all staff chats. Conduct flags are emailed to management.
 - **Automations**: every automatic message, grouped by job. Read what's sent, edit the wording, and switch messages on or off (with a confirm).
 - **Mailouts**: one email, or one WhatsApp, to many people (members, ex-members, old leads, everyone who has chatted with us on WhatsApp). Pick **Email** or **WhatsApp** at the top, then **New email** or **New WhatsApp**; WhatsApp sends one Meta-approved template from the gym's WhatsApp number (up to 200 people a day, the rest the next days). Send yourself a test first. Sends only after **Send** and confirming the count. Every email has an unsubscribe link; anyone who replied STOP or unsubscribed is skipped.
-- **Reports**: weekly members, monthly growth, unpaid memberships and attendance, as PDFs; schedules to managers' WhatsApp are off until switched on in Settings.
+- **Reports**: weekly members, monthly growth, unpaid memberships and attendance, as PDFs; schedules to managers' WhatsApp are off until switched on in Settings. **Till** shows takings from the till by day, week and month, by payment type, and the month's best sellers.
+- **Till** (next to Staff): the cash that should be in the till now (the float left at the last cash-out plus cash sales since, from Epos Now). **Cash out**: count the till, enter it, choose how much to leave in as float, then confirm; it shows what to bank and any difference (over or short, in red). The first cash-out is the starting count. **Cashed out** lists every cash-out. The CRM only reads Epos Now; it never changes the till. Today shows **Taken today** and **Cash in the till** to management logins.
 - **Forms**: the questionnaire's questions and end screen.
 - **Meta ads**: spend and results per ad.
 - **Settings in other screens**: Booking hours (Calendar), the "not been in" limit (Program members → All members), Gym facts (Enquiries).`,

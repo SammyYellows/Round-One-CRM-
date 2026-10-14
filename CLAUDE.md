@@ -213,7 +213,7 @@ In place so far:
 - **Roles and staff logins** (Sammy, 10/10): `src/lib/roles.ts`. Owner and
   Manager staff roles are management and see everything; everyone else
   (role Staff) sees the day-to-day screens only. Management-only screens:
-  Mailouts, Automations, Reports, Forms, Meta ads, Train Champ, Staff
+  Mailouts, Automations, Reports, Forms, Meta ads, Till, Train Champ, Staff
   (hidden from the sidebar and blocked by `RoleGate`). Management-only
   changes are refused on the server: actions in `MANAGEMENT_ACTIONS`
   (switching or rewording automations, forms, booking hours) and the
@@ -248,10 +248,22 @@ In place so far:
   menu): one section per area; the management section is hidden from
   staff. Champ reads the whole manual and is the expert on the CRM; keep
   the manual true to the screens whenever a screen changes.
+- **Till** (Sammy, 14/10; management only, `/till`, `/api/till`): Epos Now read with
+  `EPOSNOW_API_KEY`/`EPOSNOW_API_SECRET` (`src/lib/server/eposnow.ts`, Basic auth,
+  V2 API; times are UK wall clock, `fromUkWallClock`/`toUkWallClock`). The CRM
+  never writes to the till. `src/lib/server/till.ts`: sales with their tenders
+  (payments, net of change) → takings by period and type, best sellers, and
+  cash in the till = float left at the last cash-out + cash since. **Cash out**
+  records a `cash_outs` row (counted, expected worked out on the server,
+  float left, note; the first is the starting count) after a confirm, and a
+  `till.cashed_out` event with no amounts. The till's own end of day closes
+  itself at 05:00 with nothing counted, so it isn't used. Reports → Till and
+  a Till card on Today (management only). Sums checked against the till's
+  end-of-day tenders (`/api/eposnow-check?compare=1`): they match.
 - **Menu** (Sammy, 14/10, `NAV` in `src/components/Sidebar.tsx`): Today,
   Ask Champ, Pipeline, Calendar, Contacts, Program members, Enquiries,
   Cancellations, Failed payments, Mailouts, Accountability, Reports, Forms,
-  Automations, Meta ads, Staff, Manual. Pipeline (Meta | TeamUp) and
+  Automations, Meta ads, Till, Staff, Manual. Pipeline (Meta | TeamUp) and
   Program members (Program | All members) are one menu item each with
   buttons at the top (`PageTabs`); the routes stay `/pipeline`,
   `/pipeline/teamup`, `/program` and `/members`.

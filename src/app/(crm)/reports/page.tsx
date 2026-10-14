@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { useStore } from "@/lib/store";
 import { MembersLine } from "@/components/charts";
+import { BestSeller, TillSales, TillSummary } from "@/components/TillSales";
+import Link from "next/link";
 
 // Management reports: the weekly members numbers and the monthly growth
 // report, the settings behind them, and sending to the managers' WhatsApp
@@ -46,7 +48,7 @@ export default function ReportsPage() {
   const { live } = useStore();
   const [data, setData] = useState<Payload | null>(null);
   const [err, setErr] = useState("");
-  const [tab, setTab] = useState<"weekly" | "monthly" | "unpaid" | "attendance">("weekly");
+  const [tab, setTab] = useState<"weekly" | "monthly" | "unpaid" | "attendance" | "till">("weekly");
   const [s, setS] = useState<Settings | null>(null);
   const [numbers, setNumbers] = useState("");
   const [months, setMonths] = useState("");
@@ -64,6 +66,24 @@ export default function ReportsPage() {
   if (!live) return <div className="card pad">Reports need the live database; the prototype has no TeamUp data.</div>;
   if (err) return <div className="card pad">Couldn’t load the reports: {err}</div>;
   if (!data || !s) return <div className="card pad muted">Working out the numbers…</div>;
+
+  const tabs = (
+    <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+      {(["weekly", "monthly", "unpaid", "attendance", "till"] as const).map((k) => <button key={k} className={`fchip ${tab === k ? "on" : ""}`} aria-pressed={tab === k} onClick={() => { setTab(k); setConfirming(false); }}>{k === "weekly" ? "Weekly" : k === "monthly" ? "Monthly" : k === "unpaid" ? "Unpaid" : k === "attendance" ? "Attendance" : "Till"}</button>)}
+    </div>
+  );
+  // Till sales from Epos Now (Sammy, 14/10/2026); the cash-out itself is on the Till page.
+  if (tab === "till") {
+    return (
+      <>
+        <header className="page-head">
+          <div><div className="eyebrow">Till sales · from Epos Now</div><h1 className="h h1">Reports</h1></div>
+          {tabs}
+        </header>
+        <TillReport />
+      </>
+    );
+  }
 
   const r = data[tab];
   const w = r.weekly;
@@ -125,9 +145,7 @@ export default function ReportsPage() {
           <div className="eyebrow">Members · from TeamUp, as of {fmt(r.asOf)}</div>
           <h1 className="h h1">Reports</h1>
         </div>
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-          {(["weekly", "monthly", "unpaid", "attendance"] as const).map((k) => <button key={k} className={`fchip ${tab === k ? "on" : ""}`} aria-pressed={tab === k} onClick={() => { setTab(k); setConfirming(false); }}>{k === "weekly" ? "Weekly" : k === "monthly" ? "Monthly" : k === "unpaid" ? "Unpaid" : "Attendance"}</button>)}
-        </div>
+        {tabs}
       </header>
 
       <div className={`grid ${tiles.length === 4 ? "stats4" : "stats5"}`}>
@@ -321,6 +339,21 @@ export default function ReportsPage() {
           )}
         </section>
       ); })()}
+    </>
+  );
+}
+
+/** The Till tab: takings by period and payment type, and the month's best sellers. */
+function TillReport() {
+  const [d, setD] = useState<{ connected: boolean; error?: string; today?: TillSummary; week?: TillSummary; month?: TillSummary; lastMonth?: TillSummary; bestSellers?: BestSeller[] | null } | null>(null);
+  useEffect(() => { fetch("/api/till", { cache: "no-store" }).then((r) => r.json()).then(setD).catch(() => setD({ connected: true, error: "Couldn’t read the till." })); }, []);
+  if (!d) return <div className="card pad muted">Reading the till…</div>;
+  if (!d.connected) return <div className="card pad">Epos Now isn’t connected.</div>;
+  if (d.error || !d.today || !d.week || !d.month || !d.lastMonth) return <div className="card pad">{d.error ?? "Couldn’t read the till."}</div>;
+  return (
+    <>
+      <TillSales periods={[{ label: "Today", s: d.today }, { label: "This week", s: d.week }, { label: "This month", s: d.month }, { label: "Last month", s: d.lastMonth }]} best={d.bestSellers} />
+      <div className="small muted">Cash in the till and cashing out are on the <Link href="/till">Till</Link> page.</div>
     </>
   );
 }

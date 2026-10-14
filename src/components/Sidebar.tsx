@@ -27,6 +27,8 @@ const NAV = [
   { href: "/forms", label: "Forms", icon: <><rect x="5" y="3" width="14" height="18" /><path d="M9 8h6M9 12h6M9 16h4" /></> },
   { href: "/automations", label: "Automations", icon: <path d="M13 2 4 14h7l-1 8 9-12h-7z" /> },
   { href: "/ads", label: "Meta ads", icon: <path d="M5 20V11M11 20V5M17 20v-6M3 21h18" /> },
+  // Management only, next to Staff (Sammy, 14/10/2026).
+  { href: "/till", label: "Till", icon: <><rect x="3" y="10" width="18" height="10" /><path d="M7 10V5h10v5M7 15h4" /></> },
 ];
 
 export function Sidebar({ staff }: { staff?: { name: string; role: string } }) {

@@ -1,24 +1,30 @@
 // The till's money, read from Epos Now (Sammy, 14/10/2026): takings, cash
-// taken since the last cash-out, and the till's own past cash-ups. Read
-// only. Epos Now gives times as UK wall clock. Server-only.
+// put in the till since the last cash-out, best sellers, and the cash-outs
+// management record here. Read only on the till. Epos Now gives times as UK
+// wall clock. Management only (gym-wide money). Server-only.
 
-import { fromUkWallClock, toUkWallClock } from "@/lib/time";
+import { fromUkWallClock, toUkWallClock, ukParts, ukTime, ukWeekStart } from "@/lib/time";
 import { eposConfigured, eposGet } from "./eposnow";
+import { db } from "./supabase";
 
-type Tx = { TransactionID: number; DeviceID: number; DateTime: string; Total: number; PaymentStatus?: string };
+type Tx = { TransactionID: number; DateTime: string };
 type Tender = { TransactionID: number; TypeID: number; Amount: number; Change: number };
+type Row = Record<string, unknown>;
 export type EndOfDay = {
-  EndOfDayID: number; TillName: string; OpenedBy: string; ClosedBy: string; StartDate: string; EndDate: string;
-  PrevBal: number; Sales: number; PayOuts: number; PettyCash: number; FloatAdjust: number; CustomerCredits: number;
-  Expected: number; Actual: number; Variance: number; Tenders: unknown;
+  StartDate: string; EndDate: string; PrevBal: number; Sales: number; PayOuts: number; PettyCash: number; FloatAdjust: number;
+  CustomerCredits: number; Expected: number; Actual: number; Variance: number; Tenders: unknown;
 };
+/** One sale: when, and how it was paid (net of change). */
+export type Sale = { id: number; at: number; paid: { type: string; amount: number }[] };
 
 const PAGE = 200;
 const list = <T,>(j: unknown): T[] => (Array.isArray(j) ? (j as T[]) : []);
 const q = (search: string) => `search=${encodeURIComponent(search)}`;
+const money = (n: number) => Math.round(n * 100) / 100;
+const isCash = (type: string) => /^cash$/i.test(type);
 
 /** Every page of a V2 list (200 a page), up to `max` pages. */
-async function allPages<T>(path: string, max = 30): Promise<T[]> {
+async function allPages<T>(path: string, max = 40): Promise<T[]> {
   const out: T[] = [];
   for (let page = 1; page <= max; page++) {
     const r = await eposGet(`${path}${path.includes("?") ? "&" : "?"}page=${page}`);
@@ -32,68 +38,138 @@ async function allPages<T>(path: string, max = 30): Promise<T[]> {
 
 let types: { at: number; names: Map<number, string> } | null = null;
 /** Payment types by id: Cash, Card, Round1… (kept an hour). */
-export async function tenderTypes() {
+async function tenderTypes() {
   if (types && Date.now() - types.at < 3600e3) return types.names;
   const rows = await allPages<{ TypeID: number; Name: string }>("V2/TenderType", 2);
   types = { at: Date.now(), names: new Map(rows.map((t) => [t.TypeID, t.Name])) };
   return types.names;
 }
 
-const money = (n: number) => Math.round(n * 100) / 100;
-
-/**
- * Sales between two moments: how many, the total, each payment type, and
- * the cash that went into the till (cash paid minus change given).
- */
-export async function takings(fromMs: number, toMs = Date.now()) {
+let recent: { at: number; from: number; sales: Sale[] } | null = null;
+/** Every sale since `fromMs`, with its payments. Kept two minutes, so a page load doesn't ask Epos Now twice. */
+export async function salesSince(fromMs: number): Promise<Sale[]> {
   if (!eposConfigured()) throw new Error("Epos Now isn’t connected");
-  const from = toUkWallClock(fromMs);
-  const txs = (await allPages<Tx>(`V2/Transaction?${q(`(DateTime|>=|${from})`)}`))
-    .filter((t) => { const at = fromUkWallClock(t.DateTime); return at >= fromMs && at < toMs; });
-  const names = await tenderTypes();
-  const byType: Record<string, number> = {};
-  let cash = 0;
+  if (recent && Date.now() - recent.at < 120e3 && recent.from <= fromMs) return recent.sales.filter((s) => s.at >= fromMs);
+  const txs = (await allPages<Tx>(`V2/Transaction?${q(`(DateTime|>=|${toUkWallClock(fromMs)})`)}`))
+    .map((t) => ({ id: t.TransactionID, at: fromUkWallClock(t.DateTime) }))
+    .filter((t) => t.at >= fromMs);
+  const sales: Sale[] = [];
   if (txs.length) {
-    const ids = new Set(txs.map((t) => t.TransactionID));
-    const min = Math.min(...ids);
-    const tenders = (await allPages<Tender>(`V2/Tender?${q(`(TransactionID|>=|${min})`)}`)).filter((t) => ids.has(t.TransactionID));
-    for (const t of tenders) {
-      const name = names.get(t.TypeID) ?? `Type ${t.TypeID}`;
-      const net = (t.Amount ?? 0) - (t.Change ?? 0);
-      byType[name] = money((byType[name] ?? 0) + net);
-      if (/^cash$/i.test(name)) cash += net;
+    const names = await tenderTypes();
+    const min = Math.min(...txs.map((t) => t.id));
+    const paid = new Map<number, Sale["paid"]>();
+    for (const t of await allPages<Tender>(`V2/Tender?${q(`(TransactionID|>=|${min})`)}`)) {
+      const p = paid.get(t.TransactionID) ?? [];
+      p.push({ type: names.get(t.TypeID) ?? `Type ${t.TypeID}`, amount: (t.Amount ?? 0) - (t.Change ?? 0) });
+      paid.set(t.TransactionID, p);
     }
+    for (const t of txs) sales.push({ ...t, paid: paid.get(t.id) ?? [] });
   }
+  recent = { at: Date.now(), from: fromMs, sales };
+  return sales;
+}
+
+/** Takings in a period: sales paid for, the total, each payment type, and the cash put in the till. */
+export function summarise(sales: Sale[], fromMs: number, toMs = Infinity) {
+  const inRange = sales.filter((s) => s.at >= fromMs && s.at < toMs && s.paid.length);
+  const byType: Record<string, number> = {};
+  for (const s of inRange) for (const p of s.paid) byType[p.type] = money((byType[p.type] ?? 0) + p.amount);
+  const cashSales = inRange.filter((s) => s.paid.some((p) => isCash(p.type)));
   return {
-    from: new Date(fromMs).toISOString(), to: new Date(toMs).toISOString(),
-    sales: txs.length,
-    total: money(txs.reduce((n, t) => n + (t.Total ?? 0), 0)),
+    sales: inRange.length,
+    total: money(Object.values(byType).reduce((a, b) => a + b, 0)),
     byType,
-    cash: money(cash),
-    lastSaleAt: txs.length ? new Date(Math.max(...txs.map((t) => fromUkWallClock(t.DateTime)))).toISOString() : null,
+    cash: money(Object.entries(byType).filter(([k]) => isCash(k)).reduce((a, [, v]) => a + v, 0)),
+    cashSales: cashSales.length,
+    lastSaleAt: inRange.length ? new Date(Math.max(...inRange.map((s) => s.at))).toISOString() : null,
   };
 }
 
-/** The till's own cash-ups (Epos Now end of day) between two moments, newest first. */
-export async function tillCashUps(fromMs: number, toMs = Date.now()): Promise<EndOfDay[]> {
+/** Best sellers among these sales: quantity and takings per product. */
+export async function bestSellers(sales: Sale[], top = 10) {
+  if (!sales.length) return [];
+  const ids = new Set(sales.map((s) => s.id));
+  const items = (await allPages<Row>(`V2/TransactionItem?${q(`(TransactionID|>=|${Math.min(...ids)})`)}`)).filter((i) => ids.has(Number(i.TransactionID)));
+  const products = new Map((await allPages<Row>("V2/Product", 10)).map((p) => [Number(p.ProductID ?? p.Id), String(p.Name ?? "")]));
+  const byProduct = new Map<string, { name: string; qty: number; takings: number }>();
+  for (const i of items) {
+    const name = products.get(Number(i.ProductID)) || String(i.ProductName ?? i.Name ?? "Other");
+    const qty = Number(i.Quantity ?? i.Qty ?? 1);
+    const unit = Number(i.UnitPrice ?? i.Price ?? 0);
+    const e = byProduct.get(name) ?? { name, qty: 0, takings: 0 };
+    e.qty += qty;
+    e.takings = money(e.takings + unit * qty);
+    byProduct.set(name, e);
+  }
+  return [...byProduct.values()].sort((a, b) => b.qty - a.qty || b.takings - a.takings).slice(0, top);
+}
+
+// ---- Cash-outs ---------------------------------------------------------------
+
+export type CashOut = { id: string; at: string; by: string; counted: number; expected: number | null; floatLeft: number; cashSales: number | null; cashSalesCount: number | null; note: string | null };
+const cashOutFrom = (r: Row): CashOut => ({
+  id: String(r.id), at: String(r.at), by: String(r.by), counted: Number(r.counted), expected: r.expected === null ? null : Number(r.expected),
+  floatLeft: Number(r.float_left), cashSales: r.cash_sales === null ? null : Number(r.cash_sales),
+  cashSalesCount: r.cash_sales_count === null ? null : Number(r.cash_sales_count), note: (r.note as string | null) ?? null,
+});
+
+export async function cashOuts(limit = 30): Promise<CashOut[]> {
+  const { data, error } = await db().from("cash_outs").select("*").order("at", { ascending: false }).limit(limit);
+  if (error) throw new Error(error.message);
+  return (data ?? []).map(cashOutFrom);
+}
+
+/** What should be in the till now: the float left at the last cash-out plus cash taken since. Null before the first cash-out. */
+export async function cashInTill(last: CashOut | undefined, sales?: Sale[]) {
+  if (!last) return null;
+  const since = Date.parse(last.at);
+  const s = summarise(sales ? sales.filter((x) => x.at >= since) : await salesSince(since), since);
+  return { since: last.at, float: last.floatLeft, cash: s.cash, cashSales: s.cashSales, expected: money(last.floatLeft + s.cash), lastSaleAt: s.lastSaleAt };
+}
+
+/** Records a cash-out. The expected amount is worked out here, at the moment it's saved. */
+export async function recordCashOut(input: { by: string; counted: number; floatLeft: number; note?: string }) {
+  const [last] = await cashOuts(1);
+  const now = await cashInTill(last);
+  const { data, error } = await db().from("cash_outs").insert({
+    by: input.by, counted: money(input.counted), float_left: money(input.floatLeft), note: input.note?.trim() || null,
+    expected: now?.expected ?? null, cash_sales: now?.cash ?? null, cash_sales_count: now?.cashSales ?? null,
+  }).select("*").single();
+  if (error) throw new Error(error.message);
+  // An event like everything else, without the money: staff can see events.
+  await db().from("events").insert({ id: crypto.randomUUID(), type: "till.cashed_out", contact_id: null, detail: `Till cashed out by ${input.by}`, data: {} });
+  return cashOutFrom(data as Row);
+}
+
+// ---- Periods (UK time) -------------------------------------------------------
+
+export function periods(now = Date.now()) {
+  const { date } = ukParts(now);
+  const day = Number(date.slice(8, 10));
+  const today = ukTime(now, 0, 0, 0).getTime();
+  const week = ukWeekStart(now).getTime();
+  const month = ukTime(now, -(day - 1), 0, 0).getTime();
+  const lastMonthDay = Number(ukParts(month - 86400e3).date.slice(8, 10));
+  const lastMonth = ukTime(month - 86400e3, -(lastMonthDay - 1), 0, 0).getTime();
+  return { today, week, month, lastMonth };
+}
+
+// ---- Checking the sums against the till's own end of day ------------------------
+
+async function tillCashUps(fromMs: number, toMs = Date.now()): Promise<EndOfDay[]> {
   const r = await eposGet(`Reports/EndOfDay?FromDate=${toUkWallClock(fromMs)}&ToDate=${toUkWallClock(toMs)}`);
   if (!r.ok) throw new Error(`Epos Now said ${r.status}`);
   return list<EndOfDay>(r.json).sort((a, b) => fromUkWallClock(b.EndDate) - fromUkWallClock(a.EndDate));
 }
 
-/**
- * For checking the sums before the Till page goes live: the till's last few
- * cash-ups next to what the CRM works out for the same periods.
- */
+/** The till's last few end-of-day reports next to the CRM's sums for the same periods. */
 export async function tillCompare(n = 5) {
   const ups = (await tillCashUps(Date.now() - 14 * 86400e3)).filter((u) => u.EndDate).slice(0, n);
   const out = [];
   for (const u of ups) {
-    const t = await takings(fromUkWallClock(u.StartDate), fromUkWallClock(u.EndDate));
-    out.push({
-      till: { start: u.StartDate, end: u.EndDate, prevBal: u.PrevBal, sales: u.Sales, payOuts: u.PayOuts, pettyCash: u.PettyCash, floatAdjust: u.FloatAdjust, credits: u.CustomerCredits, expected: u.Expected, actual: u.Actual, variance: u.Variance, tenders: u.Tenders },
-      crm: { sales: t.sales, total: t.total, byType: t.byType, cash: t.cash, expectedIfFloatIsPrevBal: money(u.PrevBal + t.cash) },
-    });
+    const from = fromUkWallClock(u.StartDate), to = fromUkWallClock(u.EndDate);
+    const t = summarise(await salesSince(from), from, to);
+    out.push({ till: { start: u.StartDate, end: u.EndDate, prevBal: u.PrevBal, sales: u.Sales, expected: u.Expected, actual: u.Actual, tenders: u.Tenders }, crm: t });
   }
   return out;
 }
