@@ -80,11 +80,7 @@ In place so far:
 - **The GymGrow journey** (`src/lib/playbook.ts`): Round One's real form
   questions, 13 WhatsApp templates and the automations copied from the
   GymGrow workflows. Templates need Meta's approval: after changing one in
-  the `templates` table, run `npm run wa:templates`. Management can change a template's wording on its
-  message card by picking one of three AI versions (`templateEdit.ts`, Sammy
-  15/10): a template Meta hasn't seen is rewritten in place; otherwise the
-  pick goes to Meta as `name_vN` and `/api/cron` (`applyTemplateSwaps`)
-  switches automations and draft mailouts over once Meta approves.
+  the `templates` table, run `npm run wa:templates`.
 - **Self-booking.** The form's end screen and the WhatsApp buttons link to
   `/book/<contact id>`, where people pick a free-trial slot from the
   calendar's booking hours (Calendar → Booking hours). The id is the key,
