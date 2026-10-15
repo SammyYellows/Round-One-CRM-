@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useStore } from "@/lib/store";
 import { useIsManager } from "@/components/StaffContext";
 
@@ -164,8 +164,7 @@ export function EmailAutomationCard({ automationId, title, purpose, when, startO
             <div>
               <div className="label">WhatsApp version{waName ? ` · ${waName}` : ""}</div>
               <div className="enq-mail" style={{ margin: 0, maxHeight: 200 }}>{waText ?? "Template text not loaded."}</div>
-              <div className="small faint" style={{ marginTop: 6 }}>Goes to people with a mobile number, through Meta. Every change to the wording has to be approved by Meta.</div>
-              {manager && live && waName && <WhatsAppWording name={waName} />}
+              <div className="small faint" style={{ marginTop: 6 }}>Goes to people with a mobile number, through Meta. Templates need Meta’s approval and only reach the test phone until the real number moves over at go-live. To change the words, tell Claude: each change is re-submitted to Meta.</div>
             </div>
           )}
           <div>
@@ -209,93 +208,5 @@ export function EmailAutomationCard({ automationId, title, purpose, when, startO
         </div>
       )}
     </section>
-  );
-}
-
-/**
- * Change the WhatsApp wording by picking one of three versions (Sammy,
- * 15/10/2026). The pick goes to Meta; the current wording keeps sending
- * until Meta approves it, then the CRM switches over by itself.
- */
-function WhatsAppWording({ name }: { name: string }) {
-  const { refresh } = useStore();
-  const [open, setOpen] = useState(false);
-  const [instruction, setInstruction] = useState("");
-  const [options, setOptions] = useState<string[] | null>(null);
-  const [pick, setPick] = useState<number | null>(null);
-  const [confirming, setConfirming] = useState(false);
-  const [busy, setBusy] = useState(false);
-  const [note, setNote] = useState<string | null>(null);
-  const [pending, setPending] = useState<{ to: string; at: string; status: string; note?: string } | null>(null);
-  const [status, setStatus] = useState<string | null>(null);
-  const load = useCallback(async () => {
-    const r = await fetch(`/api/templates/${name}/wording`, { cache: "no-store" }).catch(() => null);
-    const j = (await r?.json().catch(() => null)) as { pending?: { to: string; at: string; status: string; note?: string } | null; status?: string | null } | null;
-    setPending(j?.pending ?? null);
-    setStatus(j?.status ?? null);
-  }, [name]);
-  useEffect(() => { load(); }, [load]);
-  const ask = async () => {
-    setBusy(true); setNote(null); setOptions(null); setPick(null); setConfirming(false);
-    const r = await fetch(`/api/templates/${name}/wording`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ instruction }) }).catch(() => null);
-    const j = (await r?.json().catch(() => null)) as { options?: string[]; error?: string } | null;
-    setBusy(false);
-    if (r?.ok && j?.options?.length) setOptions(j.options); else setNote(j?.error ?? "Couldn’t write versions. Try again.");
-  };
-  const use = async () => {
-    if (pick === null || !options) return;
-    setBusy(true);
-    const r = await fetch(`/api/templates/${name}/wording`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ body: options[pick] }) }).catch(() => null);
-    const j = (await r?.json().catch(() => null)) as { mode?: string; name?: string; error?: string } | null;
-    setBusy(false); setConfirming(false);
-    if (!r?.ok) { setNote(j?.error ?? "Couldn’t save it. Try again."); return; }
-    setOptions(null); setPick(null); setInstruction(""); setOpen(false);
-    setNote(j?.mode === "updated" ? "Saved. Meta hasn’t seen this one yet, so the new wording goes with it when it’s submitted." : "Sent to Meta for approval. The current wording keeps sending until Meta approves the new one (usually minutes, sometimes a day); then it switches over by itself.");
-    refresh();
-    load();
-  };
-  return (
-    <div style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 8 }}>
-      {pending?.status === "submitted" && <div className="small">New wording ({pending.to}) is with Meta for approval since {new Date(pending.at).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}. It takes over once approved.</div>}
-      {pending?.status === "rejected" && <div className="small" style={{ color: "var(--red)" }}>Meta turned down the new wording ({pending.note ?? "no reason given"}). The current wording is still in use; try another version.</div>}
-      {note && <div className="small muted">{note}</div>}
-      {!open ? (
-        <div><button className="btn btn-ghost btn-sm" disabled={pending?.status === "submitted"} onClick={() => setOpen(true)}>Change the wording</button>{status === "draft" && <span className="small faint" style={{ marginLeft: 8 }}>Not sent to Meta yet</span>}</div>
-      ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: 8, padding: 12, border: "1px solid var(--line)" }}>
-          <label className="label" style={{ margin: 0 }} htmlFor={`wa-ins-${name}`}>What should change? (optional)</label>
-          <div style={{ display: "flex", gap: 8 }}>
-            <input id={`wa-ins-${name}`} className="input" style={{ minWidth: 0 }} value={instruction} disabled={busy} placeholder="e.g. friendlier, and invite them in for a session" onChange={(e) => setInstruction(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") ask(); }} />
-            <button className="btn btn-ghost" style={{ padding: "0 14px" }} disabled={busy} onClick={ask}>{busy && !options ? "Writing" : options ? "Three more" : "Show me 3 versions"}</button>
-          </div>
-          {options && (
-            <div role="radiogroup" aria-label="Pick a version" style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              {options.map((o, i) => (
-                <label key={i} style={{ display: "flex", gap: 10, alignItems: "flex-start", padding: 10, border: `1px solid ${pick === i ? "var(--red)" : "var(--line)"}`, cursor: "pointer" }}>
-                  <input type="radio" name={`wa-pick-${name}`} checked={pick === i} onChange={() => { setPick(i); setConfirming(false); }} style={{ marginTop: 4 }} />
-                  <span className="small" style={{ whiteSpace: "pre-wrap" }}><strong>{String.fromCharCode(65 + i)}.</strong> {o}</span>
-                </label>
-              ))}
-            </div>
-          )}
-          {options && !confirming && (
-            <div className="actions" style={{ gap: 8 }}>
-              <button className="btn btn-red btn-sm" disabled={pick === null || busy} onClick={() => setConfirming(true)}>Use this one</button>
-              <button className="btn btn-ghost btn-sm" disabled={busy} onClick={() => { setOpen(false); setOptions(null); setPick(null); }}>Keep the current wording</button>
-            </div>
-          )}
-          {options && confirming && pick !== null && (
-            <div className="enq-confirm" role="alertdialog" aria-label="Confirm the new wording">
-              <div className="strong">{status === "draft" ? "Save version" : "Send version"} {String.fromCharCode(65 + pick)} {status === "draft" ? "as this message’s wording?" : "to Meta for approval?"}</div>
-              <div className="small muted">{status === "draft" ? "Meta hasn’t seen this template yet, so it’s just saved." : "Nothing is sent to anyone. The current wording keeps going out until Meta approves this one."}</div>
-              <div className="actions" style={{ gap: 8 }}>
-                <button className="btn btn-red btn-sm" disabled={busy} onClick={use}>{busy ? "Working" : "Yes, use it"}</button>
-                <button className="btn btn-ghost btn-sm" disabled={busy} onClick={() => setConfirming(false)}>Cancel</button>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-    </div>
   );
 }
