@@ -7,7 +7,7 @@ export interface SendOptions {
   from?: string; // defaults to EMAIL_FROM (bookings@)
   headers?: Record<string, string>; // e.g. In-Reply-To, to keep a reply in its thread
   attachments?: { filename: string; content: Uint8Array }[]; // e.g. a report PDF
-  html?: string; // the branded version (emailHtml.ts); the text goes too, as the fallback
+  html?: string; // light HTML with link buttons (emailHtml.ts); the text goes too, as the fallback
 }
 
 export async function sendEmail(to: string, subject: string, text: string, opts: SendOptions = {}): Promise<SendResult> {
