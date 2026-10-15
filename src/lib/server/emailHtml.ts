@@ -1,7 +1,8 @@
 // Emails to leads and members as very light HTML (Sammy, 15/10/2026): it
 // should read like an email from a person, as far from a Mailchimp email as
-// possible, so it lands in the main inbox. No logo, no coloured bars, no
-// designed footer: just the words, with each link that ends a line turned
+// possible, so it lands in the main inbox. No banner, no coloured bars, no
+// designed footer: just the words, a small logo under the sign-off like an
+// email signature (Sammy, 15/10), with each link that ends a line turned
 // into a simple red button and its address underneath. The plain text goes
 // too. Staff alerts, mailouts and enquiry replies stay plain text.
 
@@ -36,8 +37,8 @@ const para = (lines: string[], bold: boolean) =>
 const headed = (lines: string[]) =>
   lines.length > 1 && lines[0].length <= 40 && !/[.,:;!?)]$/.test(lines[0]) && !/^(hi|hey|dear)\b/i.test(lines[0]);
 
-/** The email as HTML. `unsubscribe` adds the stop-these-emails line (marketing emails). */
-export function emailHtml(text: string, opts: { unsubscribe?: string } = {}): string {
+/** The email as HTML. `logoUrl` is the small signature logo; `unsubscribe` adds the stop-these-emails line (marketing emails). */
+export function emailHtml(text: string, opts: { logoUrl?: string; unsubscribe?: string } = {}): string {
   const out: string[] = [];
   for (const block of text.trim().split(/\n\s*\n/)) {
     const lines = block.split("\n").map((l) => l.trimEnd());
@@ -54,6 +55,9 @@ export function emailHtml(text: string, opts: { unsubscribe?: string } = {}): st
       out.push(button(m[2]));
     }
     flush();
+  }
+  if (opts.logoUrl) {
+    out.push(`<p style="margin:4px 0 0"><img src="${esc(opts.logoUrl)}" width="72" height="48" alt="Round One" style="display:block;width:72px;height:48px;border:0"></p>`);
   }
   if (opts.unsubscribe) {
     out.push(`<p style="margin:24px 0 0;font-size:12px;color:${GREY}">You’re getting this because you’re a member of Round One or have been in touch with us. <a href="${esc(opts.unsubscribe)}" style="color:${GREY}">Stop these emails</a></p>`);
