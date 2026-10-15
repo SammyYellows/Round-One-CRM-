@@ -31,7 +31,8 @@ import { applyMany } from "@/lib/server/state";
 import { submitTemplates } from "@/lib/server/waTemplates";
 
 export const dynamic = "force-dynamic";
-export const maxDuration = 60;
+// Meta can take minutes to list old Instagram conversations (social_history); Vercel Pro allows 5.
+export const maxDuration = 300;
 
 const API = `https://graph.facebook.com/${process.env.WHATSAPP_API_VERSION || "v21.0"}`;
 
