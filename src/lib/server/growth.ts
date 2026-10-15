@@ -29,15 +29,17 @@ export interface GrowthSettings {
   weeklyOn: boolean; // Monday 08:00 UK
   monthlyOn: boolean; // 1st of the month 08:00 UK
   unpaidOn: boolean; // Monday 08:00 UK: who hasn't paid (failed payments)
+  attendanceOn?: boolean; // classes and attendance, with the monthly report (Sammy, 15/10/2026)
   // Unpaid monthly instead (Sammy, 15/10/2026): the last day of the month at
   // 08:00 UK, nothing before unpaidStartOn (YYYY-MM-DD, UK date).
   unpaidMonthly?: boolean;
   unpaidStartOn?: string;
-  // One extra day the monthly report also goes, at 08:00 UK (YYYY-MM-DD; the
+  // One extra day the monthly and attendance reports also go, at 08:00 UK (YYYY-MM-DD; the
   // demonstration on 16/10/2026), then back to the 1st.
   monthlyAlsoOn?: string;
   lastWeeklyAt?: string;
   lastMonthlyAt?: string;
+  lastAttendanceAt?: string;
   lastUnpaidAt?: string;
 }
 

@@ -38,6 +38,7 @@ export async function PUT(req: Request) {
   if (typeof b.weeklyOn === "boolean") patch.weeklyOn = b.weeklyOn;
   if (typeof b.monthlyOn === "boolean") patch.monthlyOn = b.monthlyOn;
   if (typeof b.unpaidOn === "boolean") patch.unpaidOn = b.unpaidOn;
+  if (typeof b.attendanceOn === "boolean") patch.attendanceOn = b.attendanceOn;
   const settings = await saveGrowthSettings(patch);
   return Response.json({ ok: true, settings });
 }
