@@ -43,14 +43,15 @@ export default function CancellationsPage() {
         const m = c.membership!;
         const run = s.runs.filter((r) => r.contactId === c.id && r.automationId === WIN_BACK).sort((a, b) => Date.parse(b.startedAt) - Date.parse(a.startedAt))[0];
         const sent = emailAt.get(c.id);
-        let email: { label: string; tone: "sent" | "waiting" | "none" };
-        if (sent) email = { label: `Sent ${day(sent.at)} · “${sent.subject}”`, tone: "sent" };
+        // A short badge, with any detail (the subject, or why not) on a line under it, so the badge never overflows.
+        let email: { label: string; detail?: string; tone: "sent" | "waiting" | "none" };
+        if (sent) email = { label: `Sent ${day(sent.at)}`, detail: `“${sent.subject}”`, tone: "sent" };
         else if (run?.status === "waiting" && run.resumeAt) email = { label: `Goes ${dayTime(run.resumeAt)}`, tone: "waiting" };
         else if (run?.status === "stopped") email = { label: "Stopped", tone: "none" };
-        else if (c.marketingOptOut) email = { label: "Not sent: opted out", tone: "none" };
-        else if (!c.email) email = { label: "Not sent: no email", tone: "none" };
-        else if (!noticeAt.has(c.id)) email = { label: "Not sent: notice given before tracking began", tone: "none" };
-        else email = { label: automation?.enabled ? "Not sent" : "Not sent: automation off", tone: "none" };
+        else if (c.marketingOptOut) email = { label: "Not sent", detail: "Opted out", tone: "none" };
+        else if (!c.email) email = { label: "Not sent", detail: "No email address", tone: "none" };
+        else if (!noticeAt.has(c.id)) email = { label: "Not sent", detail: "Notice given before tracking began", tone: "none" };
+        else email = automation?.enabled ? { label: "Not sent", tone: "none" } : { label: "Not sent", detail: "Automation off", tone: "none" };
         return { c, m, noticeAt: noticeAt.get(c.id), email };
       })
       .filter((r) => window === "all" || (r.noticeAt ? now - Date.parse(r.noticeAt) <= Number(window) * 86400e3 : false))
@@ -108,8 +109,9 @@ export default function CancellationsPage() {
             <div><div>{m.name}</div><div className="muted small">{m.category}</div></div>
             <div className="muted small">{noticeAt ? `${day(noticeAt)} · ${ago(noticeAt, now)}` : "Before 6 Oct 2026"}</div>
             <div className="muted small">{m.status === "ended" ? `Ended${m.endsAt ? ` ${day(m.endsAt)}` : ""}` : m.endsAt ? `${day(m.endsAt)} (${ago(m.endsAt, now)})` : "–"}</div>
-            <div>
-              <span className={`chip ${email.tone === "sent" ? "chip-red" : email.tone === "waiting" ? "chip-light" : ""}`} style={{ height: 22, fontSize: 10, whiteSpace: "normal", textAlign: "left" }}>{email.label}</span>
+            <div style={{ minWidth: 0 }}>
+              <span className={`chip ${email.tone === "sent" ? "chip-red" : email.tone === "waiting" ? "chip-light" : ""}`} style={{ height: 22, fontSize: 10, whiteSpace: "nowrap" }}>{email.label}</span>
+              {email.detail && <div className="faint" style={{ fontSize: 11, marginTop: 4, lineHeight: 1.35 }}>{email.detail}</div>}
             </div>
             <div className="small">{c.marketingOptOut ? "Opted out" : "OK"}</div>
           </Link>
