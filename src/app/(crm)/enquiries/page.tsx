@@ -2,7 +2,7 @@
 
 import { useIsManager } from "@/components/StaffContext";
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ago } from "@/lib/format";
 import { useStore } from "@/lib/store";
 import { MessageInbox } from "./MessageInbox";
@@ -153,11 +153,16 @@ function EmailInbox() {
     setDraft(current?.status === "sent" ? current.replyText ?? "" : current?.draft ?? "");
     setSendTo(current?.replyTo ?? current?.fromEmail ?? "");
     setConfirming(false);
-    setNote(null);
   }, [current]);
+  useEffect(() => { setNote(null); }, [current?.id]);
+  // Opening an enquiry from elsewhere (an email link) shows the list it's in.
+  // Only on opening: after Send it stays open where you are, on To reply
+  // (Sammy, 15/10/2026), rather than jumping to Sent.
+  const viewFor = useRef<string | null>(null);
   useEffect(() => {
-    // Keep the chosen view in step with the opened enquiry (e.g. from an email link).
-    if (current && !inView(current, view)) setView(current.status === "sent" ? "sent" : current.status === "dismissed" ? "dismissed" : current.kind === "other" ? "other" : "open");
+    if (!current || viewFor.current === current.id) return;
+    viewFor.current = current.id;
+    if (!inView(current, view)) setView(current.status === "sent" ? "sent" : current.status === "dismissed" ? "dismissed" : current.kind === "other" ? "other" : "open");
   }, [current]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const shown = (list ?? []).filter((e) => inView(e, view));

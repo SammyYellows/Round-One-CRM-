@@ -167,7 +167,7 @@ Use the search and filters at the top to find people.`,
 ### WhatsApp
 - Everyone who has messaged the gym's WhatsApp number, newest first. **To reply** shows the ones whose message hasn't been answered; **All** shows everyone.
 - Pick a conversation to read it and reply on the right, the same as on their contact page. Within 24 hours of their last message you can write freely; after that only approved templates can go. Pick a template to see its wording, then **Yes, send it**.
-- **Suggested reply**: when someone messages, the AI writes a reply for you to check, shown above the message box (WhatsApp, Facebook and Instagram). **Use it** puts it in the box to edit; nothing goes until you press **Send**. **Dismiss** drops it, **Draft again** writes a new one, and **Draft a reply** asks for one when there isn't one yet.
+- **Suggested reply**: when someone messages, the AI reads the whole conversation and writes a reply for you to check, shown above the message box (WhatsApp, Facebook and Instagram). If they sent several messages in a row, it answers all of them. **Use it** puts it in the box to edit; nothing goes until you press **Send**. **Dismiss** drops it, **Draft again** writes a new one, and **Draft a reply** asks for one when there isn't one yet.
 - **No reply needed** takes it off To reply (for example a "thanks"). If they message again it comes back. **Needs a reply** undoes it.
 - Someone new who messages becomes a contact automatically, but stays off the Meta pipeline unless you press **Put on pipeline** on their contact page.
 
@@ -179,10 +179,10 @@ Use the search and filters at the top to find people.`,
 - Earlier conversations from before the CRM was connected are copied in so you can read them (Instagram only lets us have the last 20 messages of each). Old ones are marked **No reply needed**; nothing is sent and nobody becomes a lead.
 
 ### Email
-Every email to info@round1boxfit.co.uk that looks like an enquiry appears here with a reply already drafted, using only the gym facts sheet.
+Every email to info@round1boxfit.co.uk that looks like an enquiry appears here with a reply already drafted, using only the gym facts sheet. The draft reads the whole conversation: their earlier emails and the replies we sent.
 
 - Read the email on the left and the draft on the right. Edit it freely, or type an instruction (for example "shorter, and mention the Saturday class") and the draft is rewritten.
-- **Send reply** and then confirm. It goes from info@ and threads with their email. **Nothing sends until you confirm.**
+- **Send reply** and then confirm. It goes from info@ and threads with their email. **Nothing sends until you confirm.** You stay on **To reply**, ready for the next one.
 - **No reply needed** for anything that doesn't need an answer; **Reopen** brings it back.
 - The sender becomes a contact automatically, but stays off the Meta pipeline unless you press **Put on pipeline** on their contact page.
 - **Gym facts** (management only) is the sheet drafts are allowed to use: prices, hours, classes.`,

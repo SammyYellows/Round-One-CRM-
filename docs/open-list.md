@@ -1,7 +1,7 @@
 # Open list
 
 Everything in progress and what each item is waiting on. Sammy picks from
-this; Claude keeps it current. Last updated 14/10/2026.
+this; Claude keeps it current. Last updated 15/10/2026.
 
 **Wrap-up day, Sunday 11/10:** every open item below is on one sheet,
 `docs/wrap-up-day.md`, as a job or a yes/no to close it. After that, only
@@ -430,6 +430,12 @@ updates from the import never fire automations.
     sent to Sammy (07855 284151) 22:59. **Waiting on Sammy:** is the test OK,
     then numbers for Lee, Claire and Farida, and which schedules to switch on
     (weekly and unpaid Mondays 08:00, monthly on the 1st).
+  - **AI drafts read the whole conversation** (Sammy, 15/10): WhatsApp,
+    Facebook and Instagram suggestions read the whole thread (was the last
+    30 messages) and answer everything since our last message; a slow read of
+    fewer messages no longer replaces a fuller one. Email drafts read earlier
+    emails with that person and our replies (was the latest email only, cut
+    at 8,000 characters). After Send, the Email tab stays on To reply.
     **13/10: YCloud link gone; waiting on a number slot.** Meta Direct
     Support (a person) said to clear partner connections; Business Settings
     had none. Sammy pressed **Remove from business portfolio** on the old
