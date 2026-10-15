@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { useMemo } from "react";
 import { EmailAutomationCard } from "@/components/EmailAutomationCard";
-import { MEMBER_TABS, PageTabs } from "@/components/PageTabs";
 import { ago, shortDate } from "@/lib/format";
 import { useStore } from "@/lib/store";
 import { sourceLabel, viaOf } from "@/lib/types";
@@ -54,7 +53,6 @@ export default function ProgramPage() {
           <h1 className="h h1">Program members</h1>
         </div>
       </header>
-      <PageTabs label="Members" tabs={MEMBER_TABS} />
 
       <section className="card" style={{ marginBottom: 24 }}>
         <div className="card-head">

@@ -9,7 +9,7 @@ import { Contact, Membership } from "@/lib/types";
 import { PRIORITY_LABEL, byPriority, inactivityAdvice } from "@/lib/inactivity";
 import WhoIsIn from "@/components/WhoIsIn";
 import { useIsManager } from "@/components/StaffContext";
-import { MEMBER_TABS, PageTabs } from "@/components/PageTabs";
+import { MemberMap } from "@/components/MemberMap";
 
 // Everyone with a TeamUp membership, synced nightly. TeamUp stays the place
 // to change memberships; this is for seeing who's on what and messaging them.
@@ -112,10 +112,11 @@ export default function MembersPage() {
               Sync stages: {stageLine}{slowest > 40000 ? " · getting close to the 60s limit" : ""}
             </div>
           )}
-          <h1 className="h h1">Members</h1>
+          <h1 className="h h1">Gym members</h1>
         </div>
       </header>
-      <PageTabs label="Members" tabs={MEMBER_TABS} />
+
+      {live && <MemberMap />}
 
       {live && <WhoIsIn />}
 

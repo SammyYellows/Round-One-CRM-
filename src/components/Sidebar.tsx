@@ -18,6 +18,7 @@ const NAV = [
   { href: "/calendar", label: "Calendar", icon: <><rect x="3" y="4" width="18" height="17" /><path d="M3 9h18M8 2v4M16 2v4" /></> },
   { href: "/contacts", label: "Contacts", icon: <><circle cx="12" cy="8" r="4" /><path d="M4 21c1-4 4-6 8-6s7 2 8 6" /></> },
   { href: "/program", label: "Program members", icon: <><path d="M4 20V10M10 20V4M16 20v-8M22 20H2" /></> },
+  { href: "/members", label: "Gym members", icon: <><circle cx="9" cy="8" r="3" /><circle cx="17" cy="9" r="2.5" /><path d="M3 20c.8-3.5 3-5 6-5s5.2 1.5 6 5M15 15.5c2.6 0 4.6 1.4 5.5 4.5" /></> },
   { href: "/enquiries", label: "Enquiries", icon: <><rect x="3" y="5" width="18" height="14" /><path d="m3 6 9 7 9-7" /></> },
   { href: "/cancellations", label: "Cancellations", icon: <><circle cx="12" cy="12" r="9" /><path d="m9 9 6 6M15 9l-6 6" /></> },
   { href: "/payments", label: "Failed payments", icon: <><rect x="2" y="6" width="20" height="13" /><path d="M2 10h20M6 15h4" /></> },
@@ -90,7 +91,7 @@ export function Sidebar({ staff }: { staff?: { name: string; role: string } }) {
   // Staff logins see the day-to-day screens; management sees everything plus Staff (Sammy, 10/10/2026).
   const manager = !staff || isManagerRole(staff.role);
   const nav = [...NAV.filter((n) => manager || !isManagementPath(n.href)), ...(manager && staff ? [{ href: "/staff", label: "Staff", icon: <><circle cx="12" cy="7" r="3.5" /><path d="M5 21c1-4 3.5-6 7-6s6 2 7 6" /><path d="M19 4l2 2-4 4" /></> }] : [])];
-  const isOn = (href: string) => (href === "/" ? path === href : path.startsWith(href) || (href === "/program" && path.startsWith("/members")));
+  const isOn = (href: string) => (href === "/" ? path === href : path.startsWith(href));
   // Phones: the sidebar is a top bar with a Menu button (Sammy, 10/10/2026). Closes when you pick a page.
   const [open, setOpen] = useState(false);
   useEffect(() => { setOpen(false); }, [path]);

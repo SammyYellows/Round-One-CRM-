@@ -267,12 +267,20 @@ In place so far:
   a Till card on Today (management only). Sums checked against the till's
   end-of-day tenders (`/api/eposnow-check?compare=1`): they match.
 - **Menu** (Sammy, 14/10, `NAV` in `src/components/Sidebar.tsx`): Today,
-  Ask Champ, Pipeline, Calendar, Contacts, Program members, Enquiries,
+  Ask Champ, Pipeline, Calendar, Contacts, Program members, Gym members, Enquiries,
   Cancellations, Failed payments, Mailouts, Accountability, Reports, Forms,
   Automations, Meta ads, Till, Staff, Manual. Pipeline (Meta | TeamUp) and
-  Program members (Program | All members) are one menu item each with
-  buttons at the top (`PageTabs`); the routes stay `/pipeline`,
-  `/pipeline/teamup`, `/program` and `/members`.
+  Gym members (`/members`, Sammy 15/10: back as its own item after Program
+  members) is separate again. Pipeline (Meta | TeamUp) is one menu item with
+  buttons at the top (`PageTabs`).
+- **Members map** (Sammy, 15/10): Gym members opens with a Leaflet map
+  (OpenStreetMap tiles; Leaflet agreed as a dependency) of active members by
+  postcode area (`contact.safety.area`, "BS5", taken by the safety stage from
+  the Address field on the TeamUp form; never the full address).
+  `src/lib/server/memberMap.ts` counts them and finds each area's centre on
+  postcodes.io (cached in `sync_payloads` `map:outcodes`); `/api/members/map`.
+- **TeamUp sync frequency** (Sammy, 15/10): the pg_cron stages run at 03:00
+  and every hour 05:00–21:00 UTC (06:00–22:00 UK in summer).
 
 Still to come: Meta Marketing API sync.
 
