@@ -6,6 +6,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ago } from "@/lib/format";
 import { useStore } from "@/lib/store";
 import { MessageInbox } from "./MessageInbox";
+import { ChampMini } from "@/components/ChampMini";
 import { SEEN, SEEN_EMAIL, SEEN_EVENT, lastSeenAt, markSeen, messageCounts } from "@/lib/messageInbox";
 import { CHANNELS, CHANNEL_LABEL, Channel } from "@/lib/types";
 
@@ -363,6 +364,7 @@ function EmailInbox() {
                   </div>
                 )}
               </div>
+              {current.kind !== "other" && <ChampMini contactId={current.contactId} channel="Email" />}
             </>
           )}
         </section>
