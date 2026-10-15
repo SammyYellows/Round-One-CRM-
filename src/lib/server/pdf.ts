@@ -1,4 +1,5 @@
-// A very small PDF writer: A4 pages, Helvetica text, lines and filled boxes.
+// A very small PDF writer: A4 pages, Helvetica text, lines, filled boxes and
+// JPEG pictures.
 // Enough for a one- or two-page report with a line chart, with no library
 // (CLAUDE.md: no new dependencies without agreeing it). Coordinates are in
 // points from the top-left, like a screen, and flipped on output.
@@ -10,6 +11,7 @@ type Op = string;
 export class Pdf {
   private pages: Op[][] = [];
   private ops: Op[] = [];
+  private images: { key: string; data: string; w: number; h: number }[] = [];
   y = 0;
 
   constructor() { this.newPage(); }
@@ -63,6 +65,13 @@ export class Pdf {
     this.ops.push(`${color.join(" ")} rg ${x.toFixed(2)} ${(H - yTop - h).toFixed(2)} ${w.toFixed(2)} ${h.toFixed(2)} re f`);
   }
 
+  /** A JPEG picture, drawn dw x dh points with its top-left at x, yTop. `key` names it so it's stored once however often it's drawn. */
+  image(key: string, jpeg: { width: number; height: number; base64: string }, x: number, yTop: number, dw: number, dh: number) {
+    let i = this.images.findIndex((im) => im.key === key);
+    if (i < 0) { this.images.push({ key, data: Buffer.from(jpeg.base64, "base64").toString("latin1"), w: jpeg.width, h: jpeg.height }); i = this.images.length - 1; }
+    this.ops.push(`q ${dw.toFixed(2)} 0 0 ${dh.toFixed(2)} ${x.toFixed(2)} ${(H - yTop - dh).toFixed(2)} cm /Im${i + 1} Do Q`);
+  }
+
   get pageWidth() { return W; }
 
   bytes(): Uint8Array {
@@ -70,12 +79,14 @@ export class Pdf {
     const add = (s: string) => { objects.push(s); return objects.length; };
     const fontRegular = add("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>");
     const fontBold = add("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>");
+    const imageIds = this.images.map((im) => add(`<< /Type /XObject /Subtype /Image /Width ${im.w} /Height ${im.h} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${im.data.length} >>\nstream\n${im.data}\nendstream`));
+    const xobjects = imageIds.length ? ` /XObject << ${imageIds.map((id, i) => `/Im${i + 1} ${id} 0 R`).join(" ")} >>` : "";
     const pagesId = objects.length + 1 + this.pages.length * 2; // placed after the page and content objects
     const pageIds: number[] = [];
     for (const ops of this.pages) {
       const stream = ops.join("\n");
       const contentId = add(`<< /Length ${Buffer.byteLength(stream, "latin1")} >>\nstream\n${stream}\nendstream`);
-      pageIds.push(add(`<< /Type /Page /Parent ${pagesId} 0 R /MediaBox [0 0 ${W} ${H}] /Contents ${contentId} 0 R /Resources << /Font << /F1 ${fontRegular} 0 R /F2 ${fontBold} 0 R >> >> >>`));
+      pageIds.push(add(`<< /Type /Page /Parent ${pagesId} 0 R /MediaBox [0 0 ${W} ${H}] /Contents ${contentId} 0 R /Resources << /Font << /F1 ${fontRegular} 0 R /F2 ${fontBold} 0 R >>${xobjects} >> >>`));
     }
     add(`<< /Type /Pages /Kids [${pageIds.map((i) => `${i} 0 R`).join(" ")}] /Count ${pageIds.length} >>`);
     const catalogId = add(`<< /Type /Catalog /Pages ${pagesId} 0 R >>`);

@@ -10,6 +10,7 @@ import { sendTemplate } from "@/lib/server/whatsapp";
 import { waNumber } from "@/lib/phone";
 import { sendEmail } from "@/lib/server/email";
 import { summariseCancellations } from "@/lib/server/ai";
+import { CHAMP_JPEG } from "@/lib/server/champImage";
 import { Pdf } from "@/lib/server/pdf";
 import { ukTime } from "@/lib/time";
 import { GYM } from "@/lib/gym";
@@ -225,11 +226,32 @@ function lineChart(pdf: Pdf, x: number, y: number, w: number, h: number, pts: Mo
   });
 }
 
+// Champ, Round One's AI helper, on every report (Sammy, 15/10/2026: "this is
+// all coming from Champ"): his picture at the top and his sign-off at the end.
+function champHeader(pdf: Pdf) {
+  const R = pdf.pageWidth - 48, w = 72, h = (w * CHAMP_JPEG.height) / CHAMP_JPEG.width;
+  pdf.image("champ", CHAMP_JPEG, R - w, 24, w, h);
+}
+
+function champSignOff(pdf: Pdf, newPage: () => void) {
+  const L = 48, R = pdf.pageWidth - 48, h = 96, w = (h * CHAMP_JPEG.width) / CHAMP_JPEG.height;
+  if (pdf.y > 841 - 48 - h - 16) newPage();
+  pdf.y += 16;
+  pdf.rect(L, pdf.y, R - L, h, [0.04, 0.04, 0.04]);
+  pdf.image("champ", CHAMP_JPEG, L, pdf.y, w, h);
+  const x = L + w + 16;
+  pdf.text(x, pdf.y + 16, "CHAMP", 18, { bold: true, color: RED });
+  pdf.text(x, pdf.y + 40, "Round One's AI helper", 10, { bold: true, color: [1, 1, 1] });
+  pdf.para(x, pdf.y + 58, "I put this report together for you from TeamUp and the CRM. Any questions about it, ask me in Ask Champ.", 9, R - x - 12, { color: [0.85, 0.85, 0.85], lead: 12 });
+  pdf.y += h;
+}
+
 function renderUnpaid(r: ReportData): Uint8Array {
   const pdf = new Pdf();
   const L = 48, R = pdf.pageWidth - 48, CW = R - L;
   const head = () => { pdf.rect(0, 0, pdf.pageWidth, 6, RED); };
   head();
+  champHeader(pdf);
   pdf.text(L, pdf.y, GYM.name.toUpperCase(), 10, { bold: true, color: MUTED }); pdf.y += 18;
   pdf.text(L, pdf.y, "Unpaid memberships", 24, { bold: true, color: INK }); pdf.y += 30;
   const total = r.unpaid.reduce((n, u) => n + u.owed, 0);
@@ -252,6 +274,8 @@ function renderUnpaid(r: ReportData): Uint8Array {
   }
   pdf.y += 10;
   pdf.para(L, pdf.y, "Attempts are TeamUp's failed charges on the payment subscription; owed is open and retry-failed invoices. Names link to the Failed payments screen in the CRM.", 8, CW, { color: MUTED });
+  pdf.y += 24;
+  champSignOff(pdf, () => { pdf.newPage(); head(); });
   return pdf.bytes();
 }
 
@@ -263,6 +287,7 @@ function renderAttendance(r: ReportData): Uint8Array {
   const L = 48, R = pdf.pageWidth - 48;
   const head = () => pdf.rect(0, 0, pdf.pageWidth, 6, RED);
   head();
+  champHeader(pdf);
   pdf.text(L, pdf.y, GYM.name.toUpperCase(), 10, { bold: true, color: MUTED }); pdf.y += 18;
   pdf.text(L, pdf.y, "Classes and attendance", 24, { bold: true, color: INK }); pdf.y += 30;
   pdf.text(L, pdf.y, `As of ${fmtDate(r.asOf)}, the last 60 days. Classes are TeamUp sessions with people ticked in; member sessions also count Kisi door entries, one a day.`, 9, { color: MUTED }); pdf.y += 24;
@@ -289,6 +314,7 @@ function renderAttendance(r: ReportData): Uint8Array {
   table("Top attendance, last 30 days", mcols, mhead, a.top.map(me));
   table("Lowest attendance (active members)", mcols, mhead, a.bottom.map(me));
   table("Fastest declining (last 30 days against the 30 before)", mcols, mhead, a.declining.map(me));
+  champSignOff(pdf, () => { pdf.newPage(); head(); });
   return pdf.bytes();
 }
 
@@ -298,6 +324,7 @@ export function renderPdf(r: ReportData): Uint8Array {
   const pdf = new Pdf();
   const L = 48, R = pdf.pageWidth - 48, CW = R - L;
   pdf.rect(0, 0, pdf.pageWidth, 6, RED);
+  champHeader(pdf);
   pdf.text(L, pdf.y, GYM.name.toUpperCase(), 10, { bold: true, color: MUTED });
   pdf.y += 18;
   pdf.text(L, pdf.y, r.kind === "weekly" ? "Weekly members report" : "Monthly growth report", 24, { bold: true, color: INK });
@@ -377,6 +404,7 @@ export function renderPdf(r: ReportData): Uint8Array {
     pdf.text(L, pdf.y, `${c.name} · ${c.membership} · notice ${fmtDate(c.noticeAt)}`, 10, { bold: true, color: INK }); pdf.y += 14;
     pdf.y = pdf.para(L, pdf.y, c.reply ? `"${c.reply.replace(/\s+/g, " ").slice(0, 400)}"` : "No reply to the win-back email.", 9, CW, { color: c.reply ? INK : MUTED }); pdf.y += 6;
   }
+  champSignOff(pdf, () => { pdf.newPage(); pdf.rect(0, 0, pdf.pageWidth, 6, RED); });
   return pdf.bytes();
 }
 
@@ -458,7 +486,7 @@ export async function runDueReports(now = Date.now()) {
     await saveGrowthSettings({ lastUnpaidAt: todayKey });
     sent.push("unpaid");
   }
-  if (s.monthlyOn && parts.day === "01" && now >= dueAt && (s.lastMonthlyAt ?? "") < todayKey) {
+  if (s.monthlyOn && (parts.day === "01" || todayKey === s.monthlyAlsoOn) && now >= dueAt && (s.lastMonthlyAt ?? "") < todayKey) {
     await sendReport("monthly", s.managerNumbers, "the scheduler");
     await saveGrowthSettings({ lastMonthlyAt: todayKey });
     sent.push("monthly");

@@ -33,6 +33,9 @@ export interface GrowthSettings {
   // 08:00 UK, nothing before unpaidStartOn (YYYY-MM-DD, UK date).
   unpaidMonthly?: boolean;
   unpaidStartOn?: string;
+  // One extra day the monthly report also goes, at 08:00 UK (YYYY-MM-DD; the
+  // demonstration on 16/10/2026), then back to the 1st.
+  monthlyAlsoOn?: string;
   lastWeeklyAt?: string;
   lastMonthlyAt?: string;
   lastUnpaidAt?: string;
