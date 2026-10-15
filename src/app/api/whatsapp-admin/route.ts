@@ -23,9 +23,15 @@
 //   {action:"social_history", channel:"facebook"|"instagram", dryRun?, after?}:
 //     earlier conversations, 25 at a time (`next` carries on). dryRun only
 //     counts; otherwise copies them in for reading (never sent, never leads).
+// Reports (Sammy, 15/10/2026):
+//   {action:"report_test", kind, number}: sends one report to one manager
+//     only, as an example before the schedule goes on. The number must be one
+//     of the managers' numbers in Reports → Settings.
 
 import { importSocialHistory } from "@/lib/engine";
 import { appUrl } from "@/lib/server/deliver";
+import { growthSettings } from "@/lib/server/growth";
+import { sendReport, type ReportKind } from "@/lib/server/reports";
 import { socialCheck, socialHistory, socialSubscribe } from "@/lib/server/social";
 import { applyMany } from "@/lib/server/state";
 import { submitTemplates } from "@/lib/server/waTemplates";
@@ -39,7 +45,16 @@ const API = `https://graph.facebook.com/${process.env.WHATSAPP_API_VERSION || "v
 export async function POST(req: Request) {
   const secret = process.env.CRON_SECRET;
   if (!secret || req.headers.get("authorization") !== `Bearer ${secret}`) return Response.json({ error: "Not allowed" }, { status: 401 });
-  const b = (await req.json().catch(() => ({}))) as { action?: string; phoneId?: string; pin?: string; waba?: string; number?: string; name?: string; method?: string; code?: string; migrate?: boolean; only?: string[]; statusOnly?: boolean; channel?: string; dryRun?: boolean; after?: string };
+  const b = (await req.json().catch(() => ({}))) as { action?: string; phoneId?: string; pin?: string; waba?: string; number?: string; name?: string; method?: string; code?: string; migrate?: boolean; only?: string[]; statusOnly?: boolean; channel?: string; dryRun?: boolean; after?: string; kind?: string };
+  if (b.action === "report_test") {
+    const kinds: ReportKind[] = ["weekly", "monthly", "unpaid", "attendance"];
+    if (!kinds.includes(b.kind as ReportKind)) return Response.json({ error: "kind must be weekly, monthly, unpaid or attendance" }, { status: 400 });
+    const digits = (n: string) => n.replace(/\D/g, "").replace(/^44/, "0");
+    const { managerNumbers } = await growthSettings();
+    const number = managerNumbers.find((n) => digits(n) === digits(String(b.number ?? "")));
+    if (!number) return Response.json({ error: "Not one of the managers' numbers in Reports → Settings" }, { status: 400 });
+    return Response.json(await sendReport(b.kind as ReportKind, [number], "Claude (example for Sammy)"));
+  }
   if (b.action === "social_check") return Response.json(await socialCheck());
   if (b.action === "social_subscribe") return Response.json(await socialSubscribe(`${appUrl()}/api/webhooks/meta`));
   if (b.action === "social_history" && (b.channel === "facebook" || b.channel === "instagram")) {
