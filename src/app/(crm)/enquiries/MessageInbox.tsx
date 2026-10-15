@@ -59,7 +59,7 @@ export function MessageInbox({ channel }: { channel: Channel }) {
               <div className="small muted" style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                 {last.dir === "out" ? "You: " : ""}{last.text}
               </div>
-              <div style={{ display: "flex", gap: 6, marginTop: 4 }}>
+              <div style={{ display: "flex", gap: 6, marginTop: 4, flexWrap: "wrap" }}>
                 {w && isNew(lastIn.at) && <span className="chip chip-red">New</span>}
                 {w && !isNew(lastIn.at) && <span className="chip">Waiting for a reply</span>}
                 {!w && last.dir === "in" && <span className="chip">No reply needed</span>}
