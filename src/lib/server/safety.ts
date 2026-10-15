@@ -55,7 +55,14 @@ export async function fetchSafety(): Promise<Map<string, Omit<Safety, "syncedAt"
   const [fields, waivers, agreements, submissions] = await Promise.all([listAll("/customer_fields"), listAll("/waivers"), listAll("/waiver_agreements"), listAll("/customer_form_submissions")]);
   // Which field holds what: TeamUp marks its standard ones with system_use.
   const use = new Map<string, string>();
-  for (const f of fields) if (f.system_use) use.set(String(f.id), String(f.system_use));
+  const choiceLabel = new Map<string, string>(); // a choice field's option id → its words
+  for (const f of fields) {
+    if (f.system_use) use.set(String(f.id), String(f.system_use));
+    else if (String(f.key ?? "") === "gender" || /^gender$/i.test(String(f.label ?? ""))) use.set(String(f.id), "gender");
+    for (const c of (f.choices as unknown[]) ?? []) {
+      if (c && typeof c === "object") { const o = c as Json; const label = str(o.label) ?? str(o.name) ?? str(o.value); if (o.id != null && label) choiceLabel.set(String(o.id), label); }
+    }
+  }
   const waiverName = new Map<string, string>();
   for (const w of waivers) waiverName.set(String(w.id), String(w.name ?? "Waiver"));
   const out = new Map<string, Omit<Safety, "syncedAt">>();
@@ -75,7 +82,7 @@ export async function fetchSafety(): Promise<Map<string, Omit<Safety, "syncedAt"
       const kind = use.get(String(v.field));
       // The address is kept only as its postcode area ("BS5"), for the members map.
       if (kind === "address" && v.value) { const area = postcodeArea(typeof v.value === "string" ? v.value : JSON.stringify(v.value)); if (area) cur.area = area; continue; }
-      const value = typeof v.value === "string" ? str(v.value) : undefined;
+      const value = typeof v.value === "string" ? str(v.value) : typeof v.value === "number" ? String(v.value) : undefined;
       const when = str(v.last_updated_at ?? v.created_at);
       if (when && (!cur.formAt || when > cur.formAt)) cur.formAt = when;
       if (!value) continue;
@@ -83,6 +90,7 @@ export async function fetchSafety(): Promise<Map<string, Omit<Safety, "syncedAt"
       else if (kind === "emergency_contact_phone") cur.emergencyPhone = value;
       else if (kind === "emergency_contact_relationship") cur.emergencyRelationship = value;
       else if (kind === "date_of_birth") cur.dateOfBirth = value;
+      else if (kind === "gender") cur.gender = choiceLabel.get(value) ?? value;
     }
   }
   for (const v of out.values()) if (v.formAt) v.formAt = new Date(v.formAt).toISOString();

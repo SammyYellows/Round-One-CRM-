@@ -197,3 +197,65 @@ export function reconcile(rows: MembershipRow[], today: string): Reconciliation 
   const lapsedButActive = [...byPerson.entries()].filter(([id]) => !running.has(id)).map(([customerId, ms]) => { const m = ms.sort((a, b) => (b.end ?? "").localeCompare(a.end ?? ""))[0]; return { customerId, name: m.customerName, membership: m.name, ended: m.end ?? "" }; });
   return { activeMemberships: active.length, peopleActive: byPerson.size, byDates: running.size, doubles, lapsedButActive };
 }
+
+// ---- Last month in detail (Sammy, 15/10/2026) ----------------------------
+
+export interface PersonInfo { gender?: string; dateOfBirth?: string; area?: string }
+export interface Split { label: string; count: number }
+export interface MonthDetail {
+  label: string; from: string; to: string;
+  membersAtEnd: number; joined: number; left: number; net: number;
+  threeMonthNet: number; threeMonthJoined: number; threeMonthLeft: number;
+  types: { name: string; atEnd: number; joined: number; left: number }[]; // memberships, by name
+  gender: Split[]; age: Split[]; areas: Split[]; // of the members at the end of the month
+}
+
+const AGE_BANDS: [string, number, number][] = [["Under 18", 0, 17], ["18–24", 18, 24], ["25–34", 25, 34], ["35–44", 35, 44], ["45–54", 45, 54], ["55+", 55, 200]];
+
+function ageOn(dob: string, d: string) {
+  const [y, m, dd] = dob.slice(0, 10).split("-").map(Number);
+  const [Y, M, D] = d.split("-").map(Number);
+  if (!y || !m || !dd) return undefined;
+  return Y - y - (M < m || (M === m && D < dd) ? 1 : 0);
+}
+
+function tally(values: string[], order?: string[]): Split[] {
+  const m = new Map<string, number>();
+  for (const v of values) m.set(v, (m.get(v) ?? 0) + 1);
+  const out = [...m.entries()].map(([label, count]) => ({ label, count }));
+  return order ? out.sort((a, b) => order.indexOf(a.label) - order.indexOf(b.label)) : out.sort((a, b) => b.count - a.count);
+}
+
+/** The last whole calendar month before `today`: who joined and left on which membership, and who the members were. */
+export function lastMonthDetail(rows: MembershipRow[], today: string, people: Map<string, PersonInfo>): MonthDetail {
+  const months = monthly(rows, today, 3);
+  const whole = months.slice(0, -1); // the three whole months before this one
+  const m = whole[whole.length - 1];
+  const before = membersOn(rows, addDays(m.from, -1));
+  const after = membersOn(rows, m.to);
+  const running = (d: string) => rows.filter((r) => runningOn(r, d));
+  const types = new Map<string, { atEnd: number; joined: number; left: number }>();
+  // Each Program intake has its own dated name in TeamUp ("28 Day Program - 28/09 - 26/10"); one row for them all.
+  const key = (n: string) => (/^28\s*day\s*program/i.test(n) ? "28 Day Program (all intakes)" : n || "Unnamed");
+  const at = (n: string) => { const k = key(n); return types.get(k) ?? types.set(k, { atEnd: 0, joined: 0, left: 0 }).get(k)!; };
+  for (const r of running(m.to)) {
+    at(r.name).atEnd++;
+    if (!before.has(r.customerId)) at(r.name).joined++;
+  }
+  for (const r of running(addDays(m.from, -1))) if (!after.has(r.customerId)) at(r.name).left++;
+  const members = [...after].map((id) => people.get(id) ?? {});
+  const norm = (g?: string) => (!g ? "Not given" : /^m(ale)?$/i.test(g) ? "Male" : /^f(emale)?$/i.test(g) ? "Female" : g.charAt(0).toUpperCase() + g.slice(1));
+  const band = (p: PersonInfo) => {
+    const a = p.dateOfBirth ? ageOn(p.dateOfBirth, m.to) : undefined;
+    return a === undefined || a < 5 || a > 100 ? "Not given" : AGE_BANDS.find(([, lo, hi]) => a >= lo && a <= hi)![0];
+  };
+  const areas = tally(members.map((p) => p.area ?? "Not given").filter((a) => a !== "Not given"));
+  return {
+    label: m.label, from: m.from, to: m.to, membersAtEnd: m.membersAtEnd, joined: m.joined, left: m.left, net: m.net,
+    threeMonthNet: whole.reduce((a, x) => a + x.net, 0), threeMonthJoined: whole.reduce((a, x) => a + x.joined, 0), threeMonthLeft: whole.reduce((a, x) => a + x.left, 0),
+    types: [...types.entries()].map(([name, v]) => ({ name, ...v })).filter((t) => t.atEnd || t.joined || t.left).sort((a, b) => b.atEnd - a.atEnd || b.joined - a.joined),
+    gender: tally(members.map((p) => norm(p.gender))),
+    age: tally(members.map(band), [...AGE_BANDS.map((b) => b[0]), "Not given"]),
+    areas: [...areas.slice(0, 10), ...(members.length - areas.slice(0, 10).reduce((a, x) => a + x.count, 0) > 0 ? [{ label: "Other or none", count: members.length - areas.slice(0, 10).reduce((a, x) => a + x.count, 0) }] : [])],
+  };
+}
