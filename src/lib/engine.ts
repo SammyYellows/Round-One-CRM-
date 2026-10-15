@@ -173,6 +173,17 @@ function advanceRun(s: State, run: Run) {
         if (step.skipIfLate && c.trialAt) run.stepIndex += 1;
         break;
       }
+      case "wait_until_start": {
+        const start = c.membership?.startedAt;
+        const at = start ? ukTime(Date.parse(start.length === 10 ? `${start}T12:00:00Z` : start), -step.daysBefore, 9).getTime() : nowMs(s);
+        if (at > nowMs(s)) {
+          run.status = "waiting";
+          run.resumeAt = new Date(at).toISOString();
+          return;
+        }
+        if (step.skipIfLate) run.stepIndex = a.steps.length; // too late for a "before you start" message: nothing else in it applies
+        break;
+      }
       case "if_stage_in":
         if (!step.stages.includes(c.stage)) {
           run.status = "stopped";
@@ -239,6 +250,7 @@ export function describeStep(step: Step, templates: Record<string, string>) {
       title: `Wait until ${step.hoursBefore % 24 === 0 ? `${step.hoursBefore / 24} day${step.hoursBefore === 24 ? "" : "s"}` : `${step.hoursBefore} hours`} before the trial`,
       detail: step.skipIfLate ? "If they booked later than that, skip the next step" : "",
     };
+    case "wait_until_start": return { kind: "Wait", title: `Wait until ${step.daysBefore} day${step.daysBefore === 1 ? "" : "s"} before their membership starts (09:00)`, detail: step.skipIfLate ? "If they bought it later than that, send nothing" : "" };
     case "if_stage_in": return { kind: "If", title: `Still in ${step.stages.map(stageLabel).join(" or ")}`, detail: "Otherwise stop here" };
     case "task": return { kind: "Do", title: "Create a task for staff", detail: step.text };
   }
