@@ -5,7 +5,7 @@
 
 import { addContact, addTask } from "@/lib/engine";
 import { GYM } from "@/lib/gym";
-import { aiConfigured, draftReply, rewriteDraft } from "./ai";
+import { aiConfigured, draftReply, rewriteDraft, type EarlierEmail } from "./ai";
 import { appUrl } from "./deliver";
 import { fetchReceivedEmail, listReceivedEmailIds, sendEmail } from "./email";
 import { applyMany } from "./state";
@@ -149,6 +149,36 @@ const stripHtml = (html: string | null) =>
   (html ?? "").replace(/<style[\s\S]*?<\/style>/gi, "").replace(/<[^>]+>/g, " ").replace(/&nbsp;/g, " ").replace(/&amp;/g, "&").replace(/\s+\n/g, "\n").replace(/[ \t]+/g, " ").trim();
 
 /**
+ * The emails before this one with the same person, oldest first, with what we
+ * sent back, so a draft reads the whole conversation (Sammy, 15/10/2026).
+ * Matched on their address, or on the contact. A website form's no-reply
+ * address is shared by everyone who fills the form in, so a match on it only
+ * counts when that email wasn't a form notification for someone else.
+ */
+export async function earlierEmails(e: Enquiry, contactId: string | null): Promise<EarlierEmail[]> {
+  const address = e.replyTo ?? e.fromEmail;
+  const base = () => db().from("enquiries").select("id, from_email, from_name, subject, text, received_at, reply_text, sent_at, sent_by")
+    .eq("kind", "enquiry").neq("id", e.id).lt("received_at", e.receivedAt);
+  const found = await Promise.all([
+    base().eq("from_email", address).is("reply_to", null),
+    base().eq("reply_to", address),
+    ...(contactId ? [base().eq("contact_id", contactId)] : []),
+  ].map((q) => q.order("received_at", { ascending: false }).limit(30)));
+  const rows = new Map<string, Row>();
+  for (const { data } of found) for (const r of (data as Row[] | null) ?? []) rows.set(r.id as string, r);
+  return [...rows.values()]
+    .sort((a, b) => Date.parse(a.received_at as string) - Date.parse(b.received_at as string))
+    .slice(-30)
+    .map((r) => ({
+      at: r.received_at as string,
+      from: r.from_name ? `${r.from_name} <${r.from_email}>` : (r.from_email as string),
+      subject: (r.subject as string) ?? "",
+      text: (r.text as string) ?? "",
+      ...(r.reply_text && r.sent_at ? { reply: { text: r.reply_text as string, at: r.sent_at as string, by: (r.sent_by as string) || "staff" } } : {}),
+    }));
+}
+
+/**
  * Reads one saved email: is it an enquiry, who is it from, what should we
  * say back. Also used by "Draft again". Never sends the reply.
  */
@@ -169,8 +199,9 @@ export async function processEnquiry(id: string) {
     try {
       const facts = await getFacts();
       const membership = (match?.membership as { name?: string; status?: string } | null) ?? null;
+      const earlier = await earlierEmails(e, contactId ?? ((match?.id as string) || null));
       const out = await draftReply({
-        fromName: e.fromName ?? "", fromEmail: e.fromEmail, subject: e.subject, text: e.text, facts,
+        fromName: e.fromName ?? "", fromEmail: e.fromEmail, subject: e.subject, text: e.text, facts, earlier,
         contact: match
           ? { name: match.name as string, stage: match.stage as string, trialAt: (match.trial_at as string) ?? undefined, membership: membership ? `${membership.name} (${membership.status})` : undefined }
           : undefined,
@@ -281,7 +312,8 @@ export async function rewriteEnquiryDraft(id: string, currentDraft: string, inst
   if (!instruction.trim()) return { ok: false as const, error: "Say what you’d like changed" };
   try {
     const facts = await getFacts();
-    const draft = await rewriteDraft({ fromName: e.fromName ?? "", fromEmail: e.fromEmail, subject: e.subject, text: e.text, facts, currentDraft, instruction: instruction.slice(0, 1000) });
+    const earlier = await earlierEmails(e, e.contactId);
+    const draft = await rewriteDraft({ fromName: e.fromName ?? "", fromEmail: e.fromEmail, subject: e.subject, text: e.text, facts, earlier, currentDraft, instruction: instruction.slice(0, 1000) });
     if (!draft) return { ok: false as const, error: "The AI came back empty" };
     await update(id, { draft, status: e.status === "dismissed" ? "dismissed" : "drafted", error: null });
     return { ok: true as const, draft };

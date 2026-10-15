@@ -4,10 +4,17 @@
 // ANTHROPIC_API_KEY it answers "not set up" and no draft is made.
 
 import { GYM } from "@/lib/gym";
+import { toUkWallClock } from "@/lib/time";
 
 const MODEL = process.env.ANTHROPIC_MODEL || "claude-opus-5-5";
 
 export const aiConfigured = () => Boolean(process.env.ANTHROPIC_API_KEY);
+
+/** "2026-10-15 09:00", in UK time, so the AI reads times as staff do. */
+const ukClock = (ms: number) => toUkWallClock(ms).slice(0, 16).replace("T", " ");
+
+/** Long enough for any real email; only a huge one (a newsletter, a long quoted history) is cut, and marked. */
+const clip = (text: string, max: number) => (text.length > max ? `${text.slice(0, max)}\n[the rest of this email, ${text.length - max} more characters, is cut]` : text);
 
 export interface DraftInput {
   fromName: string;
@@ -17,6 +24,28 @@ export interface DraftInput {
   facts: string;
   /** What the CRM already knows about the sender, if anything. */
   contact?: { name: string; stage: string; trialAt?: string; membership?: string };
+  /** Earlier emails with the same person, oldest first, with what we sent back. */
+  earlier?: EarlierEmail[];
+}
+
+export interface EarlierEmail {
+  at: string;
+  from: string;
+  subject: string;
+  text: string;
+  reply?: { text: string; at: string; by: string };
+}
+
+/** The email to answer, after the earlier ones in the conversation so the AI reads it all. */
+function emailConversation(input: DraftInput) {
+  const earlier = (input.earlier ?? []).map((e) =>
+    `--- Email from them, ${ukClock(Date.parse(e.at))}, from ${e.from}, subject "${e.subject || "(no subject)"}":\n${clip(e.text, 20000) || "(no text)"}` +
+    (e.reply ? `\n\n--- Our reply, ${ukClock(Date.parse(e.reply.at))}, sent by ${e.reply.by}:\n${clip(e.reply.text, 20000)}` : ""),
+  );
+  const latest = `From: ${input.fromName ? `${input.fromName} <${input.fromEmail}>` : input.fromEmail}\nSubject: ${input.subject || "(no subject)"}\n\n${clip(input.text, 60000) || "(no text)"}`;
+  return earlier.length
+    ? `Earlier emails with this person, oldest first (UK times), so you have the whole conversation:\n\n${earlier.join("\n\n")}\n\n=== The email to reply to now ===\n${latest}`
+    : latest;
 }
 
 export interface DraftResult {
@@ -46,7 +75,6 @@ First decide what the email is. "enquiry" means a person asking the gym somethin
 export async function draftReply(input: DraftInput): Promise<DraftResult> {
   const key = process.env.ANTHROPIC_API_KEY;
   if (!key) throw new Error("ANTHROPIC_API_KEY isn’t set");
-  const body = input.text.length > 8000 ? input.text.slice(0, 8000) + "\n[trimmed]" : input.text;
   const known = input.contact
     ? `\n\nThe CRM already knows this sender: ${input.contact.name}, pipeline stage "${input.contact.stage}"${input.contact.trialAt ? `, free trial booked for ${input.contact.trialAt}` : ""}${input.contact.membership ? `, membership: ${input.contact.membership}` : ""}.`
     : "\n\nThe sender isn't in the CRM yet.";
@@ -83,7 +111,8 @@ export async function draftReply(input: DraftInput): Promise<DraftResult> {
       messages: [
         {
           role: "user",
-          content: `From: ${input.fromName ? `${input.fromName} <${input.fromEmail}>` : input.fromEmail}\nSubject: ${input.subject || "(no subject)"}\n\n${body || "(no text)"}${known}`,
+          content: `${emailConversation(input)}${known}` +
+            (input.earlier?.length ? `\n\nRead the whole conversation. Reply to the latest email, answering everything it asks, and fit what we've already told them (don't repeat it or contradict it).` : `\n\nRead the whole email and answer everything it asks.`),
         },
       ],
     }),
@@ -94,6 +123,7 @@ export async function draftReply(input: DraftInput): Promise<DraftResult> {
   }
   const json = (await res.json()) as { stop_reason?: string; content: { type: string; text?: string }[] };
   if (json.stop_reason === "refusal") throw new Error("The AI declined to answer this email");
+  if (json.stop_reason === "max_tokens") throw new Error("The AI's answer was cut short. Try Draft again.");
   const text = json.content.find((c) => c.type === "text")?.text ?? "{}";
   let out: Partial<DraftResult> = {};
   try { out = JSON.parse(text) as Partial<DraftResult>; } catch { throw new Error("The AI's answer wasn’t valid JSON"); }
@@ -110,7 +140,6 @@ export async function draftReply(input: DraftInput): Promise<DraftResult> {
 export async function rewriteDraft(input: DraftInput & { currentDraft: string; instruction: string }): Promise<string> {
   const key = process.env.ANTHROPIC_API_KEY;
   if (!key) throw new Error("ANTHROPIC_API_KEY isn’t set");
-  const body = input.text.length > 8000 ? input.text.slice(0, 8000) + "\n[trimmed]" : input.text;
   const res = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
     headers: { "x-api-key": key, "anthropic-version": "2023-06-01", "content-type": "application/json" },
@@ -129,7 +158,7 @@ export async function rewriteDraft(input: DraftInput & { currentDraft: string; i
         {
           role: "user",
           content:
-            `The email we're replying to:\nFrom: ${input.fromName ? `${input.fromName} <${input.fromEmail}>` : input.fromEmail}\nSubject: ${input.subject || "(no subject)"}\n\n${body || "(no text)"}` +
+            `The email we're replying to:\n${emailConversation(input)}` +
             `\n\n---\nThe current draft reply:\n\n${input.currentDraft || "(empty)"}` +
             `\n\n---\nThe staff member's instruction for the rewrite: ${input.instruction}` +
             `\n\nRewrite the draft to follow that instruction. Keep everything else that still fits. Same rules as always: only facts from the facts sheet or the email, no exclamation marks, sign off with "${GYM.signOff}". Return the full new draft.`,
@@ -259,7 +288,7 @@ export async function readCheckin(input: { first: string; floor: number; stretch
  * note for staff plus a suggested reply (improvement item 16). The reply is
  * only ever sent by a person; this never argues, sells hard or promises.
  */
-export async function readReplies(input: { name: string; stage: string; membership?: string; trialAt?: string; answers: { question: string; answer: string }[]; thread: { dir: "in" | "out"; text: string; at: string; channel?: string }[]; facts: string }): Promise<{ summary: string; suggestedReply: string; action: string }> {
+export async function readReplies(input: { name: string; stage: string; membership?: string; trialAt?: string; answers: { question: string; answer: string }[]; thread: { dir: "in" | "out"; text: string; at: string; channel?: string }[]; earlierLeftOut?: number; facts: string }): Promise<{ summary: string; suggestedReply: string; action: string }> {
   const key = process.env.ANTHROPIC_API_KEY;
   if (!key) throw new Error("ANTHROPIC_API_KEY isn’t set");
   const res = await fetch("https://api.anthropic.com/v1/messages", {
@@ -267,7 +296,7 @@ export async function readReplies(input: { name: string; stage: string; membersh
     headers: { "x-api-key": key, "anthropic-version": "2023-06-01", "content-type": "application/json" },
     body: JSON.stringify({
       model: MODEL,
-      max_tokens: 800,
+      max_tokens: 1500,
       system: [
         { type: "text", text: VOICE },
         { type: "text", text: `FACTS SHEET\n\n${input.facts}`, cache_control: { type: "ephemeral" } },
@@ -276,20 +305,24 @@ export async function readReplies(input: { name: string; stage: string; membersh
         effort: "medium",
         format: { type: "json_schema", schema: { type: "object", properties: {
           summary: { type: "string", description: "For staff: what this person has told us across their messages. Goals, worries, timing, constraints, anything to remember. Their own words where it helps. 2 to 5 short lines. Empty string if they've said nothing of substance." },
-          suggestedReply: { type: "string", description: "A reply to their latest message for a staff member to send, in the gym's voice, at most 60 words. If their last message needs no reply (e.g. 'thanks'), or if replying would mean arguing or negotiating, an empty string." },
+          suggestedReply: { type: "string", description: "A reply for a staff member to send, in the gym's voice, at most 80 words. It answers everything they've sent since our last OUT message, not just the final one: people often send several messages in a row. If none of that needs a reply (e.g. only 'thanks'), or if replying would mean arguing or negotiating, an empty string." },
           action: { type: "string", description: `From their messages since our last OUT message only (not older ones): ${ACTION}` },
         }, required: ["summary", "suggestedReply", "action"], additionalProperties: false } },
       },
       messages: [{ role: "user", content:
         `Contact: ${input.name}. Pipeline stage: ${input.stage}.${input.membership ? ` Membership: ${input.membership}.` : ""}${input.trialAt ? ` Intro meeting booked: ${input.trialAt}.` : ""}\n` +
         (input.answers.length ? `Questionnaire: ${input.answers.map((a) => `${a.question} ${a.answer}`).join(" | ")}\n` : "") +
-        `Message thread, oldest first (OUT is us, IN is them; WhatsApp unless it says Facebook or Instagram):\n${input.thread.map((m) => `${m.dir === "in" ? "IN" : "OUT"}${m.channel ? ` [${m.channel}]` : ""} ${m.at.slice(0, 16)}: ${m.text}`).join("\n")}\n\n` +
-        `Write the staff note from what THEY said (the IN messages). Then suggest a reply to their latest message. The reply must not argue, haggle, defend the gym, or make offers that aren't on the facts sheet; if the right move is a human conversation, say so briefly and warmly and leave it there. A staff member decides whether to send it.` }],
+        `It is now ${ukClock(Date.now())} (UK time).\n` +
+        `The whole message thread, oldest first, UK times (OUT is us, IN is them; WhatsApp unless it says Facebook or Instagram):\n` +
+        (input.earlierLeftOut ? `(${input.earlierLeftOut} older messages not shown)\n` : "") +
+        `${input.thread.map((m) => `${m.dir === "in" ? "IN" : "OUT"}${m.channel ? ` [${m.channel}]` : ""} ${ukClock(Date.parse(m.at))}: ${m.text}`).join("\n")}\n\n` +
+        `Read every message before writing. Write the staff note from what THEY said (the IN messages) across the whole thread. Then suggest one reply that covers everything they've sent since our last OUT message, in order, and fits what we've already told them earlier in the thread (don't repeat it or contradict it). The reply must not argue, haggle, defend the gym, or make offers that aren't on the facts sheet; if the right move is a human conversation, say so briefly and warmly and leave it there. A staff member decides whether to send it.` }],
     }),
   });
   if (!res.ok) { const err = (await res.json().catch(() => ({}))) as { error?: { message?: string } }; throw new Error(err.error?.message || `Anthropic said ${res.status}`); }
   const json = (await res.json()) as { stop_reason?: string; content: { type: string; text?: string }[] };
   if (json.stop_reason === "refusal") throw new Error("The AI declined");
+  if (json.stop_reason === "max_tokens") throw new Error("The AI's answer was cut short. Try again.");
   const out = JSON.parse(json.content.find((c) => c.type === "text")?.text ?? "{}") as { summary?: string; suggestedReply?: string; action?: string };
   return { summary: String(out.summary ?? "").trim(), suggestedReply: String(out.suggestedReply ?? "").trim(), action: String(out.action ?? "").trim() };
 }
