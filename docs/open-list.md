@@ -415,9 +415,13 @@ updates from the import never fire automations.
     No reply needed, 4 from the last week waiting. **Instagram history:**
     Meta times out past Vercel's 60 seconds however small the request;
     retried the morning of 15/10 (dry run): Meta answered "An unknown error
-    occurred" after a minute, so still failing on Meta's side. **Waiting on
-    Sammy:** A) leave it, or B) try the Instagram Login route (he makes a
-    token). AI drafts now show in the WhatsApp, Facebook and
+    occurred" after a minute, so still failing on Meta's side. Sammy chose
+    B (15/10): the CRM now reads Instagram history through Instagram Login.
+    **Waiting on Sammy:** make the token (app dashboard → Instagram → API
+    setup with Instagram business login → Generate token for
+    @roundonefitness) and add it in Vercel as `INSTAGRAM_LOGIN_TOKEN`
+    (sensitive). Then Claude runs a dry run, says the counts, and copies in
+    only after his go. Meta gives each conversation's latest 20 messages. AI drafts now show in the WhatsApp, Facebook and
     Instagram inboxes (Use it, then Send).
   - **Till** (Sammy, 14/10): Epos Now connected (read only; key and secret in
     Vercel). Till page next to Staff, management only: cash in the till since

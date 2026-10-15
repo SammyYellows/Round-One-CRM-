@@ -335,10 +335,23 @@ const socialKey = (channel: SocialChannel) => (channel === "facebook" ? "faceboo
  * them: Meta gives a name (Facebook) or username (Instagram), never a mobile
  * or email. `id` is based on Meta's message id, so it's never added twice.
  */
+/**
+ * Instagram's two routes (the Page's, which webhooks and replies use, and
+ * Instagram Login, which copied the history in) may give the same person
+ * different ids, so on Instagram a username match counts too.
+ */
+function socialContact(s: State, channel: SocialChannel, userId: string, username?: string) {
+  const key = socialKey(channel);
+  return s.contacts.find((x) => x.social?.[key] === userId)
+    ?? (channel === "instagram" && username ? s.contacts.find((x) => x.social?.instagramUsername?.toLowerCase() === username.toLowerCase()) : undefined);
+}
+
 export function receiveSocial(s: State, input: { id: string; channel: SocialChannel; userId: string; name?: string; username?: string; text: string }) {
   if (s.messages.some((m) => m.id === input.id)) return;
   const key = socialKey(input.channel);
-  let c = s.contacts.find((x) => x.social?.[key] === input.userId);
+  let c = socialContact(s, input.channel, input.userId, input.username);
+  // Matched on their username: keep the id this route gives, since replies go back through it.
+  if (c && c.social?.[key] !== input.userId) c.social = { ...c.social, [key]: input.userId };
   if (!c) {
     const name = input.name?.trim() || (input.username ? `@${input.username}` : `${CHANNEL_LABEL[input.channel]} user`);
     c = {
@@ -383,7 +396,7 @@ export function importSocialHistory(s: State, input: { channel: SocialChannel; u
   if (!fresh.length) return 0;
   const key = socialKey(input.channel);
   const label = CHANNEL_LABEL[input.channel];
-  let c = s.contacts.find((x) => x.social?.[key] === input.userId);
+  let c = socialContact(s, input.channel, input.userId, input.username);
   if (!c) {
     c = {
       id: uid(), name: input.name?.trim() || (input.username ? `@${input.username}` : `${label} user`), phone: "", email: "", source: input.channel,
