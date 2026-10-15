@@ -115,7 +115,7 @@ is in `docs/go-live-day.md`; privacy paragraphs to paste are in
 on Vercel (needs one CNAME at SiteGround). Nothing new reaches customers
 beyond the ten automations already on.
 
-**GymGrow import: on hold** (Sammy, 10/10). Contacts export received (1,450
+**GymGrow import: done 11/10** (see Done, item 19: 686 contacts from the Opportunities data, plus 655 old messages in `gymgrow_messages`). The notes below are the history. **Was on hold** (Sammy, 10/10). Contacts export received (1,450
 rows: 685 questionnaire leads with email, 683 phone-only contacts uploaded
 in one go on 7 May, 82 added individually; 88 already in the CRM). No
 notes, stages or answers in it. Waiting on Sammy: the **Opportunities

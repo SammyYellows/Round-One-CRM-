@@ -181,7 +181,8 @@ function advanceRun(s: State, run: Run) {
           run.resumeAt = new Date(at).toISOString();
           return;
         }
-        if (step.skipIfLate) run.stepIndex = a.steps.length; // too late for a "before you start" message: nothing else in it applies
+        // Up to a day late (e.g. TeamUp synced after 09:00) it still goes; later than that, nothing in it applies any more.
+        if (step.skipIfLate && nowMs(s) - at > 24 * 3600e3) run.stepIndex = a.steps.length;
         break;
       }
       case "if_stage_in":
@@ -250,7 +251,11 @@ export function describeStep(step: Step, templates: Record<string, string>) {
       title: `Wait until ${step.hoursBefore % 24 === 0 ? `${step.hoursBefore / 24} day${step.hoursBefore === 24 ? "" : "s"}` : `${step.hoursBefore} hours`} before the trial`,
       detail: step.skipIfLate ? "If they booked later than that, skip the next step" : "",
     };
-    case "wait_until_start": return { kind: "Wait", title: `Wait until ${step.daysBefore} day${step.daysBefore === 1 ? "" : "s"} before their membership starts (09:00)`, detail: step.skipIfLate ? "If they bought it later than that, send nothing" : "" };
+    case "wait_until_start": return {
+      kind: "Wait",
+      title: step.daysBefore > 0 ? `Wait until ${step.daysBefore} day${step.daysBefore === 1 ? "" : "s"} before their membership starts (09:00)` : `Wait until day ${1 - step.daysBefore} of their membership (09:00)`,
+      detail: step.skipIfLate ? "If that's more than a day gone already, send nothing" : "",
+    };
     case "if_stage_in": return { kind: "If", title: `Still in ${step.stages.map(stageLabel).join(" or ")}`, detail: "Otherwise stop here" };
     case "task": return { kind: "Do", title: "Create a task for staff", detail: step.text };
   }
