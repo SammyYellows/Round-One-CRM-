@@ -4,7 +4,7 @@
 // designed footer: just the words, a small logo under the sign-off like an
 // email signature (Sammy, 15/10), with each link that ends a line turned
 // into a simple red button and its address underneath. The plain text goes
-// too. Staff alerts, mailouts and enquiry replies stay plain text.
+// too. Only the Program emails for now; the rest stay plain text (deliver.ts).
 
 const RED = "#D01B20"; // --red-btn: passes contrast under white text
 const GREY = "#5F605F";
@@ -26,7 +26,7 @@ const linkify = (line: string) => esc(line).replace(/https?:\/\/[^\s<>"]+/g, (u)
 
 function button(url: string): string {
   const u = esc(url);
-  return `<p style="margin:0 0 6px"><a href="${u}" style="display:inline-block;padding:10px 18px;background:${RED};color:#FFFFFF;text-decoration:none;font-weight:bold">${esc(buttonLabel(url))}</a></p>`
+  return `<p style="margin:0 0 6px"><a href="${u}" style="display:inline-block;padding:14px 26px;background:${RED};color:#FFFFFF;text-decoration:none;font-weight:bold;font-size:16px">${esc(buttonLabel(url))}</a></p>`
     + `<p style="margin:0 0 16px;font-size:12px;color:${GREY}">${linkify(url)}</p>`;
 }
 
