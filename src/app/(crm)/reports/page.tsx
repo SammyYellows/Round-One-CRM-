@@ -19,7 +19,13 @@ interface ClassStat { name: string; weekday: number; hour: number; minute: numbe
 interface MemberActivity { contactId: string; name: string; membership: string; last30: number; prev30: number; lastSeenAt?: string; change: number }
 interface AttendanceReport { since?: string; classes: ClassStat[]; top: MemberActivity[]; bottom: MemberActivity[]; declining: MemberActivity[]; activeMembers: number }
 interface Report { kind: "weekly" | "monthly" | "unpaid" | "attendance"; asOf: string; unpaid: Unpaid[]; reconciliation: Reconciliation; attendance: AttendanceReport; weekly: Weekly; months: MonthPoint[]; forecasts: Forecast[]; cancellations: { name: string; noticeAt: string; membership: string; reply?: string }[]; cancellationSummary: string }
-interface Settings { pastDays: number; forecastDays: number; averageDays: number; monthlyMonths: number[]; forecastMonths: number[]; managerNumbers: string[]; weeklyOn: boolean; monthlyOn: boolean; unpaidOn: boolean; lastWeeklyAt?: string; lastMonthlyAt?: string; lastUnpaidAt?: string }
+interface Settings { pastDays: number; forecastDays: number; averageDays: number; monthlyMonths: number[]; forecastMonths: number[]; managerNumbers: string[]; weeklyOn: boolean; monthlyOn: boolean; unpaidOn: boolean; unpaidMonthly?: boolean; unpaidStartOn?: string; lastWeeklyAt?: string; lastMonthlyAt?: string; lastUnpaidAt?: string }
+
+/** When the unpaid report goes: Mondays, or the last day of the month from a start date (Sammy, 15/10/2026). */
+const unpaidWhen = (s: Settings) =>
+  s.unpaidMonthly
+    ? `The last day of the month at 08:00${s.unpaidStartOn ? `, from ${new Date(`${s.unpaidStartOn}T12:00:00Z`).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}` : ""}`
+    : "Mondays at 08:00";
 interface Payload { weekly: Report; monthly: Report; unpaid: Report; attendance: Report; settings: Settings; whatsapp: boolean; staffEmail: string | null }
 const DAYNAME = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const slot = (c: ClassStat) => `${DAYNAME[c.weekday]} ${String(c.hour).padStart(2, "0")}:${String(c.minute).padStart(2, "0")}`;
@@ -120,7 +126,7 @@ export default function ReportsPage() {
       { label: "Unpaid members", value: String(r.unpaid.length), note: "3 or more failed attempts in TeamUp" },
       { label: "Owed", value: `£${owedTotal.toFixed(0)}`, note: "open and retry-failed invoices" },
       { label: "Worst", value: r.unpaid[0] ? String(r.unpaid[0].retries) : "–", note: r.unpaid[0] ? `attempts: ${r.unpaid[0].name}` : "" },
-      { label: "Schedule", value: s.unpaidOn ? "On" : "Off", note: "Mondays 08:00 to the managers" },
+      { label: "Schedule", value: s.unpaidOn ? "On" : "Off", note: `${unpaidWhen(s)} to the managers` },
     ]
     : tab === "weekly"
     ? [
@@ -245,7 +251,7 @@ export default function ReportsPage() {
             <div className="small muted">
               {s.managerNumbers.length ? `Goes to ${s.managerNumbers.join(", ")} on WhatsApp as a PDF.` : "No manager numbers yet: add them in Settings below."}
               {!data.whatsapp && " WhatsApp isn’t connected on this server, so a send is only logged."}
-              {" "}Schedule: <strong>{sched ? "on" : "off"}</strong>{lastAt ? `, last sent ${fmt(lastAt)}` : ""}. {tab === "monthly" ? "The 1st of the month at 08:00." : "Mondays at 08:00."}
+              {" "}Schedule: <strong>{sched ? "on" : "off"}</strong>{lastAt ? `, last sent ${fmt(lastAt)}` : ""}. {tab === "monthly" ? "The 1st of the month at 08:00." : tab === "unpaid" ? `${unpaidWhen(s)}.` : "Mondays at 08:00."}
             </div>
             {!confirming ? (
               <div className="actions" style={{ gap: 8, flexWrap: "wrap" }}>
