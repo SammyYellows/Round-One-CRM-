@@ -152,7 +152,9 @@ const HISTORY_CAP = 300;
  * (importSocialHistory: never sent, never leads). `after` carries on from
  * the last call's `next`. Read only when `dryRun`.
  */
-export async function socialHistory(channel: SocialChannel, opts: { dryRun: boolean; after?: string }, save: (items: Parameters<typeof importSocialHistory>[1][]) => Promise<number>) {
+export async function socialHistory(channel: SocialChannel, opts: { dryRun: boolean; after?: string }, save: (items: HistoryItem[]) => Promise<number>) {
+  // Meta times out listing Instagram conversations through the Page (14–15/10/2026), so Instagram reads through Instagram Login when that token is set.
+  if (channel === "instagram" && process.env.INSTAGRAM_LOGIN_TOKEN) return instagramLoginHistory(opts, save);
   if (!socialConfigured()) return { error: "Needs META_SOCIAL_TOKEN and META_PAGE_ID in Vercel" };
   const token = await pageToken();
   const pageId = process.env.META_PAGE_ID ?? "";
@@ -189,20 +191,85 @@ export async function socialHistory(channel: SocialChannel, opts: { dryRun: bool
       messages: msgs.map((m) => ({ id: `${prefix}_${m.id}`, dir: (ours.has(m.from?.id ?? "") ? "out" : "in") as "in" | "out", text: historyText(m), at: new Date(m.created_time).toISOString() })),
     });
   }
+  return summarise(items, opts.dryRun, save, r.json.paging as Paging | undefined);
+}
+
+type HistoryItem = Parameters<typeof importSocialHistory>[1];
+type Paging = { next?: string; cursors?: { after?: string } };
+
+/** What a batch holds (and, unless a dry run, copies it in). */
+async function summarise(items: HistoryItem[], dryRun: boolean, save: (items: HistoryItem[]) => Promise<number>, paging?: Paging, extra: Record<string, unknown> = {}) {
   const all = items.flatMap((i) => i.messages);
   const times = all.map((m) => Date.parse(m.at)).sort((a, b) => a - b);
   const recent = items.filter((i) => {
     const last = i.messages.reduce<{ dir: string; at: string } | null>((a, b) => (!a || Date.parse(b.at) > Date.parse(a.at) ? b : a), null);
     return last?.dir === "in" && Date.now() - Date.parse(last.at) <= 7 * 86400e3;
   }).length;
-  const paging = r.json.paging as { next?: string; cursors?: { after?: string } } | undefined;
   return {
     conversations: items.length,
     messages: all.length,
     oldest: times.length ? new Date(times[0]).toISOString().slice(0, 10) : null,
     newest: times.length ? new Date(times[times.length - 1]).toISOString().slice(0, 10) : null,
     waitingLast7Days: recent,
-    added: opts.dryRun ? 0 : await save(items),
+    ...extra,
+    added: dryRun ? 0 : await save(items),
     next: paging?.next ? paging.cursors?.after ?? null : null,
   };
+}
+
+// Instagram Login (Sammy chose this on 15/10/2026 after the Page route kept
+// timing out): graph.instagram.com with a 60-day token Sammy made in the app
+// dashboard for @roundonefitness (INSTAGRAM_LOGIN_TOKEN, read only here).
+// Meta only gives the text of each conversation's latest 20 messages.
+const IG_API = `https://graph.instagram.com/${process.env.INSTAGRAM_API_VERSION || "v25.0"}`;
+
+async function igGraph(path: string): Promise<{ ok: boolean; status: number; json: Json }> {
+  const res = await fetch(`${IG_API}/${path}${path.includes("?") ? "&" : "?"}access_token=${encodeURIComponent(process.env.INSTAGRAM_LOGIN_TOKEN ?? "")}`, { cache: "no-store" });
+  return { ok: res.ok, status: res.status, json: (await res.json().catch(() => ({}))) as Json };
+}
+
+/** Runs `fn` over `list`, a few at a time, so a batch of conversations finishes well inside Vercel's limit. */
+async function pool<T, R>(list: T[], size: number, fn: (x: T) => Promise<R>): Promise<R[]> {
+  const out: R[] = new Array(list.length);
+  let i = 0;
+  await Promise.all(Array.from({ length: Math.min(size, list.length) }, async () => {
+    while (i < list.length) { const n = i++; out[n] = await fn(list[n]); }
+  }));
+  return out;
+}
+
+type IgUser = { id?: string; username?: string };
+type IgMessage = { id: string; created_time: string; from?: IgUser; to?: { data?: IgUser[] }; message?: string; attachments?: { data?: { mime_type?: string }[] } };
+
+async function instagramLoginHistory(opts: { dryRun: boolean; after?: string }, save: (items: HistoryItem[]) => Promise<number>) {
+  const me = await igGraph("me?fields=user_id,username");
+  if (!me.ok) return { error: `Instagram Login: ${me.json.error?.message || `Meta said ${me.status}`}` };
+  const ourId = String(me.json.user_id ?? "");
+  const ourName = String(me.json.username ?? "").toLowerCase();
+  const isUs = (u?: IgUser) => !!u && ((!!ourId && u.id === ourId) || (!!ourName && u.username?.toLowerCase() === ourName));
+  const list = await igGraph(`me/conversations?platform=instagram&limit=10&fields=id,updated_time${opts.after ? `&after=${encodeURIComponent(opts.after)}` : ""}`);
+  if (!list.ok) return { error: `Instagram Login: ${list.json.error?.message || `Meta said ${list.status}`}` };
+  const BASE = "id,created_time,from,to,message";
+  let withAttachments = true;
+  const conversations = (list.json.data ?? []) as { id: string }[];
+  const read = await pool(conversations, 4, async (conv) => {
+    const r = await igGraph(`${conv.id}?fields=messages`);
+    const ids = ((r.json.messages as { data?: { id: string }[] } | undefined)?.data ?? []).map((m) => m.id);
+    const latest = ids.slice(0, 20); // newest first; older ones come back as "deleted"
+    const got = await pool(latest, 5, async (id) => {
+      const tried = withAttachments;
+      let m = await igGraph(`${id}?fields=${BASE}${tried ? ",attachments" : ""}`);
+      // If Meta won't give attachments, ask again without them (and from then on).
+      if (!m.ok && tried && /attachments|field/i.test(m.json.error?.message ?? "")) { withAttachments = false; m = await igGraph(`${id}?fields=${BASE}`); }
+      return m.ok && m.json.created_time ? (m.json as unknown as IgMessage) : null;
+    });
+    const msgs = got.filter((m): m is IgMessage => !!m);
+    const them = msgs.map((m) => (isUs(m.from) ? m.to?.data?.find((u) => !isUs(u)) : m.from)).find((u) => u?.id);
+    return { them, msgs, older: Math.max(0, ids.length - latest.length) };
+  });
+  const items: HistoryItem[] = read.filter((c) => c.them?.id && c.msgs.length).map((c) => ({
+    channel: "instagram" as const, userId: c.them!.id!, ...(c.them!.username ? { username: c.them!.username } : {}),
+    messages: c.msgs.map((m) => ({ id: `ig_${m.id}`, dir: (isUs(m.from) ? "out" : "in") as "in" | "out", text: historyText(m), at: new Date(m.created_time).toISOString() })),
+  }));
+  return summarise(items, opts.dryRun, save, list.json.paging as Paging | undefined, { route: "instagram-login", olderNotReadable: read.reduce((n, c) => n + c.older, 0) });
 }
