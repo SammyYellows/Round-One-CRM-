@@ -6,7 +6,8 @@
 // nothing happens.
 
 import { addTask, setInsight } from "@/lib/engine";
-import { CHANNEL_LABEL, stageLabel } from "@/lib/types";
+import { CHANNELS, CHANNEL_LABEL, stageLabel } from "@/lib/types";
+import { conversations } from "@/lib/messageInbox";
 import { aiConfigured, readReplies } from "./ai";
 import { getFacts } from "./enquiries";
 import { applyMany, loadState } from "./state";
@@ -47,4 +48,38 @@ export async function readContactReplies(contactId: string, opts: { force?: bool
     if (read.action) addTask(st, { id: `todo_${lastIn.id}`, contactId, text: read.action });
   });
   return { ok: true };
+}
+
+/**
+ * Drafts ready before anyone opens the conversation, like email (Sammy,
+ * 15/10/2026). From /api/cron every 5 minutes: any conversation waiting on
+ * us that can still take a reply (WhatsApp within 24 hours of their last
+ * message, Facebook and Instagram within 7 days) and has no draft for their
+ * latest message gets one. A few at a time, oldest-waiting last, so the
+ * webhook's own read stays the quick path and this catches the rest.
+ */
+export async function draftWaiting(opts: { max?: number; budgetMs?: number } = {}) {
+  if (!aiConfigured()) return { skipped: "no AI key" };
+  const t0 = Date.now();
+  const s = await loadState();
+  const now = Date.now();
+  const due: string[] = [];
+  for (const ch of CHANNELS) {
+    const window = ch === "whatsapp" ? 24 * 3600e3 : 7 * 86400e3;
+    for (const conv of conversations(s, ch)) {
+      if (!conv.waiting || now - Date.parse(conv.lastIn.at) > window) continue;
+      const text = conv.lastIn.text.trim();
+      if (/^\s*(stop|unsubscribe|opt ?out)\s*[.!]?\s*$/i.test(text) || text.startsWith("[")) continue; // nothing to answer in words (readContactReplies skips these too)
+      const ins = conv.contact.insight;
+      if (ins && Date.parse(ins.updatedAt) >= Date.parse(conv.lastIn.at)) continue; // already read since their last message
+      if (!due.includes(conv.contact.id)) due.push(conv.contact.id);
+    }
+  }
+  let drafted = 0;
+  for (const id of due.slice(0, opts.max ?? 4)) {
+    if (Date.now() - t0 > (opts.budgetMs ?? 30e3)) break;
+    const r = await readContactReplies(id).catch((e) => ({ error: e instanceof Error ? e.message : String(e) }));
+    if ("ok" in r) drafted++;
+  }
+  return { waitingWithoutDraft: due.length, drafted };
 }

@@ -168,7 +168,7 @@ Use the search and filters at the top to find people.`,
 ### WhatsApp
 - Everyone who has messaged the gym's WhatsApp number, newest first. **To reply** shows the ones whose message hasn't been answered; **All** shows everyone.
 - Pick a conversation to read it and reply on the right, the same as on their contact page. Within 24 hours of their last message you can write freely; after that only approved templates can go. Pick a template to see its wording, then **Yes, send it**.
-- **Suggested reply**: when someone messages, the AI reads the whole conversation and writes a reply for you to check, shown above the message box (WhatsApp, Facebook and Instagram). If they sent several messages in a row, it answers all of them. **Use it** puts it in the box to edit; nothing goes until you press **Send**. **Dismiss** drops it, **Draft again** writes a new one, and **Draft a reply** asks for one when there isn't one yet.
+- **Suggested reply**: when someone messages, the AI reads the whole conversation and writes a reply for you to check (it's usually there within a few minutes, before you open it), shown above the message box (WhatsApp, Facebook and Instagram). If they sent several messages in a row, it answers all of them. **Use it** puts it in the box to edit; nothing goes until you press **Send**. **Dismiss** drops it, **Draft again** writes a new one, and **Draft a reply** asks for one when there isn't one yet.
 - **No reply needed** takes it off To reply (for example a "thanks"). If they message again it comes back. **Needs a reply** undoes it.
 - Someone new who messages becomes a contact automatically, but stays off the Meta pipeline unless you press **Put on pipeline** on their contact page.
 
