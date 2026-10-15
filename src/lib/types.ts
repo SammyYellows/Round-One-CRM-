@@ -372,8 +372,10 @@ export type Step =
   // (e.g. they booked for later today), skipIfLate skips the next step.
   | { kind: "wait_until_trial"; hoursBefore: number; skipIfLate?: boolean }
   // Waits until 09:00 UK, this many days before their membership's start date
-  // (Program intro, Sammy 15/10/2026). If that has passed (bought on the day,
-  // or the day before), skipIfLate skips what it was waiting to send.
+  // (Program intro, Sammy 15/10/2026); negative means after it, so -2 is day 3
+  // (the Program days, timed from the TeamUp start, not the purchase). Worked
+  // out when the run starts, from the membership that started it. If that time
+  // passed more than a day ago, skipIfLate sends nothing.
   | { kind: "wait_until_start"; daysBefore: number; skipIfLate?: boolean }
   | { kind: "if_stage_in"; stages: Stage[] }
   | { kind: "task"; text: string };
