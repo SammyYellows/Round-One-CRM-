@@ -206,7 +206,7 @@ Every email to info@round1boxfit.co.uk that looks like an enquiry appears here w
     slug: "teamup-and-program", title: "Pipeline: TeamUp, and the Program", who: "everyone",
     summary: "People who came through TeamUp, and the 28 Day Program.",
     body: `- **Pipeline → TeamUp**: everyone synced from TeamUp (members, ex-members and people who made an account but never joined), by when they came in.
-- **Program members**: everyone on the 28 Day Program (the list at the top), where they are in it, split into those who came through the CRM and those who signed up straight in TeamUp. The Program messages are underneath (most are switched off until management approves them).
+- **Program members**: everyone on the 28 Day Program (the list at the top), where they are in it, split into those who came through the CRM and those who signed up straight in TeamUp. The Program messages are underneath (most are switched off until management approves them). Each message card shows its WhatsApp version; **Change the wording** (management) gives three versions to pick from, A, B or C. Your pick goes to Meta for approval, and the current wording keeps sending until Meta approves the new one, then it switches over by itself.
 - The 28 Day Program is £79 upfront; if they finish and move onto a recurring membership, the £79 comes off, so their first 28 days end up free.`,
   },
   {

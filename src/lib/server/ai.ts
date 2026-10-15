@@ -395,3 +395,40 @@ export async function rewriteMessage(input: { name: string; channel: string; tex
   const out = JSON.parse(json.content.find((c) => c.type === "text")?.text ?? "{}") as { text?: string };
   return String(out.text ?? "").trim();
 }
+
+/**
+ * Three alternative wordings for a WhatsApp template (Sammy, 15/10/2026: "a
+ * multiple choice selection so I can do it easily"). Keeps the same
+ * placeholders; staff pick one and it goes to Meta for approval.
+ */
+export async function templateOptions(input: { body: string; instruction: string; facts: string }): Promise<string[]> {
+  const key = process.env.ANTHROPIC_API_KEY;
+  if (!key) throw new Error("ANTHROPIC_API_KEY isn’t set");
+  const placeholders = [...new Set([...input.body.matchAll(/\{(\w+)\}/g)].map((m) => `{${m[1]}}`))];
+  const res = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: { "x-api-key": key, "anthropic-version": "2023-06-01", "content-type": "application/json" },
+    body: JSON.stringify({
+      model: MODEL,
+      max_tokens: 2000,
+      system: [
+        { type: "text", text: VOICE },
+        { type: "text", text: `FACTS SHEET\n\n${input.facts}`, cache_control: { type: "ephemeral" } },
+      ],
+      output_config: {
+        effort: "medium",
+        format: { type: "json_schema", schema: { type: "object", properties: { options: { type: "array", items: { type: "string" } } }, required: ["options"], additionalProperties: false } },
+      },
+      messages: [{ role: "user", content:
+        `This is a WhatsApp template message the gym sends automatically:\n\n${input.body}\n\n` +
+        `Write three different versions for the staff member to choose from.${input.instruction.trim() ? ` What they want changed: ${input.instruction.trim()}` : " Keep the purpose; vary the tone and length a little between them."}\n\n` +
+        `Rules: WhatsApp, not email, so short and friendly. Keep exactly these placeholders, written the same way, and no others: ${placeholders.join(" ") || "(none)"}. Don't start or end the message with a placeholder. No exclamation marks, no emoji, no new facts beyond the original message and the facts sheet. If the original ends with a sign-off line, keep one. Under 900 characters each.` }],
+    }),
+  });
+  if (!res.ok) { const err = (await res.json().catch(() => ({}))) as { error?: { message?: string } }; throw new Error(err.error?.message || `Anthropic said ${res.status}`); }
+  const json = (await res.json()) as { stop_reason?: string; content: { type: string; text?: string }[] };
+  if (json.stop_reason === "refusal") throw new Error("The AI declined");
+  const out = JSON.parse(json.content.find((c) => c.type === "text")?.text ?? "{}") as { options?: unknown[] };
+  const same = (t: string) => { const got = new Set([...t.matchAll(/\{(\w+)\}/g)].map((m) => `{${m[1]}}`)); return got.size === placeholders.length && placeholders.every((p) => got.has(p)); };
+  return (out.options ?? []).map((o) => String(o).trim()).filter((o) => o && o.length <= 1024 && same(o)).slice(0, 3);
+}
