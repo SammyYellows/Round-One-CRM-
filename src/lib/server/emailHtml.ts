@@ -12,21 +12,22 @@ const FONT = "Arial, Helvetica, sans-serif";
 
 const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 
-/** What the button says, from where the link goes. */
-export function buttonLabel(url: string): string {
-  if (/goteamup\.com\/.*\/memberships\//.test(url)) return "Choose your membership";
+/** What the button says, from where the link goes; null leaves it as an ordinary link (e.g. all memberships). */
+export function buttonLabel(url: string): string | null {
+  if (/goteamup\.com\/.*\/memberships\/278693\//.test(url)) return "Claim Post Program offer"; // Post Program Discounted (Sammy, 15/10)
+  if (/goteamup\.com\/.*\/memberships\/\d+\//.test(url)) return "Choose this membership";
   if (/\/book\//.test(url)) return "Book your meeting";
   if (/\/f\/check-in/.test(url)) return "Fill in your check-in";
   if (/\/f\/accountability/.test(url)) return "Join the programme";
-  if (/goteamup\.com/.test(url)) return "Open TeamUp";
-  return "Open the link";
+  return null;
 }
 
 const linkify = (line: string) => esc(line).replace(/https?:\/\/[^\s<>"]+/g, (u) => `<a href="${u}">${u}</a>`);
 
 function button(url: string): string {
   const u = esc(url);
-  return `<p style="margin:0 0 6px"><a href="${u}" style="display:inline-block;padding:14px 26px;background:${RED};color:#FFFFFF;text-decoration:none;font-weight:bold;font-size:16px">${esc(buttonLabel(url))}</a></p>`
+  const label = buttonLabel(url) ?? "Open the link";
+  return `<p style="margin:0 0 6px"><a href="${u}" style="display:inline-block;padding:14px 26px;background:${RED};color:#FFFFFF;text-decoration:none;font-weight:bold;font-size:16px">${esc(label)}</a></p>`
     + `<p style="margin:0 0 16px;font-size:12px;color:${GREY}">${linkify(url)}</p>`;
 }
 
@@ -48,7 +49,7 @@ export function emailHtml(text: string, opts: { logoUrl?: string; unsubscribe?: 
     const flush = () => { if (run.length) out.push(para(run, bold && first)); run = []; };
     for (const line of lines) {
       const m = line.match(/^(.*?)\s*(https?:\/\/[^\s<>"]+)$/);
-      if (!m) { run.push(line); continue; }
+      if (!m || !buttonLabel(m[2])) { run.push(line); continue; } // ordinary links stay in the text
       if (m[1]) run.push(m[1]);
       flush();
       first = false;
