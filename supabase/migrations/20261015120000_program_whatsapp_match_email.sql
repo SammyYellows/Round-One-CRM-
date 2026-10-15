@@ -86,19 +86,39 @@ update public.automations set steps = (
   from jsonb_array_elements(steps) with ordinality t(e, i)
 ) where id = 'program_day_24';
 
+update public.automations set steps = jsonb_set(steps, '{1}', steps->1 || jsonb_build_object('body', $b$Hi {first},
+
+That’s your 28 Day Program complete. Huge well done, you showed up and saw it through.
+
+Ready to keep going? The Post Program membership is the one to go for. It’s really good value, and it’s the only membership where your commitment fee is credited back to you over 6 months.
+
+https://goteamup.com/p/10418134-round-one/memberships/278693/
+
+Fancy something different? You can pick another membership here:
+https://goteamup.com/p/10418134-round-one/memberships/
+
+We’d also love your feedback: reply with the best thing about the program and one thing we could do better.
+
+See you in the gym,
+The Round One team$b$::text))
+where id = 'program_day_28' and steps->1->>'kind' = 'email';
+
 insert into public.templates (name, body, category, meta_status, button_text, button_url) values
   ('program_day_28_v2', $b$Hi {first},
 
 That’s your 28 Day Program complete. Huge well done, you showed up and saw it through.
 
-Ready to keep going? You can move onto your membership here:
+Ready to keep going? The Post Program membership is the one to go for. It’s really good value, and it’s the only membership where your commitment fee is credited back to you over 6 months.
+
 https://goteamup.com/p/10418134-round-one/memberships/278693/
-Remember, your commitment fee is credited back to you over 6 months.
+
+Fancy something different? You can pick another membership here:
+https://goteamup.com/p/10418134-round-one/memberships/
 
 We’d also love your feedback: reply with the best thing about the program and one thing we could do better.
 
 See you in the gym,
-The Round One team$b$, 'utility', 'draft', 'Choose your membership', 'https://goteamup.com/p/10418134-round-one/memberships/278693/')
+The Round One team$b$, 'utility', 'draft', 'Claim Post Program offer', 'https://goteamup.com/p/10418134-round-one/memberships/278693/')
 on conflict (name) do nothing;
 update public.automations set steps = (
   select jsonb_agg(case when e->>'kind' = 'whatsapp' and e->>'template' = 'program_day_28' then jsonb_set(e, '{template}', '"program_day_28_v2"') else e end order by i)
@@ -137,19 +157,39 @@ update public.automations set steps = (
   from jsonb_array_elements(steps) with ordinality t(e, i)
 ) where id = 'program_day_7';
 
+update public.automations set steps = jsonb_set(steps, '{0}', steps->0 || jsonb_build_object('body', $b$Hi {first},
+
+One week left of your 28 Day Program. The routine you’ve built is the hard part, and it’d be a shame to lose it.
+
+That’s what our Post Program membership is for. It’s really good value, it includes gym access and classes, and it’s the only membership where your commitment fee is credited back to you over 6 months.
+
+Move onto the Post Program membership here:
+https://goteamup.com/p/10418134-round-one/memberships/278693/
+
+Fancy something different? You can pick another membership here:
+https://goteamup.com/p/10418134-round-one/memberships/
+
+Or reply to this email or ask at the desk and we’ll set it up before your last session.
+
+The Round One team$b$::text))
+where id = 'program_ending' and steps->0->>'kind' = 'email';
+
 insert into public.templates (name, body, category, meta_status, button_text, button_url) values
   ('program_day_21_v2', $b$Hi {first},
 
 One week left of your 28 Day Program. The routine you’ve built is the hard part, and it’d be a shame to lose it.
 
-When you move onto one of our memberships with gym access and classes, your commitment fee is fully credited back over 6 months, so your program ends up essentially free.
+That’s what our Post Program membership is for. It’s really good value, it includes gym access and classes, and it’s the only membership where your commitment fee is credited back to you over 6 months.
 
-You can move onto your membership here:
+Move onto the Post Program membership here:
 https://goteamup.com/p/10418134-round-one/memberships/278693/
+
+Fancy something different? You can pick another membership here:
+https://goteamup.com/p/10418134-round-one/memberships/
 
 Or reply in this chat or ask at the desk and we’ll set it up before your last session.
 
-The Round One team$b$, 'utility', 'draft', 'Choose your membership', 'https://goteamup.com/p/10418134-round-one/memberships/278693/')
+The Round One team$b$, 'utility', 'draft', 'Claim Post Program offer', 'https://goteamup.com/p/10418134-round-one/memberships/278693/')
 on conflict (name) do nothing;
 update public.automations set steps = (
   select jsonb_agg(case when e->>'kind' = 'whatsapp' and e->>'template' = 'program_day_21' then jsonb_set(e, '{template}', '"program_day_21_v2"') else e end order by i)
