@@ -34,6 +34,7 @@ export default function PrivacyPage() {
           <li><strong>Membership:</strong> from our booking system (TeamUp), your membership type, start and end dates, whether payments have gone through (not your card details) and the classes you attend.</li>
           <li><strong>Door entries:</strong> from our door system (Kisi), the times you came into the gym.</li>
           <li><strong>Safety:</strong> whether you have signed our waiver, and your emergency contact.</li>
+          <li><strong>Area:</strong> for members, the first part of your postcode (for example BS5), taken from the address you gave TeamUp. We keep only that, never your full address, to see which areas our members come from.</li>
           <li><strong>How you found us:</strong> the advert or link you came from.</li>
           <li><strong>Notes:</strong> notes our staff make, for example after speaking to you at the desk.</li>
         </ul>

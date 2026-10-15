@@ -21,13 +21,13 @@ export const MANUAL: ManualSection[] = [
 
 ### Finding your way round
 - The menu down the left lists the screens. On a phone it's behind the **Menu** button at the top.
-- **Pipeline** and **Program members** each hold two views, with buttons at the top: Pipeline has **Meta** and **TeamUp**; Program members has **Program** and **All members**.
+- **Pipeline** holds two views, with buttons at the top: **Meta** and **TeamUp**. **Program members** is the 28 Day Program; **Gym members** is everyone with a TeamUp membership.
 - **Back** at the top of each screen goes to where you were.
 - A red number on the menu means something new since you last looked (enquiries waiting, notices to cancel, failed payments).
 - **Manual** (this) is at the bottom of the menu.
 
 ### What you can see
-- **Staff** logins see the day-to-day screens: Today, Ask Champ, Pipeline (Meta and TeamUp), Calendar, Contacts, Program members (Program and All members), Enquiries, Cancellations, Failed payments and Accountability.
+- **Staff** logins see the day-to-day screens: Today, Ask Champ, Pipeline (Meta and TeamUp), Calendar, Contacts, Program members, Gym members, Enquiries, Cancellations, Failed payments and Accountability.
 - **Owner** and **Manager** logins also see Mailouts, Reports, Forms, Automations, Meta ads, Till, Staff and Train Champ, and can change messages and settings.
 
 ### Getting help
@@ -41,7 +41,7 @@ Ask **Champ** (**Ask Champ**, in red, second in the menu). It knows this manual,
 - **Red waiver alert** at the top of the screen: someone is in the gym without a waiver or emergency contact. Have a word, sort it in TeamUp, then tap **Spoke to them**.
 - **ClassPass (paid)**: shown next to anyone who booked through ClassPass (their TeamUp email ends in members.classpass.com). They've paid through ClassPass, so don't charge them; just tick them in on the TeamUp register as normal, which is how ClassPass knows they came.
 - **Enquiries**: four buttons at the top. **Email** has emails sent to info@ with a drafted reply waiting; **WhatsApp**, **Facebook** and **Instagram** have everyone who has messaged the gym there. Reply, or mark **No reply needed**. Under the reply there's a small **Ask Champ** that already knows who you're replying to: ask "when were they last in?" or "which class would suit them?" without leaving the conversation. **Open in Champ** carries the chat on at full size.
-- **WhatsApp replies**: contacts with a **Reply** chip on Program members → **All members**, or new messages on a contact's page.
+- **WhatsApp replies**: contacts with a **Reply** chip on **Gym members**, or new messages on a contact's page.
 
 ### During the shift
 - Book, move and mark intro meetings in the **Calendar** (attended, no-show, cancelled). Each of these sends the person a message automatically, so keep it accurate.
@@ -189,9 +189,9 @@ Every email to info@round1boxfit.co.uk that looks like an enquiry appears here w
 - **Gym facts** (management only) is the sheet drafts are allowed to use: prices, hours, classes.`,
   },
   {
-    slug: "members", title: "All members", who: "everyone",
+    slug: "members", title: "Gym members", who: "everyone",
     summary: "Everyone with a TeamUp membership, who's lapsed, and who's in now.",
-    body: `**Program members** in the menu, then **All members** at the top. Synced from TeamUp every night. Change memberships in TeamUp, not here.
+    body: `**Gym members** in the menu. Synced from TeamUp every hour through the day and overnight. At the top, a map shows which postcode areas active members come from (bigger circle, more members; only the area is kept, never anyone's address). Change memberships in TeamUp, not here.
 
 - **In the gym now**: who's ticked into a class that's on or came through the door recently, with waivers and emergency contacts.
 - Filter by category, status (active, on hold, ended, never joined), ending soon, opted out of marketing, **Lapsed** and **No waiver**.
@@ -206,7 +206,7 @@ Every email to info@round1boxfit.co.uk that looks like an enquiry appears here w
     slug: "teamup-and-program", title: "Pipeline: TeamUp, and the Program", who: "everyone",
     summary: "People who came through TeamUp, and the 28 Day Program.",
     body: `- **Pipeline → TeamUp**: everyone synced from TeamUp (members, ex-members and people who made an account but never joined), by when they came in.
-- **Program members → Program**: everyone on the 28 Day Program (the list at the top), where they are in it, split into those who came through the CRM and those who signed up straight in TeamUp. The Program messages are underneath (most are switched off until management approves them).
+- **Program members**: everyone on the 28 Day Program (the list at the top), where they are in it, split into those who came through the CRM and those who signed up straight in TeamUp. The Program messages are underneath (most are switched off until management approves them).
 - The 28 Day Program is £79 upfront; if they finish and move onto a recurring membership, the £79 comes off, so their first 28 days end up free.`,
   },
   {
@@ -215,7 +215,7 @@ Every email to info@round1boxfit.co.uk that looks like an enquiry appears here w
     body: `### Failed payments
 - Members flagged after three failed payment attempts in TeamUp, with what they owe. Open a person to see each missed payment.
 - The flag clears when a payment goes through in TeamUp.
-- **Blocked in TeamUp** / **Not blocked** shows whether someone has been blocked with **Block Customer** on their TeamUp profile (checked nightly). The CRM can't block anyone itself (TeamUp doesn't allow it).
+- **Blocked in TeamUp** / **Not blocked** shows whether someone has been blocked with **Block Customer** on their TeamUp profile (checked with each TeamUp sync). The CRM can't block anyone itself (TeamUp doesn't allow it).
 - Anyone with three failed attempts who isn't blocked gets a task in **Needs you**: "Check … is blocked in TeamUp". **Open in TeamUp** (on Failed payments and the contact page) goes straight to their TeamUp page, where **Block Customer** is. Block them there (or sort the payment); the task ticks itself off after the next nightly check.
 - Payment issues are sorted in TeamUp. A friendly word in person often works best.
 - The "failed-payment email" card at the top is off until management approve it there.
@@ -268,7 +268,7 @@ Anyone can reply STOP to stop marketing messages; messages about their own booki
 - **Till** (next to Staff): the cash that should be in the till now (the float left at the last cash-out plus cash sales since, from Epos Now). **Cash out**: count the till, enter it, choose how much to leave in as float, then confirm; it shows what to bank and any difference (over or short, in red). The first cash-out is the starting count. **Cashed out** lists every cash-out. The CRM only reads Epos Now; it never changes the till. Today shows **Taken today** and **Cash in the till** to management logins.
 - **Forms**: the questionnaire's questions and end screen.
 - **Meta ads**: spend and results per ad.
-- **Settings in other screens**: Booking hours (Calendar), the "not been in" limit (Program members → All members), Gym facts (Enquiries).`,
+- **Settings in other screens**: Booking hours (Calendar), the "not been in" limit (Gym members), Gym facts (Enquiries).`,
   },
 ];
 

@@ -42,6 +42,12 @@ async function listAll(path: string, params: Record<string, string> = {}): Promi
   return out;
 }
 
+/** The outward part of a UK postcode found anywhere in an address ("BS5 9QA" → "BS5"). */
+export function postcodeArea(address: string) {
+  const m = address.toUpperCase().match(/\b([A-Z]{1,2}\d[A-Z\d]?)\s*\d[A-Z]{2}\b/);
+  return m?.[1];
+}
+
 const str = (v: unknown) => (typeof v === "string" && v.trim() ? v.trim() : undefined);
 
 /** Reads TeamUp and returns safety details per customer id. */
@@ -67,6 +73,8 @@ export async function fetchSafety(): Promise<Map<string, Omit<Safety, "syncedAt"
     const cur = at(id);
     for (const v of (sub.latest_values as Json[]) ?? []) {
       const kind = use.get(String(v.field));
+      // The address is kept only as its postcode area ("BS5"), for the members map.
+      if (kind === "address" && v.value) { const area = postcodeArea(typeof v.value === "string" ? v.value : JSON.stringify(v.value)); if (area) cur.area = area; continue; }
       const value = typeof v.value === "string" ? str(v.value) : undefined;
       const when = str(v.last_updated_at ?? v.created_at);
       if (when && (!cur.formAt || when > cur.formAt)) cur.formAt = when;
