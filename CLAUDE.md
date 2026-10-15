@@ -157,7 +157,9 @@ In place so far:
 - **Reports** (`src/lib/server/growth.ts`, `reports.ts`): weekly members,
   monthly growth, unpaid and attendance PDFs (made in-house, `reports`
   bucket) to the managers' WhatsApp numbers on a schedule from
-  `/api/cron`, off until switched on in Reports → Settings. The monthly report has a
+  `/api/cron`, off until switched on in Reports → Settings. Every report PDF
+  carries Champ's picture at the top and his sign-off at the end (Sammy,
+  15/10: the reports come from Champ). The monthly report has a
   "month in detail" page (Sammy, 15/10, `lastMonthDetail`): last whole month
   and last 3 months' growth, memberships (at month end, joined, left; Program
   intakes as one row), and members by gender, age band and postcode area from
