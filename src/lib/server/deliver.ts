@@ -9,6 +9,7 @@ import { waNumber } from "@/lib/phone";
 import { CHANNEL_LABEL, Contact, Message, SocialChannel, sourceLabel, State } from "@/lib/types";
 import { db } from "./supabase";
 import { sendEmail } from "./email";
+import { emailHtml } from "./emailHtml";
 import { sendSocial } from "./social";
 import { sendTemplate, sendText } from "./whatsapp";
 
@@ -164,9 +165,13 @@ async function deliverEmails(before: State, after: State) {
     // Marketing emails (e.g. the win-back) go from info@ like mailouts, so
     // replies land in the inbox and flow into Enquiries; service emails stay on bookings@.
     const marketing = e.data!.marketing === "yes" && to === "contact" && contact;
+    // The Program emails get light HTML for the link buttons and the small
+    // signature logo; every other email stays plain text for now (Sammy, 15/10).
+    const styled = to === "contact" && /^program/.test(e.data!.automation ?? "");
+    const html = styled ? emailHtml(text, { logoUrl: `${appUrl()}/brand/logo-email.png`, unsubscribe: marketing ? unsubscribeLink(contact.id) : undefined }) : undefined;
     const res = marketing
-      ? await sendEmail(address, subject, text.trimEnd() + unsubscribeFooter(contact.id), { from: process.env.ENQUIRIES_FROM || "Round One <info@round1boxfit.co.uk>", headers: unsubscribeHeaders(contact.id) })
-      : await sendEmail(address, subject, text);
+      ? await sendEmail(address, subject, text.trimEnd() + unsubscribeFooter(contact.id), { from: process.env.ENQUIRIES_FROM || "Round One <info@round1boxfit.co.uk>", headers: unsubscribeHeaders(contact.id), html })
+      : await sendEmail(address, subject, text, { html });
     if (!res.ok) {
       console.error("[deliver]", subject, res.error);
       await recordEvent("email.failed", e.contactId, `Email “${subject}” to ${address} wasn’t sent: ${res.error}`);
