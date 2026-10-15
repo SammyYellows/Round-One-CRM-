@@ -15,6 +15,7 @@ list comes up, until each is on or dropped.
 
 | What | Where to approve | Fires when |
 |---|---|---|
+| **Program wording done (15/10, Sammy picked each in chat):** 2 days before (his own template, emoji kept), day 1 (email B + new WhatsApp), 3, 7, 10 (B), 14 (as was), 17 (WhatsApp B), 21 (routine focus, commitment fee credited back over 6 months), 24 (WhatsApp B), 28 (celebrate + Post Program Discounted link/button). All 10 WhatsApp templates submitted to Meta 15/10. **Waiting on Sammy:** approve and switch on each card on Program members once Meta approves. | Program members | |
 | Program: 2 days before, get ready (15/10; WhatsApp template `program_pre_start` still to submit) | Program members | 09:00 two days before a Program membership's start date |
 | Program day 1 welcome (from TeamUp) | Program members | A Program membership starts in TeamUp |
 | Program day 3: get your sessions in the diary | Program members | Day 3 |
