@@ -15,6 +15,7 @@ list comes up, until each is on or dropped.
 
 | What | Where to approve | Fires when |
 |---|---|---|
+| Program: 2 days before, get ready (15/10; WhatsApp template `program_pre_start` still to submit) | Program members | 09:00 two days before a Program membership's start date |
 | Program day 1 welcome (from TeamUp) | Program members | A Program membership starts in TeamUp |
 | Program day 3: get your sessions in the diary | Program members | Day 3 |
 | Program day 7: one week done | Program members | Day 7 |
