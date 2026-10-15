@@ -52,6 +52,14 @@ export const SOURCES: { id: Source; label: string }[] = [
 
 export const sourceLabel = (s: Source) => SOURCES.find((x) => x.id === s)?.label ?? s;
 
+/**
+ * ClassPass visitors (Sammy, 15/10/2026). ClassPass books them into TeamUp
+ * with a stand-in email at members.classpass.com, and pays the gym, so staff
+ * don't charge them at the door.
+ */
+export const isClassPass = (email?: string | null) => /@members\.classpass\.com$/i.test(email ?? "");
+export const CLASSPASS_LABEL = "ClassPass (paid)";
+
 export interface Contact {
   id: string;
   name: string;

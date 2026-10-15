@@ -39,6 +39,7 @@ Ask **Champ** (**Ask Champ**, in red, second in the menu). It knows this manual,
     body: `### Start of shift
 - **Today**: look at **Needs you** (tasks such as "hasn't been in for 3 weeks" or "check-in to reply to") and **Appointments**.
 - **Red waiver alert** at the top of the screen: someone is in the gym without a waiver or emergency contact. Have a word, sort it in TeamUp, then tap **Spoke to them**.
+- **ClassPass (paid)**: shown next to anyone who booked through ClassPass (their TeamUp email ends in members.classpass.com). They've paid through ClassPass, so don't charge them; just tick them in on the TeamUp register as normal, which is how ClassPass knows they came.
 - **Enquiries**: four buttons at the top. **Email** has emails sent to info@ with a drafted reply waiting; **WhatsApp**, **Facebook** and **Instagram** have everyone who has messaged the gym there. Reply, or mark **No reply needed**. Under the reply there's a small **Ask Champ** that already knows who you're replying to: ask "when were they last in?" or "which class would suit them?" without leaving the conversation. **Open in Champ** carries the chat on at full size.
 - **WhatsApp replies**: contacts with a **Reply** chip on Program members → **All members**, or new messages on a contact's page.
 

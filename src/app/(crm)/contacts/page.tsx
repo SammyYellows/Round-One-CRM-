@@ -10,6 +10,7 @@ import { ago, dayTime } from "@/lib/format";
 import { useStore } from "@/lib/store";
 import { useIsManager } from "@/components/StaffContext";
 import { SOURCES, Source, sourceLabel, stageLabel } from "@/lib/types";
+import { ClassPassChip } from "@/components/ClassPassChip";
 
 const COLUMNS: { key: SortKey | null; label: string }[] = [
   { key: "name", label: "Name" },
@@ -104,7 +105,7 @@ export default function ContactsPage() {
               {waitingOnUs(s, c) && <span className="chip chip-light" style={{ height: 20, fontSize: 10, marginLeft: 6 }}>Reply</span>}
             </div>
             <div style={{ minWidth: 0 }}>
-              <div className="muted">{sourceLabel(c.source)}</div>
+              <div className="muted">{sourceLabel(c.source)}<ClassPassChip email={c.email} /></div>
               {c.ad && <div className="faint" style={{ fontSize: 12, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.ad}</div>}
             </div>
             <div className="muted small">{c.trialAt ? dayTime(c.trialAt) : "–"}</div>
