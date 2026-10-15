@@ -15,6 +15,7 @@ list comes up, until each is on or dropped.
 
 | What | Where to approve | Fires when |
 |---|---|---|
+| **Wording in progress (15/10):** Sammy is picking each Program message in chat. Done: day 1 (email B, new WhatsApp `program_day_1` with Meta), days 3, 7, 10 (B), 14 (as was), 17 (email as was, WhatsApp B). **Waiting on Sammy:** his own template for the 2-days-before message; **then redo day 21 (email and WhatsApp) using the facts from that template** (Sammy: "pull information from that"). Days 24 and 28 still to pick. | Program members | |
 | Program: 2 days before, get ready (15/10; WhatsApp template `program_pre_start` still to submit) | Program members | 09:00 two days before a Program membership's start date |
 | Program day 1 welcome (from TeamUp) | Program members | A Program membership starts in TeamUp |
 | Program day 3: get your sessions in the diary | Program members | Day 3 |
