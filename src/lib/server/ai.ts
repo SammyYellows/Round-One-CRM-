@@ -357,3 +357,41 @@ export async function spotPromise(input: { name: string; channel: string; text: 
   const out = JSON.parse(json.content.find((c) => c.type === "text")?.text ?? "{}") as { action?: string };
   return String(out.action ?? "").trim();
 }
+
+/**
+ * Rewrites a WhatsApp, Facebook or Instagram reply the way staff ask
+ * (Sammy, 15/10/2026: "Ask the AI to change it", as on email). Reads the
+ * conversation so the rewrite fits it. Never sends anything.
+ */
+export async function rewriteMessage(input: { name: string; channel: string; text: string; instruction: string; thread: { dir: "in" | "out"; text: string; at: string }[]; facts: string; maxChars?: number }): Promise<string> {
+  const key = process.env.ANTHROPIC_API_KEY;
+  if (!key) throw new Error("ANTHROPIC_API_KEY isn’t set");
+  const res = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: { "x-api-key": key, "anthropic-version": "2023-06-01", "content-type": "application/json" },
+    body: JSON.stringify({
+      model: MODEL,
+      max_tokens: 1200,
+      system: [
+        { type: "text", text: VOICE },
+        { type: "text", text: `FACTS SHEET\n\n${input.facts}`, cache_control: { type: "ephemeral" } },
+      ],
+      output_config: {
+        effort: "medium",
+        format: { type: "json_schema", schema: { type: "object", properties: { text: { type: "string" } }, required: ["text"], additionalProperties: false } },
+      },
+      messages: [{ role: "user", content:
+        `This is a ${input.channel} message to ${input.name}, not an email: keep it short and conversational, no subject line, no email-style sign-off unless the current reply has one.\n\n` +
+        `The conversation so far, oldest first, UK times (OUT is us, IN is them):\n${input.thread.map((m) => `${m.dir === "in" ? "IN" : "OUT"} ${ukClock(Date.parse(m.at))}: ${m.text}`).join("\n") || "(none)"}\n\n` +
+        `The reply as it stands:\n${input.text.trim() || "(empty: write one)"}\n\n` +
+        `The staff member's instruction: ${input.instruction}\n\n` +
+        `Rewrite the reply to follow that instruction, keeping anything that still fits. Same rules as always: only facts from the facts sheet or the conversation, no exclamation marks, never argue or haggle.${input.maxChars ? ` Keep it under ${input.maxChars} characters.` : ""} Return the full new reply.` }],
+    }),
+  });
+  if (!res.ok) { const err = (await res.json().catch(() => ({}))) as { error?: { message?: string } }; throw new Error(err.error?.message || `Anthropic said ${res.status}`); }
+  const json = (await res.json()) as { stop_reason?: string; content: { type: string; text?: string }[] };
+  if (json.stop_reason === "refusal") throw new Error("The AI declined to rewrite this");
+  if (json.stop_reason === "max_tokens") throw new Error("The AI's answer was cut short. Try again.");
+  const out = JSON.parse(json.content.find((c) => c.type === "text")?.text ?? "{}") as { text?: string };
+  return String(out.text ?? "").trim();
+}

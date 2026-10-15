@@ -112,6 +112,7 @@ export function MessageThread({ contactId, channel = "whatsapp", draft: outerDra
             />
             <button className="btn btn-red" style={{ alignSelf: "flex-end" }} onClick={send}>Send</button>
           </div>
+          {aiDraft && live && <RewriteBox contactId={c.id} channel={channel} draft={draft} setDraft={setDraft} />}
           <div style={{ height: 22 }} />
         </>
       ) : social ? (
@@ -205,6 +206,42 @@ function AiDraft({ contactId, channel, windowOpen, onUse }: { contactId: string;
         <button className="btn btn-ghost btn-sm" disabled={busy} onClick={draft}>{busy ? "Drafting" : "Draft again"}</button>
         {note && <span className="small faint">{note}</span>}
       </div>
+    </div>
+  );
+}
+
+/**
+ * "Ask the AI to change it" under the reply box (Sammy, 15/10/2026, as on
+ * email): the AI rewrites what's in the box, or writes one if it's empty.
+ * It only fills the box; staff still press Send.
+ */
+function RewriteBox({ contactId, channel, draft, setDraft }: { contactId: string; channel: Channel; draft: string; setDraft: (t: string) => void }) {
+  const [instruction, setInstruction] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [note, setNote] = useState<string | null>(null);
+  useEffect(() => { setInstruction(""); setNote(null); }, [contactId]);
+  const rewrite = async () => {
+    if (!instruction.trim() || busy) return;
+    setBusy(true); setNote(null);
+    const res = await fetch(`/api/contacts/${contactId}/rewrite`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text: draft, instruction, channel }) }).catch(() => null);
+    const j = (await res?.json().catch(() => null)) as { text?: string; error?: string } | null;
+    setBusy(false);
+    if (res?.ok && j?.text) { setDraft(j.text); setInstruction(""); setNote("Rewritten. Read it through, then press Send."); }
+    else setNote(j?.error ?? "Couldn’t rewrite it. Try again.");
+  };
+  return (
+    <div style={{ padding: "10px 22px 0", display: "flex", flexDirection: "column", gap: 6 }}>
+      <div style={{ display: "flex", gap: 8 }}>
+        <label className="sr-only" htmlFor={`rewrite-${contactId}`}>Ask the AI to change it</label>
+        <input
+          id={`rewrite-${contactId}`} className="input" style={{ minWidth: 0 }} value={instruction} disabled={busy}
+          placeholder={draft.trim() ? "Ask the AI to change it, e.g. warmer and shorter" : "Ask the AI to write it, e.g. offer them a free intro"}
+          onChange={(e) => setInstruction(e.target.value)}
+          onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); rewrite(); } }}
+        />
+        <button className="btn btn-ghost" style={{ padding: "0 14px" }} disabled={busy || !instruction.trim()} onClick={rewrite}>{busy ? "Rewriting" : draft.trim() ? "Rewrite" : "Write"}</button>
+      </div>
+      <div className="small faint">{note ?? "Only changes the box above. Nothing sends until you press Send."}</div>
     </div>
   );
 }
