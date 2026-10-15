@@ -436,7 +436,7 @@ export async function emailReport(kind: ReportKind, to: string) {
   return res;
 }
 
-/** Called from /api/cron every 5 minutes: sends what's due (Monday 08:00 UK weekly, 1st 08:00 UK monthly). */
+/** Called from /api/cron every 5 minutes: sends what's due (Monday 08:00 UK weekly, 1st 08:00 UK monthly, unpaid Mondays or the last day of the month). */
 export async function runDueReports(now = Date.now()) {
   const s = await growthSettings();
   if (!s.managerNumbers.length) return { sent: [] as ReportKind[] };
@@ -450,7 +450,10 @@ export async function runDueReports(now = Date.now()) {
     await saveGrowthSettings({ lastWeeklyAt: todayKey });
     sent.push("weekly");
   }
-  if (s.unpaidOn && parts.weekday === "Mon" && now >= dueAt && (s.lastUnpaidAt ?? "") < todayKey) {
+  // The last day of the month: tomorrow (UK) is the 1st.
+  const lastOfMonth = new Intl.DateTimeFormat("en-GB", { timeZone: "Europe/London", day: "2-digit" }).format(new Date(now + 86_400_000)) === "01";
+  const unpaidDay = s.unpaidMonthly ? lastOfMonth && todayKey >= (s.unpaidStartOn ?? "") : parts.weekday === "Mon";
+  if (s.unpaidOn && unpaidDay && now >= dueAt && (s.lastUnpaidAt ?? "") < todayKey) {
     await sendReport("unpaid", s.managerNumbers, "the scheduler");
     await saveGrowthSettings({ lastUnpaidAt: todayKey });
     sent.push("unpaid");

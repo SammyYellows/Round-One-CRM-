@@ -28,7 +28,8 @@ list comes up, until each is on or dropped.
 | Program day 28: you did it | Program members | Day 28 |
 | Payment failed – update your details | Failed payments | TeamUp logs the third failed attempt |
 | Accountability welcome, weekly check-in, mid-week nudge | Accountability | Joining, their slot each week, Thursday 17:00 |
-| Weekly members, monthly growth and unpaid reports | Reports | Mondays and the 1st at 08:00 |
+| Weekly members and monthly growth reports | Reports | Mondays and the 1st at 08:00 (times to agree with Sammy) |
+| Unpaid (failed payments) report | Reports | The last day of the month at 08:00, from 30 November 2026 (Sammy, 15/10; time to agree) |
 
 **Done 08/10:** failed payments missed (Romel Rodriques) fixed. **11/10:** his duplicate Full Facility Access memberships are cancelled in TeamUp; one active since 05/01/2026.
 
@@ -42,9 +43,11 @@ a recurring membership rather than the Program get the same messages.
 Claude then drafts each in Round One's voice as its own switched-off card
 on Program members.
 
-Also needed before the Program and win-back WhatsApps can send: the ten new templates (eight Program, win_back, management_report)
-submitted to Meta (Sammy pastes the WhatsApp token; Claude runs
-`npm run wa:templates`).
+**15/10:** the Program WhatsApps now read word for word like their emails
+(the `_v2` templates, sent to Meta 15/10, pending). Days 21 and 28 lead with
+the Post Program membership (the only one that credits the commitment fee
+back), with a Claim Post Program offer button and all memberships as the
+other choice. The Program emails go as light HTML (buttons, small logo).
 
 **On** (Sammy's call, 07/10): the win-back email after notice to cancel.
 **Off and not TeamUp-driven any more:** the GymGrow welcomes fire only
@@ -56,9 +59,12 @@ when staff mark a sale on the pipeline.
   60 seconds to five minutes. The sync is now staged so it isn't needed to
   keep working, but it's the headroom. Already on `before-go-live.md`.
 
-- **Unpaid memberships report** (Reports → Unpaid): switch the Monday
-  schedule on once the managers' numbers are in. WhatsApp can't post to a
-  group; it goes to each number.
+- **Unpaid memberships report** (Reports → Unpaid): monthly, the last day
+  of the month from 30 November 2026 (Sammy, 15/10). Sammy finds it
+  misleading: a weekly to-do "Improve the failed payment report" goes on
+  Needs you every Monday from 2 November (`reminders` setting,
+  `src/lib/server/reminders.ts`). WhatsApp can't post to a group; it goes to
+  each number.
 - **Reports: the other managers' numbers.** Set to 07855284151 only for
   now; add the rest in Reports → Settings before switching the schedules
   on. Also the `management_report` template needs Meta's approval.

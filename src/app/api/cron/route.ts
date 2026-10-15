@@ -12,6 +12,7 @@ import { catchUpReceived } from "@/lib/server/enquiries";
 import { runDueReports } from "@/lib/server/reports";
 import { accountabilityTick } from "@/lib/server/accountability";
 import { draftWaiting } from "@/lib/server/insights";
+import { remindersTick } from "@/lib/server/reminders";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -42,6 +43,8 @@ export async function GET(req: Request) {
   const accountability = await accountabilityTick().catch((e) => ({ error: e instanceof Error ? e.message : String(e) }));
   // A suggested reply ready for every WhatsApp, Facebook and Instagram conversation waiting on us.
   const drafts = await draftWaiting().catch((e) => ({ error: e instanceof Error ? e.message : String(e) }));
+  // Weekly to-do reminders (the `reminders` setting).
+  const reminders = await remindersTick().catch((e) => ({ error: e instanceof Error ? e.message : String(e) }));
 
   const { data, error } = await db()
     .from("runs")
@@ -50,8 +53,8 @@ export async function GET(req: Request) {
     .lte("resume_at", new Date().toISOString())
     .limit(1);
   if (error) throw new Error(`Checking for due runs: ${error.message}`);
-  if (!data?.length) return Response.json({ ok: true, due: false, mailout, whatsappMailout, enquiries, reports, accountability, drafts });
+  if (!data?.length) return Response.json({ ok: true, due: false, mailout, whatsappMailout, enquiries, reports, accountability, drafts, reminders });
 
   await loadAndTick();
-  return Response.json({ ok: true, due: true, mailout, whatsappMailout, enquiries, reports, accountability, drafts });
+  return Response.json({ ok: true, due: true, mailout, whatsappMailout, enquiries, reports, accountability, drafts, reminders });
 }

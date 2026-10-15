@@ -29,6 +29,10 @@ export interface GrowthSettings {
   weeklyOn: boolean; // Monday 08:00 UK
   monthlyOn: boolean; // 1st of the month 08:00 UK
   unpaidOn: boolean; // Monday 08:00 UK: who hasn't paid (failed payments)
+  // Unpaid monthly instead (Sammy, 15/10/2026): the last day of the month at
+  // 08:00 UK, nothing before unpaidStartOn (YYYY-MM-DD, UK date).
+  unpaidMonthly?: boolean;
+  unpaidStartOn?: string;
   lastWeeklyAt?: string;
   lastMonthlyAt?: string;
   lastUnpaidAt?: string;

@@ -17,9 +17,10 @@ import { fill, placeholders, sendTemplate, setMarketingOptOut, templateParams } 
 import { waNumber } from "@/lib/phone";
 import { GYM } from "@/lib/gym";
 import { Contact, Membership, STAGES, Stage } from "@/lib/types";
-import { unsubscribeFooter, unsubscribeHeaders, unsubscribeLink } from "./deliver";
+import { appUrl, unsubscribeFooter, unsubscribeHeaders, unsubscribeLink } from "./deliver";
 import { enquiriesFrom } from "./enquiries";
 import { sendEmail } from "./email";
+import { emailHtml } from "./emailHtml";
 import { sendTemplate as sendWhatsAppTemplate } from "./whatsapp";
 import { applyMany } from "./state";
 import { db } from "./supabase";
@@ -256,6 +257,13 @@ export function renderBody(body: string, c: Pick) {
   return main.trimEnd() + unsubscribeFooter(c.id);
 }
 
+/** The same email as light HTML: link buttons (e.g. Save our number), the small logo and the unsubscribe line. */
+export function renderHtml(body: string, c: Pick) {
+  const contact = { ...c, tags: [], answers: [], createdAt: "" } as unknown as Contact;
+  const main = fill(body, contact).replace(/\{unsubscribe\}/g, unsubscribeLink(c.id));
+  return emailHtml(main, { logoUrl: `${appUrl()}/brand/logo-email.png`, unsubscribe: unsubscribeLink(c.id) });
+}
+
 const headersFor = unsubscribeHeaders;
 
 /** Sends the mailout to one staff address, filled in as if for the first recipient (or the staff member). */
@@ -264,7 +272,7 @@ export async function sendTest(id: string, to: string, staffName: string) {
   if (!m) return { ok: false as const, error: "That mailout isn’t there any more" };
   const sample = (await resolveAudience(m.audience))[0];
   const asIf: Pick = sample ?? { id: "test", name: staffName, email: to, phone: "", source: "walk_in", stage: "new", membership: null };
-  const res = await sendEmail(to, `[Test] ${m.subject || "(no subject)"}`, renderBody(m.body, asIf), { from: enquiriesFrom(), headers: headersFor(asIf.id) });
+  const res = await sendEmail(to, `[Test] ${m.subject || "(no subject)"}`, renderBody(m.body, asIf), { from: enquiriesFrom(), headers: headersFor(asIf.id), html: renderHtml(m.body, asIf) });
   return res.ok ? { ok: true as const, dryRun: res.dryRun, asIf: asIf.name } : { ok: false as const, error: res.error };
 }
 
@@ -386,7 +394,7 @@ export async function drainQueue() {
       const m = mailouts.get(r.mailout_id as string)!;
       const c = contacts.get(r.contact_id as string)!;
       const pick: Pick = { id: c.id as string, name: (c.name as string) ?? "", email: r.email as string, phone: (c.phone as string) ?? "", source: c.source as string, stage: c.stage as Stage, trialAt: (c.trial_at as string) ?? undefined, membership: (c.membership as Membership | null) ?? null };
-      return { from, to: r.email as string, subject: m.subject as string, text: renderBody(m.body as string, pick), headers: headersFor(pick.id) };
+      return { from, to: r.email as string, subject: m.subject as string, text: renderBody(m.body as string, pick), html: renderHtml(m.body as string, pick), headers: headersFor(pick.id) };
     });
     const now = new Date().toISOString();
     if (!key) {

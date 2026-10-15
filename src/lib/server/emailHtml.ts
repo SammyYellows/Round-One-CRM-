@@ -4,7 +4,8 @@
 // designed footer: just the words, a small logo under the sign-off like an
 // email signature (Sammy, 15/10), with each link that ends a line turned
 // into a simple red button and its address underneath. The plain text goes
-// too. Only the Program emails for now; the rest stay plain text (deliver.ts).
+// too. The Program emails and mailouts; other automation emails stay plain
+// text (deliver.ts).
 
 const RED = "#D01B20"; // --red-btn: passes contrast under white text
 const GREY = "#5F605F";
@@ -16,6 +17,7 @@ const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replac
 export function buttonLabel(url: string): string | null {
   if (/goteamup\.com\/.*\/memberships\/278693\//.test(url)) return "Claim Post Program offer"; // Post Program Discounted (Sammy, 15/10)
   if (/goteamup\.com\/.*\/memberships\/\d+\//.test(url)) return "Choose this membership";
+  if (/\/contact(\.vcf)?\/?$/.test(url)) return "Save our number"; // the gym's contact card
   if (/\/book\//.test(url)) return "Book your meeting";
   if (/\/f\/check-in/.test(url)) return "Fill in your check-in";
   if (/\/f\/accountability/.test(url)) return "Join the programme";
