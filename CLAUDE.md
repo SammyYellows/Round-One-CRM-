@@ -157,7 +157,11 @@ In place so far:
 - **Reports** (`src/lib/server/growth.ts`, `reports.ts`): weekly members,
   monthly growth, unpaid and attendance PDFs (made in-house, `reports`
   bucket) to the managers' WhatsApp numbers on a schedule from
-  `/api/cron`, off until switched on in Reports → Settings.
+  `/api/cron`, off until switched on in Reports → Settings. The monthly report has a
+  "month in detail" page (Sammy, 15/10, `lastMonthDetail`): last whole month
+  and last 3 months' growth, memberships (at month end, joined, left; Program
+  intakes as one row), and members by gender, age band and postcode area from
+  the TeamUp form (`contact.safety.gender/dateOfBirth/area`).
 - **Member activity** (`src/lib/server/activity.ts`, the nightly `activity`
   stage): 60 days of ticked-in TeamUp classes plus Kisi door entries for
   every active member, one session a day, on `contact.activity`, with

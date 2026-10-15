@@ -14,7 +14,7 @@ import { Pdf } from "@/lib/server/pdf";
 import { ukTime } from "@/lib/time";
 import { GYM } from "@/lib/gym";
 import { PAYMENT_FAILED_AT } from "@/lib/types";
-import { reconcile, type Reconciliation } from "@/lib/server/growth";
+import { lastMonthDetail, reconcile, type MonthDetail, type PersonInfo, type Reconciliation, type Split } from "@/lib/server/growth";
 import { classStats, type ClassStat } from "@/lib/server/activity";
 import { day, growthSettings, loadMemberships, monthly, monthlyForecast, saveGrowthSettings, weekly, type GrowthSettings, type MonthPoint, type MonthlyForecast, type Weekly } from "@/lib/server/growth";
 
@@ -46,6 +46,7 @@ export interface ReportData {
   forecasts: MonthlyForecast[];
   cancellations: CancellationNote[];
   cancellationSummary: string; // Claude's summary of the replies, or a plain list
+  detail?: MonthDetail; // monthly only: last month by membership, gender, age and area
 }
 
 const fmtDate = (iso: string) => new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "Europe/London" });
@@ -105,6 +106,77 @@ async function attendanceReport(): Promise<AttendanceReport> {
   return { since, classes, top: byMost.slice(0, 15), bottom: byLeast.slice(0, 15), declining: declining.slice(0, 15), activeMembers: members.length };
 }
 
+/** Gender, date of birth and postcode area per TeamUp customer, from the TeamUp form (contact.safety). */
+async function peopleInfo(): Promise<Map<string, PersonInfo>> {
+  const out = new Map<string, PersonInfo>();
+  for (let from = 0; ; from += 1000) {
+    const { data, error } = await db().from("contacts").select("teamup, membership, safety").not("safety", "is", null).range(from, from + 999);
+    if (error) throw new Error(error.message);
+    for (const r of (data ?? []) as { teamup: { customerId?: string } | null; membership: { customerId?: string } | null; safety: PersonInfo | null }[]) {
+      const id = r.teamup?.customerId ?? r.membership?.customerId;
+      if (id && r.safety) out.set(String(id), { gender: r.safety.gender, dateOfBirth: r.safety.dateOfBirth, area: r.safety.area });
+    }
+    if (!data || data.length < 1000) break;
+  }
+  return out;
+}
+
+/** A labelled horizontal bar per row, scaled to the biggest. Returns the y below. */
+function bars(pdf: Pdf, x: number, y: number, w: number, title: string, rows: Split[], total: number) {
+  pdf.text(x, y, title, 11, { bold: true, color: INK }); y += 16;
+  const most = Math.max(1, ...rows.map((r) => r.count));
+  const labelW = 92, barW = w - labelW - 56;
+  for (const r of rows) {
+    pdf.text(x, y, r.label.length > 18 ? `${r.label.slice(0, 17)}…` : r.label, 8.5, { color: INK });
+    pdf.rect(x + labelW, y + 1, Math.max(1, (barW * r.count) / most), 8, r.label === "Not given" || r.label === "Other or none" ? [0.8, 0.8, 0.8] : RED);
+    pdf.text(x + w, y, `${r.count} (${total ? Math.round((100 * r.count) / total) : 0}%)`, 8.5, { color: MUTED, align: "right" });
+    y += 13;
+  }
+  return y;
+}
+
+/** Page: last month in detail. */
+function detailPage(pdf: Pdf, d: MonthDetail, L: number, R: number) {
+  const CW = R - L;
+  pdf.newPage();
+  pdf.rect(0, 0, pdf.pageWidth, 6, RED);
+  pdf.text(L, pdf.y, `${d.label}: the month in detail`, 18, { bold: true, color: INK }); pdf.y += 26;
+  const tiles: [string, string, string][] = [
+    ["Members at month end", String(d.membersAtEnd), ""],
+    [`Growth in ${d.label}`, signed(d.net), `${d.joined} joined, ${d.left} left`],
+    ["Growth, last 3 months", signed(d.threeMonthNet), `${d.threeMonthJoined} joined, ${d.threeMonthLeft} left`],
+  ];
+  const tw = (CW - 24) / 3;
+  tiles.forEach(([label, big, note], i) => {
+    const x = L + i * (tw + 12);
+    pdf.rect(x, pdf.y, tw, 70, [0.96, 0.96, 0.96]);
+    pdf.text(x + 10, pdf.y + 10, label.toUpperCase(), 7.5, { bold: true, color: MUTED });
+    pdf.text(x + 10, pdf.y + 24, big, 24, { bold: true, color: INK });
+    if (note) pdf.text(x + 10, pdf.y + 54, note, 8, { color: MUTED });
+  });
+  pdf.y += 88;
+  pdf.text(L, pdf.y, "Memberships", 12, { bold: true, color: INK }); pdf.y += 16;
+  const cols = [L, R - 150, R - 80, R];
+  ["Membership", "At month end", "Joined", "Left"].forEach((h, i) => pdf.text(cols[i], pdf.y, h.toUpperCase(), 7.5, { bold: true, color: MUTED, align: i ? "right" : "left" }));
+  pdf.y += 13;
+  for (const t of d.types.slice(0, 18)) {
+    pdf.line(L, pdf.y - 3, R, pdf.y - 3, 0.5, [0.9, 0.9, 0.9]);
+    pdf.text(L, pdf.y, t.name.length > 58 ? `${t.name.slice(0, 57)}…` : t.name, 9, { color: INK });
+    [t.atEnd, t.joined, t.left].forEach((v, i) => pdf.text(cols[i + 1], pdf.y, String(v), 9, { color: INK, align: "right" }));
+    pdf.y += 14;
+  }
+  if (d.types.length > 18) { pdf.text(L, pdf.y, `and ${d.types.length - 18} more`, 9, { color: MUTED }); pdf.y += 14; }
+  pdf.text(L, pdf.y + 2, "Someone with two memberships counts on both rows; joined and left count people new to, or gone from, the gym that month.", 7.5, { color: MUTED });
+  pdf.y += 22;
+  const half = (CW - 24) / 2;
+  const top = pdf.y;
+  const yL = bars(pdf, L, top, half, "Gender", d.gender, d.membersAtEnd);
+  const yR = bars(pdf, L + half + 24, top, half, "Age", d.age, d.membersAtEnd);
+  pdf.y = Math.max(yL, yR) + 12;
+  pdf.y = bars(pdf, L, pdf.y, CW, "Where they come from (postcode area)", d.areas, d.membersAtEnd) + 6;
+  pdf.text(L, pdf.y, "From the TeamUp sign-up form: gender, date of birth and address (only the postcode area is kept).", 7.5, { color: MUTED });
+}
+
 export async function buildReport(kind: ReportKind): Promise<ReportData> {
   const [rows, settings, unpaid, attendance] = await Promise.all([loadMemberships(), growthSettings(), unpaidList().catch(() => [] as Unpaid[]), attendanceReport().catch(() => ({ classes: [], top: [], bottom: [], declining: [], activeMembers: 0 } as AttendanceReport))]);
   const today = day(Date.now());
@@ -123,7 +195,8 @@ export async function buildReport(kind: ReportKind): Promise<ReportData> {
       ? `${cancellations.length} gave notice. ${withReplies.length ? `${withReplies.length} replied to the win-back email.` : "No replies to the win-back email yet."}`
       : "Nobody gave notice in this period.";
   }
-  return { kind, asOf: today, settings, weekly: w, months, forecasts, cancellations, cancellationSummary, unpaid, reconciliation: reconcile(rows, today), attendance };
+  const detail = kind === "monthly" ? lastMonthDetail(rows, today, await peopleInfo().catch(() => new Map<string, PersonInfo>())) : undefined;
+  return { kind, asOf: today, settings, weekly: w, months, forecasts, cancellations, cancellationSummary, unpaid, reconciliation: reconcile(rows, today), attendance, detail };
 }
 
 // ---- The PDF ----------------------------------------------------------------
@@ -280,7 +353,9 @@ export function renderPdf(r: ReportData): Uint8Array {
     }
   }
 
-  // Page 2: dropping off and cancellations
+  if (r.kind === "monthly" && r.detail) detailPage(pdf, r.detail, L, R);
+
+  // Next page: dropping off and cancellations
   pdf.newPage();
   pdf.rect(0, 0, pdf.pageWidth, 6, RED);
   pdf.text(L, pdf.y, "Dropping off in the next 30 days", 14, { bold: true, color: INK }); pdf.y += 20;

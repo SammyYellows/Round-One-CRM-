@@ -135,6 +135,7 @@ export interface Safety {
   emergencyPhone?: string;
   emergencyRelationship?: string;
   dateOfBirth?: string; // YYYY-MM-DD
+  gender?: string; // as answered on the TeamUp form (monthly report split)
   area?: string; // postcode area from their TeamUp address, e.g. "BS5"; never the full address (members map, Sammy 15/10/2026)
   formAt?: string; // when the sign-up form was last answered
   syncedAt: string;
