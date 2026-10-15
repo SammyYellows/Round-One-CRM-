@@ -7,6 +7,7 @@ import { useStore } from "@/lib/store";
 import { CHANNEL_LABEL, Channel, sourceLabel } from "@/lib/types";
 import { SEEN, conversations, lastSeenAt } from "@/lib/messageInbox";
 import { MessageThread } from "@/components/MessageThread";
+import { ChampMini } from "@/components/ChampMini";
 
 // The WhatsApp, Facebook and Instagram tabs on Enquiries (Sammy, 12/10 and
 // 14/10/2026): everyone who has messaged on that channel, newest first, with
@@ -86,6 +87,7 @@ export function MessageInbox({ channel }: { channel: Channel }) {
             </>}
           />
         )}
+        {current && <ChampMini contactId={current.contact.id} channel={label} card />}
       </div>
     </div>
   );

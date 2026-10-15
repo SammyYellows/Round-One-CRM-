@@ -414,8 +414,10 @@ updates from the import never fire automations.
     (source facebook, off the pipeline, nothing sent); 194 old ones marked
     No reply needed, 4 from the last week waiting. **Instagram history:**
     Meta times out past Vercel's 60 seconds however small the request;
-    Claude retries the morning of 15/10 (Sammy chose to try again), then
-    asks before copying. AI drafts now show in the WhatsApp, Facebook and
+    retried the morning of 15/10 (dry run): Meta answered "An unknown error
+    occurred" after a minute, so still failing on Meta's side. **Waiting on
+    Sammy:** A) leave it, or B) try the Instagram Login route (he makes a
+    token). AI drafts now show in the WhatsApp, Facebook and
     Instagram inboxes (Use it, then Send).
   - **Till** (Sammy, 14/10): Epos Now connected (read only; key and secret in
     Vercel). Till page next to Staff, management only: cash in the till since
@@ -436,6 +438,10 @@ updates from the import never fire automations.
     fewer messages no longer replaces a fuller one. Email drafts read earlier
     emails with that person and our replies (was the latest email only, cut
     at 8,000 characters). After Send, the Email tab stays on To reply.
+  - **Small Ask Champ under the draft replies** (Sammy, 15/10): on the
+    Email, WhatsApp, Facebook and Instagram tabs, already pointed at the
+    person being replied to. Read-only like Champ; a class booking still
+    needs Book.
     **13/10: YCloud link gone; waiting on a number slot.** Meta Direct
     Support (a person) said to clear partner connections; Business Settings
     had none. Sammy pressed **Remove from business portfolio** on the old

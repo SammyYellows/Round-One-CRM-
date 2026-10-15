@@ -505,12 +505,12 @@ const textOf = (content: Block[]) => content.filter((b) => b.type === "text").ma
  * new messages to save (the question, each assistant step and each set of
  * tool results, in order), the answer text and the look-ups made.
  */
-export async function askChamp(history: ChampMessage[], question: string, staffName: string, who?: { staffId: string; chatId: string; role?: string; autobook?: boolean }): Promise<{ added: ChampMessage[]; answer: string; tools: string[] }> {
+export async function askChamp(history: ChampMessage[], question: string, staffName: string, who?: { staffId: string; chatId: string; role?: string; autobook?: boolean; about?: string }): Promise<{ added: ChampMessage[]; answer: string; tools: string[] }> {
   if (!champConfigured()) throw new Error("Champ isn’t set up yet (ANTHROPIC_API_KEY)");
   const ctx = new Ctx(who ? { ...who, staffName, question } : undefined);
   const p = ukParts(ctx.now);
   const nowLine = `[${["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][p.weekday]} ${p.date}, ${String(p.hour).padStart(2, "0")}:${String(p.minute).padStart(2, "0")} UK. Asked by ${staffName}, ${isManagerRole(who?.role) ? "a management login" : "a Staff login"}.]`;
-  const added: ChampMessage[] = [{ role: "user", content: [{ type: "text", text: `${nowLine}\n${question}` }] }];
+  const added: ChampMessage[] = [{ role: "user", content: [{ type: "text", text: `${nowLine}${who?.about ? `\n[${who.about}]` : ""}\n${question}` }] }];
   const [factsSheet, knowledge] = await Promise.all([facts(), knowledgeForChamp().catch(() => "")]);
   const tools: string[] = [];
   const t0 = Date.now();

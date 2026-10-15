@@ -200,7 +200,11 @@ In place so far:
   Manager logins are emailed with the question and a link to the chat
   (`/champ?chat=<id>`). Ordinary questions about women, faith, disability
   or age (Ladies Boxfit, Ramadan, adapting for a member) are not flagged.
-  Champ's seven pictures are `public/champ/champ-1..7.webp` (shrunk from Sammy's originals, replaced 11/10), one shown above the chat box, changing every 45 minutes by the clock.
+  **A smaller Ask Champ** sits under the draft replies on every Enquiries
+  tab (`src/components/ChampMini.tsx`, Sammy 15/10): the same Champ and
+  saved chats, with `about: {contactId, channel}` so "them" means the person
+  being replied to; Open in Champ carries the chat on.
+  Champ's seven pictures are `public/champ/champ-1..7.webp` (shrunk from Sammy's originals, replaced 11/10), one shown above the chat box, changing every 45 minutes by the clock (`src/lib/champPhotos.ts`).
   **Train Champ** (`/champ/train`, `champKnowledge.ts`, management
   only: Owner or Manager staff role): notes and uploaded documents (PDF,
   .docx, text; files go straight to the private `champ-docs` bucket by a

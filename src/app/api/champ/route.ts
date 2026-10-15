@@ -1,7 +1,9 @@
 // Champ's chats (src/lib/server/champ.ts). Staff only.
 //   GET               your chats (owners and managers: ?all=1 for everyone's)
 //   GET ?chat=<id>    one chat's messages (yours, or anyone's for owners)
-//   POST {chatId?, text}  ask Champ; starts a chat when there's no chatId
+//   POST {chatId?, text, about?}  ask Champ; starts a chat when there's no chatId.
+//     about {contactId, channel}: asked from Enquiries while replying to that
+//     person, so "them" means them (the small Ask Champ, Sammy 15/10/2026)
 
 import { askChamp, champConfigured, type ChampMessage } from "@/lib/server/champ";
 import { requireStaff, type StaffMember } from "@/lib/server/staff";
@@ -47,9 +49,15 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   const auth = await requireStaff();
   if ("error" in auth) return auth.error;
-  const b = (await req.json().catch(() => ({}))) as { chatId?: unknown; text?: unknown };
+  const b = (await req.json().catch(() => ({}))) as { chatId?: unknown; text?: unknown; about?: { contactId?: unknown; channel?: unknown } };
   const text = typeof b.text === "string" ? b.text.trim().slice(0, 2000) : "";
   if (!text) return Response.json({ error: "Ask Champ something" }, { status: 400 });
+  let about: string | undefined;
+  if (typeof b.about?.contactId === "string" && b.about.contactId) {
+    const { data: who } = await db().from("contacts").select("id, name").eq("id", b.about.contactId).maybeSingle();
+    const channel = typeof b.about.channel === "string" ? b.about.channel.slice(0, 20) : "";
+    if (who) about = `Asked from Enquiries while replying to ${who.name} (contact_id ${who.id})${channel ? ` on ${channel}` : ""}. "They", "them", "he", "she" or "this person" means ${who.name} unless the question says otherwise.`;
+  }
 
   let chatId = typeof b.chatId === "string" ? b.chatId : "";
   let history: ChampMessage[] = [];
@@ -74,7 +82,7 @@ export async function POST(req: Request) {
   try {
     // Auto-book is for management logins only, and only when they've switched it on (Sammy, 10/10/2026).
     const { data: me } = await db().from("staff").select("champ_autobook").eq("id", auth.staff.id).maybeSingle();
-    result = await askChamp(history, text, auth.staff.name, { staffId: auth.staff.id, chatId, role: auth.staff.role, autobook: isOwner(auth.staff) && Boolean(me?.champ_autobook) });
+    result = await askChamp(history, text, auth.staff.name, { staffId: auth.staff.id, chatId, role: auth.staff.role, autobook: isOwner(auth.staff) && Boolean(me?.champ_autobook), about });
   } catch (e) {
     console.error("[champ]", e instanceof Error ? e.message : e);
     if (isNew) await db().from("champ_chats").delete().eq("id", chatId);
