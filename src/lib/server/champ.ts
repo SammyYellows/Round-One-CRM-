@@ -13,7 +13,9 @@
 // can carry on exactly where it left off.
 
 import { inactivityAdvice } from "@/lib/inactivity";
-import { CHANNEL_LABEL, channelOf, stageLabel, sourceLabel, type Contact, type State } from "@/lib/types";
+import { CHANNEL_LABEL, CLASSPASS_LABEL, channelOf, isClassPass, stageLabel, sourceLabel, type Contact, type State } from "@/lib/types";
+
+const CLASSPASS_NOTE = `${CLASSPASS_LABEL}: booked and paid through ClassPass, so don’t charge them; tick them in on the TeamUp register as normal`;
 import { ukParts } from "@/lib/time";
 import { waNumber } from "@/lib/phone";
 import { inactiveDays, classStats } from "./activity";
@@ -135,7 +137,7 @@ function summary(c: Contact, s: State, now: number) {
   return {
     id: c.id, name: c.name, phone: c.phone || undefined, email: c.email || undefined,
     kind: m ? (m.status === "active" ? "member" : m.status === "on_hold" ? "member (on hold)" : "ex-member") : c.source === "teamup" ? "TeamUp account, never a member" : "lead",
-    stage: m ? undefined : stageLabel(c.stage), source: sourceLabel(c.source), added: ukDay(c.createdAt),
+    stage: m ? undefined : stageLabel(c.stage), source: sourceLabel(c.source), ...(isClassPass(c.email) ? { classPass: CLASSPASS_NOTE } : {}), added: ukDay(c.createdAt),
     membership: m ? { name: m.name, category: m.category, status: m.status, since: ukDay(m.startedAt), endsOrRenews: ukDay(m.endsAt), gaveNotice: m.cancelling || undefined, failedPaymentAttempts: m.paymentRetries || undefined, owes: m.owed ? `£${m.owed.total.toFixed(2)} (${m.owed.count} unpaid, latest due ${m.owed.latest ?? "?"})` : undefined } : undefined,
     lastIn: c.activity ? (c.activity.lastSeenAt ? `${c.activity.lastSeenAt} (${daysSince(c.activity.lastSeenAt, now)} days ago)` : "not in the last 60 days") : undefined,
     sessionsLast30Days: c.activity?.last30, sessionsPrevious30Days: c.activity?.prev30,
@@ -411,7 +413,7 @@ export async function runTool(name: string, input: Block, ctx: Ctx = new Ctx()):
         const c = s.contacts.find((x) => (x.teamup?.customerId ?? x.membership?.customerId) === cid);
         let name = c?.name;
         if (!name) { const cu = (await fetchJson(`/customers/${cid}`).catch(() => ({}))) as Block; name = `${cu.first_name ?? ""} ${cu.last_name ?? ""}`.trim() || `TeamUp customer ${cid}`; }
-        return { name, contactId: c?.id, status: String(a.status ?? ""), waiverSigned: c?.safety ? (c.safety.waiverSignedAt ? "yes" : "NO") : undefined };
+        return { name, contactId: c?.id, ...(isClassPass(c?.email) ? { classPass: CLASSPASS_NOTE } : {}), status: String(a.status ?? ""), waiverSigned: c?.safety ? (c.safety.waiverSignedAt ? "yes" : "NO") : undefined };
       }));
       return { class: ev ? `${ev.name}, ${uk(ev.startsAt)}` : `event ${id}`, count: people.length, people };
     }
@@ -437,7 +439,7 @@ export async function runTool(name: string, input: Block, ctx: Ctx = new Ctx()):
     }
     case "who_is_in_now": {
       const r = await whoIsIn(1.5);
-      return { classesOnNow: r.classes.map((c) => `${c.name} ${uk(c.startsAt)}`), people: r.people.map((p) => ({ name: p.name, contactId: p.contactId, cameIn: p.via.map((v) => (v.kind === "class" ? `${v.event} (${v.status})` : `door ${uk(v.at)?.slice(-5)}`)), missing: p.missing.length ? p.missing : undefined, spokenToToday: p.checkedAt ? true : undefined, emergencyContact: p.emergency?.phone ? `${p.emergency.name ?? ""} ${p.emergency.phone}`.trim() : undefined })) };
+      return { classesOnNow: r.classes.map((c) => `${c.name} ${uk(c.startsAt)}`), people: r.people.map((p) => ({ name: p.name, contactId: p.contactId, ...(p.classPass ? { classPass: CLASSPASS_NOTE } : {}), cameIn: p.via.map((v) => (v.kind === "class" ? `${v.event} (${v.status})` : `door ${uk(v.at)?.slice(-5)}`)), missing: p.missing.length ? p.missing : undefined, spokenToToday: p.checkedAt ? true : undefined, emergencyContact: p.emergency?.phone ? `${p.emergency.name ?? ""} ${p.emergency.phone}`.trim() : undefined })) };
     }
     case "class_popularity": {
       const r = await classStats();

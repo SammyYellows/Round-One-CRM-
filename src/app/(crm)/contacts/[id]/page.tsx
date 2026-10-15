@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { ClassPassChip } from "@/components/ClassPassChip";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { describeStep, firstName } from "@/lib/engine";
@@ -84,6 +85,7 @@ export default function ContactPage() {
         <div>
           <div className="eyebrow"><Link href="/pipeline" style={{ color: "var(--muted)" }}>Pipeline</Link> / {stageLabel(c.stage)}</div>
           <h1 className="h h1">{c.name}</h1>
+          <div style={{ marginLeft: -6 }}><ClassPassChip email={c.email} /></div>
         </div>
         <div className="actions">
           {c.stage === "booked" && (
@@ -170,7 +172,7 @@ export default function ContactPage() {
           <dl style={{ margin: 0 }}>
             <div className="field"><dt>Mobile</dt><dd className="num">{c.phone || "Not given"}</dd></div>
             <div className="field"><dt>Email</dt><dd>{c.email || "Not given"}</dd></div>
-            <div className="field"><dt>Source</dt><dd>{sourceLabel(c.source)}</dd></div>
+            <div className="field"><dt>Source</dt><dd>{sourceLabel(c.source)}<ClassPassChip email={c.email} /></dd></div>
             {(c.campaign || c.ad) && (
               <div className="field">
                 <dt>Came from</dt>

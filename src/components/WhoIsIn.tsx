@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { CLASSPASS_LABEL } from "@/lib/types";
 import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { time } from "@/lib/format";
@@ -13,7 +14,7 @@ import { useStore } from "@/lib/store";
 // coming in, not leaving. Nothing is ever sent to the member.
 
 type Via = { kind: "class"; event: string; at: string; status: "attended" | "registered" } | { kind: "door"; at: string };
-interface Person { key: string; contactId?: string; name: string; phone?: string; via: Via[]; waiver?: string; emergency?: { name?: string; phone?: string; relationship?: string }; missing: ("waiver" | "emergency")[]; checkedAt?: string; unknown?: boolean }
+interface Person { key: string; contactId?: string; name: string; phone?: string; via: Via[]; waiver?: string; emergency?: { name?: string; phone?: string; relationship?: string }; missing: ("waiver" | "emergency")[]; checkedAt?: string; unknown?: boolean; classPass?: boolean }
 interface Result { people: Person[]; classes: { id: string; name: string; startsAt: string }[]; window: number; kisi: boolean; teamup: boolean; at: string }
 
 const POLL_MS = 3 * 60e3;
@@ -54,7 +55,7 @@ const missingText = (p: Person) => [p.missing.includes("waiver") && "no waiver",
 const viaText = (p: Person) => p.via.map((v) => (v.kind === "class" ? `${v.event} ${time(v.at)}${v.status === "registered" ? " (booked, not ticked in)" : ""}` : `door ${time(v.at)}`)).join(" · ");
 
 function Row({ p, onTick, compact }: { p: Person; onTick: (p: Person) => void; compact?: boolean }) {
-  const name = p.contactId ? <Link href={`/contacts/${p.contactId}`} className="strong">{p.name}</Link> : <span className="strong">{p.name}</span>;
+  const name = <>{p.contactId ? <Link href={`/contacts/${p.contactId}`} className="strong">{p.name}</Link> : <span className="strong">{p.name}</span>}{p.classPass && <span className="chip chip-light" style={{ height: 20, fontSize: 10, marginLeft: 6 }} title="Booked and paid through ClassPass: don’t charge them">{CLASSPASS_LABEL}</span>}</>;
   return (
     <div style={{ display: "grid", gridTemplateColumns: compact ? "minmax(0, 1fr) auto" : "minmax(0, 1.4fr) minmax(0, 1.4fr) auto", gap: 12, alignItems: "center", padding: "10px 0", borderTop: "1px solid var(--line)" }}>
       <div style={{ minWidth: 0 }}>

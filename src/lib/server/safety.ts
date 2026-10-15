@@ -17,6 +17,7 @@
 // the activity stage saves the next two days' events for this to use.
 
 import { recordSafety } from "@/lib/engine";
+import { isClassPass } from "@/lib/types";
 import type { Contact, Safety } from "@/lib/types";
 import { kisiConfigured } from "./kisi";
 import { applyMany } from "./state";
@@ -218,6 +219,7 @@ export interface PersonIn {
   missing: ("waiver" | "emergency")[];
   checkedAt?: string; // staff spoke to them today
   unknown?: boolean; // not matched to a CRM contact
+  classPass?: boolean; // booked and paid through ClassPass
 }
 
 /** Everyone in the gym now (class on, or through the door within the window), gaps first. */
@@ -241,6 +243,7 @@ export async function whoIsIn(windowHours = MAX_WINDOW_HOURS): Promise<{ people:
     const person: PersonIn = c
       ? { key, contactId: c.id, name: c.name, phone: c.phone || undefined, via: [...x.via], waiver: s?.waiverSignedAt, emergency: s ? { name: s.emergencyName, phone: s.emergencyPhone, relationship: s.emergencyRelationship } : undefined, missing: [], checkedAt: s?.checkedAt && ukParts(Date.parse(s.checkedAt)).date === today ? s.checkedAt : undefined }
       : { key, name: x.name, via: [...x.via], missing: [], unknown: true, checkedAt: acks.includes(key) ? "today" : undefined };
+    if (isClassPass(c?.email ?? x.email)) person.classPass = true;
     if (!person.waiver) person.missing.push("waiver");
     if (!person.emergency?.phone && !person.emergency?.name) person.missing.push("emergency");
     merged.set(key, person);
