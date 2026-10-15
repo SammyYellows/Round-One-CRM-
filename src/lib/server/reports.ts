@@ -464,7 +464,7 @@ export async function emailReport(kind: ReportKind, to: string) {
   return res;
 }
 
-/** Called from /api/cron every 5 minutes: sends what's due (Monday 08:00 UK weekly, 1st 08:00 UK monthly, unpaid Mondays or the last day of the month). */
+/** Called from /api/cron every 5 minutes: sends what's due (Monday 08:00 UK weekly, 1st 08:00 UK monthly, unpaid Mondays or the last day of the month, attendance with the monthly). */
 export async function runDueReports(now = Date.now()) {
   const s = await growthSettings();
   if (!s.managerNumbers.length) return { sent: [] as ReportKind[] };
@@ -490,6 +490,11 @@ export async function runDueReports(now = Date.now()) {
     await sendReport("monthly", s.managerNumbers, "the scheduler");
     await saveGrowthSettings({ lastMonthlyAt: todayKey });
     sent.push("monthly");
+  }
+  if (s.attendanceOn && (parts.day === "01" || todayKey === s.monthlyAlsoOn) && now >= dueAt && (s.lastAttendanceAt ?? "") < todayKey) {
+    await sendReport("attendance", s.managerNumbers, "the scheduler");
+    await saveGrowthSettings({ lastAttendanceAt: todayKey });
+    sent.push("attendance");
   }
   return { sent };
 }

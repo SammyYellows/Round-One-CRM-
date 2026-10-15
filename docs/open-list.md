@@ -30,6 +30,7 @@ list comes up, until each is on or dropped.
 | Accountability welcome, weekly check-in, mid-week nudge | Accountability | Joining, their slot each week, Thursday 17:00 |
 | Weekly members report | Reports | Mondays at 08:00 (off) |
 | Monthly growth report (**on**, 15/10) | Reports | The 1st at 08:00, plus once on 16/10/2026 at 08:00 for Sammy's demonstration (`monthlyAlsoOn`) |
+| Classes and attendance report (**on**, 15/10) | Reports (setting `attendanceOn`, no switch on screen) | With the monthly: the 1st at 08:00, plus 16/10/2026 at 08:00 |
 | Unpaid (failed payments) report (**on**, 15/10) | Reports | The last day of the month at 08:00, from 30 November 2026 |
 
 **Done 08/10:** failed payments missed (Romel Rodriques) fixed. **11/10:** his duplicate Full Facility Access memberships are cancelled in TeamUp; one active since 05/01/2026.
