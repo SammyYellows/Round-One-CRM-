@@ -2,6 +2,7 @@
 // delivered, read, failed) for what we sent. Public, so every POST must carry
 // Meta's signature, made with our app secret.
 
+import { saveWhatsAppMedia, type WhatsAppMediaRef } from "@/lib/server/media";
 import crypto from "node:crypto";
 import { applyAction } from "@/lib/server/state";
 import { afterResponse } from "@/lib/server/background";
@@ -32,10 +33,10 @@ type Body = {
   }[];
 };
 
-type Media = { caption?: string; filename?: string };
+type Media = { id?: string; mime_type?: string; caption?: string; filename?: string };
 type Incoming = {
   id: string; from: string; type: string; text?: { body: string }; button?: { text: string }; interactive?: { button_reply?: { title: string }; list_reply?: { title: string } };
-  reaction?: { message_id?: string; emoji?: string }; image?: Media; video?: Media; document?: Media; location?: { name?: string; address?: string };
+  reaction?: { message_id?: string; emoji?: string }; image?: Media; video?: Media; document?: Media; audio?: Media; sticker?: Media; location?: { name?: string; address?: string };
 };
 
 // The words of an incoming message. Ones with no words get a label in square
@@ -49,6 +50,14 @@ function textOf(m: Incoming): string | null {
   const media = m.image ?? m.video ?? m.document;
   const extra = media?.caption || media?.filename || (m.location ? [m.location.name, m.location.address].filter(Boolean).join(", ") : "");
   return `[${label[m.type] ?? m.type}]${extra ? ` ${extra}` : ""}`;
+}
+
+/** The photo, sticker, video, voice note or document in a message, to copy into the CRM (media.ts). */
+function mediaOf(m: Incoming): WhatsAppMediaRef[] {
+  const kinds = { image: "image", sticker: "sticker", video: "video", audio: "audio", document: "document" } as const;
+  const kind = kinds[m.type as keyof typeof kinds];
+  const media = kind ? m[kind] : undefined;
+  return kind && media?.id ? [{ id: media.id, kind, mime: media.mime_type, name: media.filename }] : [];
 }
 
 // A status only ever moves forward: a late "delivered" never undoes "read".
@@ -96,6 +105,8 @@ export async function POST(req: Request) {
           const name = v.contacts?.find((c) => c.wa_id === m.from)?.profile?.name;
           const after = await applyAction("receiveWhatsApp", [{ id: `wa_${m.id}`, phone: `+${m.from}`, name, text: text.slice(0, 4000) }]);
           // Claude reads what they've said and leaves a note + suggested reply for staff (never sent by itself).
+          const media = mediaOf(m);
+          if (media.length) await afterResponse(saveWhatsAppMedia(`wa_${m.id}`, media));
           const who = after.messages.find((x) => x.id === `wa_${m.id}`)?.contactId;
           if (who) await afterResponse(readContactReplies(who).catch((e) => console.error("[insight]", e instanceof Error ? e.message : e)));
         }
