@@ -1,5 +1,6 @@
 "use client";
 
+import { showText } from "@/lib/messageText";
 import { useIsManager } from "@/components/StaffContext";
 import Link from "next/link";
 import { BarList, ColumnChart, MembersLine, Meter, Sparkline } from "@/components/charts";
@@ -142,7 +143,7 @@ export default function TodayPage() {
               <span className="chip chip-light" style={{ width: 96, flexShrink: 0 }}>{CHANNEL_LABEL[channel]}</span>
               <div className="needs-text" style={{ flex: 1, minWidth: 0 }}>
                 <div className="strong">{c.name} is waiting for a reply</div>
-                <div className="small muted">{last.text.slice(0, 70)}</div>
+                <div className="small muted">{showText(last.text).slice(0, 70)}</div>
               </div>
               <Link className="btn btn-ghost btn-sm" href={`/enquiries?tab=${channel}&contact=${c.id}`}>Reply</Link>
             </div>

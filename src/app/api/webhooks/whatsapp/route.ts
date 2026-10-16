@@ -25,12 +25,31 @@ type Body = {
     changes?: {
       value?: {
         contacts?: { wa_id: string; profile?: { name?: string } }[];
-        messages?: { id: string; from: string; type: string; text?: { body: string }; button?: { text: string }; interactive?: { button_reply?: { title: string } } }[];
+        messages?: Incoming[];
         statuses?: { id: string; status: string; errors?: { title?: string; message?: string; error_data?: { details?: string } }[] }[];
       };
     }[];
   }[];
 };
+
+type Media = { caption?: string; filename?: string };
+type Incoming = {
+  id: string; from: string; type: string; text?: { body: string }; button?: { text: string }; interactive?: { button_reply?: { title: string }; list_reply?: { title: string } };
+  reaction?: { message_id?: string; emoji?: string }; image?: Media; video?: Media; document?: Media; location?: { name?: string; address?: string };
+};
+
+// The words of an incoming message. Ones with no words get a label in square
+// brackets (src/lib/messageText.ts shows them nicely); a reaction keeps its
+// emoji (Sammy, 16/10/2026). null: nothing to record (a reaction taken back).
+function textOf(m: Incoming): string | null {
+  const said = m.text?.body ?? m.button?.text ?? m.interactive?.button_reply?.title ?? m.interactive?.list_reply?.title;
+  if (said !== undefined) return said;
+  if (m.type === "reaction") return m.reaction?.emoji ? `[Reacted ${m.reaction.emoji}]` : null;
+  const label: Record<string, string> = { image: "Photo", video: "Video", audio: "Voice note", sticker: "Sticker", document: "Document", location: "Location", contacts: "Contacts", unsupported: "Unsupported" };
+  const media = m.image ?? m.video ?? m.document;
+  const extra = media?.caption || media?.filename || (m.location ? [m.location.name, m.location.address].filter(Boolean).join(", ") : "");
+  return `[${label[m.type] ?? m.type}]${extra ? ` ${extra}` : ""}`;
+}
 
 // A status only ever moves forward: a late "delivered" never undoes "read".
 const RANK: Record<string, number> = { queued: 0, sent: 1, delivered: 2, read: 3, failed: 4 };
@@ -72,7 +91,8 @@ export async function POST(req: Request) {
       for (const change of entry.changes ?? []) {
         const v = change.value ?? {};
         for (const m of v.messages ?? []) {
-          const text = m.text?.body ?? m.button?.text ?? m.interactive?.button_reply?.title ?? `[${m.type}]`;
+          const text = textOf(m);
+          if (text === null) continue;
           const name = v.contacts?.find((c) => c.wa_id === m.from)?.profile?.name;
           const after = await applyAction("receiveWhatsApp", [{ id: `wa_${m.id}`, phone: `+${m.from}`, name, text: text.slice(0, 4000) }]);
           // Claude reads what they've said and leaves a note + suggested reply for staff (never sent by itself).
