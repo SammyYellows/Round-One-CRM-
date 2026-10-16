@@ -269,6 +269,17 @@ export interface Message {
   // the prototype, where nothing is really sent.
   status?: MessageStatus;
   error?: string; // why it failed, when status is "failed"
+  // Photos, stickers, videos, voice notes and documents they sent (Sammy,
+  // 16/10/2026), saved in the private message-media bucket once Meta hands
+  // them over; shown in the thread through /api/media/<message id>/<n>.
+  media?: MessageMedia[];
+}
+
+export interface MessageMedia {
+  kind: "image" | "sticker" | "video" | "audio" | "document";
+  path: string; // in the message-media bucket
+  mime: string;
+  name?: string; // a document's file name
 }
 
 export type MessageStatus = "queued" | "sent" | "delivered" | "read" | "failed" | "received";

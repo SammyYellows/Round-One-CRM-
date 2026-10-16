@@ -9,6 +9,7 @@ import { applyAction } from "@/lib/server/state";
 import { afterResponse } from "@/lib/server/background";
 import { readContactReplies } from "@/lib/server/insights";
 import { socialProfile } from "@/lib/server/social";
+import { saveSocialMedia, type SocialMediaRef } from "@/lib/server/media";
 import { db } from "@/lib/server/supabase";
 import { SocialChannel } from "@/lib/types";
 
@@ -30,7 +31,7 @@ type Incoming = {
   is_echo?: boolean;
   is_deleted?: boolean;
   app_id?: number | string;
-  attachments?: { type?: string }[];
+  attachments?: { type?: string; payload?: { url?: string } }[];
 };
 type Messaging = {
   sender?: { id?: string };
@@ -47,6 +48,12 @@ const ATTACHMENT: Record<string, string> = {
   image: "Photo", video: "Video", audio: "Voice note", file: "File", share: "Shared a post", story_mention: "Mentioned us in their story",
   ig_reel: "Shared a reel", reel: "Shared a reel", sticker: "Sticker", like_heart: "❤️",
 };
+
+/** Photos, videos, voice notes and stickers to copy into the CRM (media.ts); shared posts and reels stay as labels. */
+function mediaOf(m: Incoming): SocialMediaRef[] {
+  const kinds: Record<string, SocialMediaRef["kind"]> = { image: "image", video: "video", audio: "audio", file: "document", sticker: "sticker" };
+  return (m.attachments ?? []).flatMap((a) => (a.payload?.url && kinds[a.type ?? ""] ? [{ url: a.payload.url, kind: kinds[a.type ?? ""] }] : []));
+}
 
 function textOf(m: Incoming) {
   if (m.text?.trim()) return m.text.slice(0, 4000);
@@ -114,6 +121,8 @@ export async function POST(req: Request) {
           const who = (await contactIdFor(channel, userId)) ? {} : await socialProfile(channel, userId);
           const after = await applyAction("receiveSocial", [{ id: `${prefix}_${mid}`, channel, userId, ...who, text }]);
           // Claude reads what they've said and leaves a note + suggested reply for staff (never sent by itself).
+          const media = ev.message ? mediaOf(ev.message) : [];
+          if (media.length) await afterResponse(saveSocialMedia(`${prefix}_${mid}`, media));
           const contactId = after.messages.find((x) => x.id === `${prefix}_${mid}`)?.contactId;
           if (contactId) await afterResponse(readContactReplies(contactId).catch((e) => console.error("[insight]", e instanceof Error ? e.message : e)));
         } else if (ev.delivery && ev.sender?.id) {

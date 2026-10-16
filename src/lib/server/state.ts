@@ -69,6 +69,7 @@ const contactTo = (c: Contact): Row => ({
 const messageFrom = (r: Row): Message => ({
   id: r.id as string, contactId: r.contact_id as string, dir: r.dir as Message["dir"], text: r.text as string,
   template: opt(r.template), by: opt(r.by), at: r.at as string, status: opt(r.status), error: opt(r.error),
+  ...(Array.isArray(r.media) && r.media.length ? { media: r.media as Message["media"] } : {}),
   ...(r.channel === "facebook" || r.channel === "instagram" ? { channel: r.channel } : {}),
 });
 // New outgoing messages are saved as queued; deliver.ts sends them and Meta's

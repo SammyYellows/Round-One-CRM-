@@ -5,13 +5,23 @@ import { firstName } from "@/lib/engine";
 import { time } from "@/lib/format";
 import { showText } from "@/lib/messageText";
 import { useStore } from "@/lib/store";
-import { CHANNEL_LABEL, Channel, SOCIAL_MAX_CHARS, channelOf } from "@/lib/types";
+import { CHANNEL_LABEL, Channel, SOCIAL_MAX_CHARS, channelOf, type MessageMedia } from "@/lib/types";
 
 // One conversation: the thread and the reply box. WhatsApp (Sammy,
 // 12/10/2026): free text inside the 24-hour window, approved templates
 // outside it. Facebook and Instagram (14/10/2026): free text inside 24 hours,
 // then a person's reply for up to 7 days, then nothing. Shared by the
 // contact page and the Enquiries tabs.
+
+/** A photo, sticker, video, voice note or document they sent (Sammy, 16/10/2026), from the CRM's own copy. */
+function MediaItem({ src, item }: { src: string; item: MessageMedia }) {
+  const box = { display: "block", maxWidth: "100%", marginBottom: 6 } as const;
+  if (item.kind === "image") return <a href={src} target="_blank" rel="noreferrer"><img src={src} alt="Photo they sent" loading="lazy" style={{ ...box, maxHeight: 320 }} /></a>;
+  if (item.kind === "sticker") return <img src={src} alt="Sticker" loading="lazy" style={{ ...box, width: 120, height: 120, objectFit: "contain" }} />;
+  if (item.kind === "video") return <video src={src} controls preload="metadata" style={{ ...box, maxHeight: 320 }} />;
+  if (item.kind === "audio") return <audio src={src} controls preload="none" style={{ ...box, width: 260 }} />;
+  return <a href={src} target="_blank" rel="noreferrer" style={{ ...box, textDecoration: "underline" }}>📄 {item.name || "Open the document"}</a>;
+}
 
 const STATUS: Record<string, string> = { queued: "Sending", sent: "Sent", delivered: "Delivered", read: "Read", failed: "Not delivered" };
 
@@ -79,7 +89,14 @@ export function MessageThread({ contactId, channel = "whatsapp", draft: outerDra
         {msgs.length === 0 && <div className="faint small">No messages yet.</div>}
         {msgs.map((m) => (
           <div key={m.id} className={`msg ${m.dir}`}>
-            <div>{showText(m.text)}</div>
+            {m.media?.length ? (
+              <>
+                {m.media.map((x, i) => <MediaItem key={i} src={`/api/media/${encodeURIComponent(m.id)}/${i}`} item={x} />)}
+                {m.text.replace(/^(\[[^\]]+\]\s*)+/, "").trim() && <div>{m.text.replace(/^(\[[^\]]+\]\s*)+/, "").trim()}</div>}
+              </>
+            ) : (
+              <div>{showText(m.text)}</div>
+            )}
             <div className="mmeta">
               {m.dir === "out" ? (m.template ? `${m.by} · ${m.template}` : m.by ?? "You") : firstName(c)} · {time(m.at)}
               {m.dir === "out" && m.status && STATUS[m.status] ? ` · ${STATUS[m.status]}` : ""}
