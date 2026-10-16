@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { firstName } from "@/lib/engine";
 import { time } from "@/lib/format";
+import { showText } from "@/lib/messageText";
 import { useStore } from "@/lib/store";
 import { CHANNEL_LABEL, Channel, SOCIAL_MAX_CHARS, channelOf } from "@/lib/types";
 
@@ -78,7 +79,7 @@ export function MessageThread({ contactId, channel = "whatsapp", draft: outerDra
         {msgs.length === 0 && <div className="faint small">No messages yet.</div>}
         {msgs.map((m) => (
           <div key={m.id} className={`msg ${m.dir}`}>
-            <div>{m.text}</div>
+            <div>{showText(m.text)}</div>
             <div className="mmeta">
               {m.dir === "out" ? (m.template ? `${m.by} · ${m.template}` : m.by ?? "You") : firstName(c)} · {time(m.at)}
               {m.dir === "out" && m.status && STATUS[m.status] ? ` · ${STATUS[m.status]}` : ""}

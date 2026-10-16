@@ -1,5 +1,6 @@
 "use client";
 
+import { showText } from "@/lib/messageText";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { ago } from "@/lib/format";
@@ -57,7 +58,7 @@ export function MessageInbox({ channel }: { channel: Channel }) {
                 <span className="faint small">{ago(last.at, now)}</span>
               </div>
               <div className="small muted" style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                {last.dir === "out" ? "You: " : ""}{last.text}
+                {last.dir === "out" ? "You: " : ""}{showText(last.text)}
               </div>
               <div style={{ display: "flex", gap: 6, marginTop: 4, flexWrap: "wrap" }}>
                 {w && isNew(lastIn.at) && <span className="chip chip-red">New</span>}
