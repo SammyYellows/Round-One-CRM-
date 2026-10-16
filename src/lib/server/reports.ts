@@ -442,11 +442,14 @@ function headline(r: ReportData) {
 export async function sendReport(kind: ReportKind, to: string[], by: string) {
   const r = await buildReport(kind);
   const stored = await storeReport(kind, renderPdf(r));
+  // Champ's version of the message (Sammy, 16/10/2026), once Meta has approved it; the plain one until then.
+  const { data: v2 } = await db().from("templates").select("meta_status").eq("name", "management_report_v2").maybeSingle();
+  const template = v2?.meta_status === "approved" ? "management_report_v2" : "management_report";
   const results: { to: string; ok: boolean; error?: string }[] = [];
   for (const num of to) {
     // UK mobiles as typed (07…) need the country code for WhatsApp, as every other message does.
     const res = await sendTemplate(waNumber(num), {
-      name: "management_report", language: "en_GB",
+      name: template, language: "en_GB",
       params: [reportName(kind), fmtDate(r.asOf), headline(r)],
       documentUrl: stored.url, documentName: fileName(kind, r.asOf),
     });
