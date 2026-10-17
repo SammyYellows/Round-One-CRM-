@@ -417,9 +417,9 @@ updates from the import never fire automations.
     Page id in Vercel, webhooks on for Page "Round One" and
     @roundonefitness). Earlier conversations: `social_history` built; Claude
     counts first (dry run), copies them in after Sammy's go ("i just want to
-    see the old messages", not leads). Waiting: a test message from someone
-    who isn't a Page admin, and the Instagram "Allow access to messages"
-    setting on Sammy's phone. **Facebook history copied in (14/10, Sammy's
+    see the old messages", not leads). **Live messages confirmed (17/10,
+    Sammy: "Instagram works")**: new Instagram DMs arrive through the
+    webhook (e.g. 17/10 08:44), as do Facebook ones. **Facebook history copied in (14/10, Sammy's
     yes):** 285 conversations, 926 messages back to April 2021, 268 people
     (source facebook, off the pipeline, nothing sent); 194 old ones marked
     No reply needed, 4 from the last week waiting. **Instagram history:**
