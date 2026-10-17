@@ -120,8 +120,9 @@ const formTo = (f: Form): Row => ({
 
 const taskFrom = (r: Row): Task => ({
   id: r.id as string, contactId: opt(r.contact_id), text: r.text as string, done: r.done as boolean, at: r.at as string,
+  doneAt: opt(r.done_at), doneBy: opt(r.done_by),
 });
-const taskTo = (t: Task): Row => ({ id: t.id, contact_id: t.contactId ?? null, text: t.text, done: t.done, at: t.at });
+const taskTo = (t: Task): Row => ({ id: t.id, contact_id: t.contactId ?? null, text: t.text, done: t.done, at: t.at, done_at: t.doneAt ?? null, done_by: t.doneBy ?? null });
 
 const apptFrom = (r: Row): Appointment => ({
   id: r.id as string, contactId: r.contact_id as string, calendarId: r.calendar_id as string, staffId: (r.staff_id as string) ?? "",

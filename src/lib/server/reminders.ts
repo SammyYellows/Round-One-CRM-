@@ -28,7 +28,7 @@ export async function remindersTick(now = Date.now()) {
   if (!due.length) return { added: [] as string[] };
   await applyMany((s) => {
     for (const r of due) {
-      for (const t of s.tasks) if (!t.done && t.id.startsWith(`${r.id}:`)) completeTask(s, t.id);
+      for (const t of s.tasks) if (!t.done && t.id.startsWith(`${r.id}:`)) completeTask(s, t.id, "The CRM (replaced by this week's reminder)");
       addTask(s, { id: `${r.id}:${today.date}`, text: r.text });
     }
   });
