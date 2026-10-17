@@ -58,6 +58,8 @@ export const SEEN: Record<Channel, string> = {
   instagram: "round-one-crm:seen:/enquiries/instagram",
 };
 export const SEEN_EVENT = "crm-seen";
+/** When the Failed payments menu number was last cleared, in this browser (Sammy, 17/10/2026). */
+export const PAYMENTS_CLEARED = "round-one-crm:cleared:/payments";
 export function lastSeenAt(key: string) {
   try { return localStorage.getItem(key); } catch { return null; }
 }
