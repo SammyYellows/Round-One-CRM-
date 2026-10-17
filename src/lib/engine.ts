@@ -1342,6 +1342,41 @@ export function importMembers(s: State, inputs: MemberInput[], opts: { baseline?
  * day counts that an enabled automation asks for, once per membership and
  * day count. Run daily by the sync.
  */
+/**
+ * Starts the TeamUp-driven messages for people already part-way through a
+ * membership when they were switched on (Sammy, 17/10/2026: the Program
+ * messages, for the 16 already on a Program). Each enabled automation
+ * triggered by "membership starts" in their membership's category starts
+ * for them as if their membership had just started: waits already more than
+ * a day gone send nothing (skipIfLate), later ones go on their day. Anyone
+ * who already has a run of that automation is left alone. `dryRun` only
+ * reports what would happen.
+ */
+export function startForCurrentMembers(s: State, category: string, opts: { dryRun?: boolean } = {}) {
+  const now = nowMs(s);
+  const out: { contact: string; automation: string; when: string }[] = [];
+  for (const c of s.contacts) {
+    const m = c.membership;
+    if (c.removed || !m || (m.status !== "active" && m.status !== "on_hold") || m.category !== category) continue;
+    const ev: Fired = { type: "membership.started", contactId: c.id, category: m.category };
+    for (const a of s.automations) {
+      if (!a.enabled || !matches(s, a, ev) || s.runs.some((r) => r.automationId === a.id && r.contactId === c.id)) continue;
+      // When its first wait comes round, worked out as advanceRun will.
+      const wait = a.steps[0]?.kind === "wait_until_start" ? a.steps[0] : undefined;
+      const start = m.startedAt;
+      const at = wait && start ? ukTime(Date.parse(start.length === 10 ? `${start}T12:00:00Z` : start), -wait.daysBefore, 9).getTime() : now;
+      const when = at > now ? new Date(at).toISOString() : wait?.skipIfLate && now - at > 24 * 3600e3 ? "skipped (already gone)" : "now";
+      out.push({ contact: c.name, automation: a.name, when });
+      if (opts.dryRun) continue;
+      a.runs += 1;
+      const run: Run = { id: uid(), automationId: a.id, contactId: c.id, stepIndex: 0, status: "running", startedAt: nowIso(s) };
+      s.runs.unshift(run);
+      advanceRun(s, run);
+    }
+  }
+  return out;
+}
+
 export function checkMembershipsEnding(s: State) {
   const now = nowMs(s);
   const wanted = new Set<number>();
