@@ -213,6 +213,27 @@ export function tick(s: State) {
       advanceRun(s, r);
     }
   }
+  markOutcomeTasks(s);
+}
+
+// An intro meeting nobody has marked attended or no-show goes on Needs you an
+// hour after it ends (Sammy, 17/10/2026), instead of lingering on Today's
+// Appointments card. Once per appointment (the task id is the appointment's);
+// marking, moving or cancelling it ticks the to-do off. Meetings before the
+// CRM took over (12/10/2026) have their own GymGrow to-dos.
+const MARK_FROM = Date.parse("2026-10-12T00:00:00Z");
+const markTaskId = (apptId: string) => `mark_${apptId}`;
+function markOutcomeTasks(s: State) {
+  const now = nowMs(s);
+  for (const a of s.appointments) {
+    if (a.status !== "booked" && a.status !== "confirmed") continue;
+    const end = Date.parse(a.end);
+    if (end < MARK_FROM || end + 3600e3 > now || s.tasks.some((t) => t.id === markTaskId(a.id))) continue;
+    const c = s.contacts.find((x) => x.id === a.contactId);
+    if (!c || c.removed || !s.calendars.find((x) => x.id === a.calendarId)?.bookTrial) continue;
+    const when = new Date(a.start).toLocaleString("en-GB", { timeZone: "Europe/London", weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+    addTask(s, { id: markTaskId(a.id), contactId: c.id, text: `Mark how ${c.name}’s intro meeting went (${when}): attended or no-show, on their contact page or the Calendar` });
+  }
 }
 
 export function stopRun(s: State, runId: string) {
@@ -526,6 +547,7 @@ export function rescheduleAppointment(s: State, id: string, patch: { start?: str
     a.start = new Date(patch.start).toISOString();
     a.end = new Date(Date.parse(a.start) + len).toISOString();
     log(s, "appointment.updated", a.contactId, `${cal?.name} for ${c?.name} moved to ${when(a.start)}`);
+    completeTask(s, markTaskId(a.id), "The CRM (meeting moved)");
     if (cal?.bookTrial && c && (a.status === "booked" || a.status === "confirmed")) {
       c.trialAt = a.start;
       retimeTrialWaits(s, c.id);
@@ -546,6 +568,7 @@ export function setAppointmentStatus(s: State, id: string, status: Appointment["
   const cal = s.calendars.find((x) => x.id === a.calendarId);
   a.status = status;
   log(s, "appointment.updated", a.contactId, `${c?.name}’s ${cal?.name.toLowerCase()} marked ${apptStatusLabel(status).toLowerCase()}`);
+  if (status !== "booked" && status !== "confirmed") completeTask(s, markTaskId(a.id), `The CRM (marked ${apptStatusLabel(status).toLowerCase()})`);
   if (!c || !cal?.bookTrial) return;
   fire(s, { type: "appointment.status", contactId: c.id, status });
 
