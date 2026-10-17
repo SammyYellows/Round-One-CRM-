@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { EmailAutomationCard } from "@/components/EmailAutomationCard";
 import { ago, gbp, shortDate } from "@/lib/format";
+import { PAYMENTS_CLEARED, markSeen } from "@/lib/messageInbox";
 import { useStore } from "@/lib/store";
 import { PAYMENT_FAILED_AT, teamupCustomerUrl } from "@/lib/types";
 
@@ -31,6 +32,7 @@ export default function PaymentsPage() {
     setBusy(null); setHolding(null);
     setNotes((n) => ({ ...n, [contactId]: r.ok ? "On hold in TeamUp from today. Door access stops with it. Lift it in TeamUp when they’ve paid." : j.error ?? "TeamUp didn’t accept the hold" }));
   };
+  const [cleared, setCleared] = useState(false);
   const [page, setPage] = useState(1);
   const PER_PAGE = 30;
   useEffect(() => setPage(1), [window]);
@@ -70,7 +72,10 @@ export default function PaymentsPage() {
           <div className="eyebrow">{rows.length} with {PAYMENT_FAILED_AT}+ failed attempts{manager ? ` · ${gbp(owedTotal, 2)} on open invoices` : ""} · automation {automation?.enabled ? "on" : "off"}</div>
           <h1 className="h h1">Failed payments</h1>
         </div>
-        <Link className="btn btn-ghost" href="/members">All members</Link>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          <button className="btn btn-ghost" title="Takes the number off Failed payments in the menu until someone else is flagged. Nobody comes off this list." onClick={() => { markSeen(PAYMENTS_CLEARED, now); setCleared(true); }}>{cleared ? "Menu number cleared" : "Clear menu number"}</button>
+          <Link className="btn btn-ghost" href="/members">All members</Link>
+        </div>
       </header>
 
       <EmailAutomationCard automationId={AUTOMATION} title="The failed-payment email" purpose={`a member whose membership payment has failed ${PAYMENT_FAILED_AT} times, asking them to update their payment details`} when={`Goes from info@ when TeamUp's failed attempts reach ${PAYMENT_FAILED_AT}; replies come into Enquiries`} startOpen={false} />

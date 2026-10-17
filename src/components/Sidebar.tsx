@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 import { useStore } from "@/lib/store";
 import { PAYMENT_FAILED_AT } from "@/lib/types";
 import { isManagementPath, isManagerRole } from "@/lib/roles";
-import { SEEN, SEEN_EVENT, lastSeenAt, messageCounts } from "@/lib/messageInbox";
+import { PAYMENTS_CLEARED, SEEN, SEEN_EVENT, lastSeenAt, messageCounts } from "@/lib/messageInbox";
 import { CHANNELS } from "@/lib/types";
 
 // Menu order (Sammy, 14/10/2026). Pipeline holds Meta and TeamUp; Program
@@ -81,11 +81,14 @@ export function Sidebar({ staff }: { staff?: { name: string; role: string } }) {
   const failing = s.contacts.filter((c) => c.membership && c.membership.status !== "ended" && (c.membership.paymentRetries ?? 0) >= PAYMENT_FAILED_AT);
   const flaggedIds = new Set(s.events.filter((e) => e.type === "stage.changed" && / failed payment attempts on /.test(e.detail) && (!paySince || Date.parse(e.at) > Date.parse(paySince))).map((e) => e.contactId));
   const freshFailing = failing.filter((c) => flaggedIds.has(c.id)).length;
+  // "Clear menu number" on Failed payments (Sammy, 17/10/2026) hides the number until someone else is flagged; the list is unchanged.
+  const payCleared = lastSeenAt(PAYMENTS_CLEARED);
+  const payHidden = !!payCleared && !s.events.some((e) => e.type === "stage.changed" && / failed payment attempts on /.test(e.detail) && Date.parse(e.at) > Date.parse(payCleared) && failing.some((c) => c.id === e.contactId));
   // A red number for what's new since you last looked; a quiet grey mark when older items are still waiting.
   const marks = (href: string): { fresh: number; waiting: number; what: string } =>
     href === "/enquiries" ? { fresh: enq.fresh + msgs.fresh, waiting: enq.open + msgs.waiting, what: "waiting for a reply (email, WhatsApp, Facebook and Instagram)" }
     : href === "/cancellations" ? { fresh: freshNotices, waiting: notices.length, what: "gave notice in the last 7 days" }
-    : href === "/payments" ? { fresh: freshFailing, waiting: failing.length, what: `with ${PAYMENT_FAILED_AT}+ failed payment attempts` }
+    : href === "/payments" ? { fresh: payHidden ? 0 : freshFailing, waiting: payHidden ? 0 : failing.length, what: `with ${PAYMENT_FAILED_AT}+ failed payment attempts` }
     : { fresh: 0, waiting: 0, what: "" };
 
   // Staff logins see the day-to-day screens; management sees everything plus Staff (Sammy, 10/10/2026).

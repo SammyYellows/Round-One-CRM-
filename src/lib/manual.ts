@@ -216,6 +216,7 @@ Every email to info@round1boxfit.co.uk that looks like an enquiry appears here w
 - Members flagged after three failed payment attempts in TeamUp, with what they owe. Open a person to see each missed payment.
 - The flag clears when a payment goes through in TeamUp.
 - **Blocked in TeamUp** / **Not blocked** shows whether someone has been blocked with **Block Customer** on their TeamUp profile (checked with each TeamUp sync). The CRM can't block anyone itself (TeamUp doesn't allow it).
+- **Clear menu number** (top right) takes the number off Failed payments in the menu, on this computer, until someone else is flagged. Nobody comes off the list and nothing changes in TeamUp.
 - Anyone with three failed attempts who isn't blocked gets a task in **Needs you**: "Check … is blocked in TeamUp". **Open in TeamUp** (on Failed payments and the contact page) goes straight to their TeamUp page, where **Block Customer** is. Block them there (or sort the payment); the task ticks itself off after the next nightly check.
 - Payment issues are sorted in TeamUp. A friendly word in person often works best.
 - The "failed-payment email" card at the top is off until management approve it there.
