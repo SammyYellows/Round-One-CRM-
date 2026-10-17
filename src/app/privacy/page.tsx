@@ -30,7 +30,7 @@ export default function PrivacyPage() {
           <li><strong>Contact details:</strong> your name, mobile number and email address.</li>
           <li><strong>Your answers:</strong> what you tell us on our enquiry form, such as your goals and how you like to train.</li>
           <li><strong>Bookings:</strong> intro meetings you book with us and whether you came.</li>
-          <li><strong>Messages:</strong> WhatsApp, Facebook and Instagram messages and emails between you and us, and whether they were delivered and read. When you message us on Facebook or Instagram we keep your name or username and the id Meta gives us for replying to you.</li>
+          <li><strong>Messages:</strong> WhatsApp, Facebook and Instagram messages and emails between you and us, including any photos, videos, voice notes or documents you send us, and whether they were delivered and read. When you message us on Facebook or Instagram we keep your name or username and the id Meta gives us for replying to you.</li>
           <li><strong>Membership:</strong> from our booking system (TeamUp), your membership type, start and end dates, whether payments have gone through (not your card details) and the classes you attend.</li>
           <li><strong>Door entries:</strong> from our door system (Kisi), the times you came into the gym.</li>
           <li><strong>Safety:</strong> whether you have signed our waiver, and your emergency contact.</li>
