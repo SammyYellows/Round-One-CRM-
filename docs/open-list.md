@@ -7,31 +7,22 @@ this; Claude keeps it current. Last updated 15/10/2026.
 `docs/wrap-up-day.md`, as a job or a yes/no to close it. After that, only
 the GymGrow import stays open.
 
-## Switched off, waiting for Sammy's approval
+## Switched off, waiting for Sammy's approval (tidied 17/10)
 
-Each is built and drafted, and does nothing until Sammy presses "Approve
-and switch on" on its card. Claude prompts Sammy about these when the
-list comes up, until each is on or dropped.
+Still off: the three **Accountability** emails (welcome, weekly check-in,
+mid-week nudge; approve on Accountability) and the old GymGrow **Intro
+Programme – first week check-in** (`programme_week_one`; the Program
+messages now cover it). Everything else is on.
 
-| What | Where to approve | Fires when |
-|---|---|---|
-| **Program wording done (15/10, Sammy picked each in chat):** 2 days before (his own template, emoji kept), day 1 (email B + new WhatsApp), 3, 7, 10 (B), 14 (as was), 17 (WhatsApp B), 21 (routine focus, commitment fee credited back over 6 months), 24 (WhatsApp B), 28 (celebrate + Post Program Discounted link/button). All 10 WhatsApp templates submitted to Meta 15/10. **Waiting on Sammy:** approve and switch on each card on Program members once Meta approves. | Program members | |
-| Program: 2 days before, get ready (15/10; WhatsApp template `program_pre_start` still to submit) | Program members | 09:00 two days before a Program membership's start date |
-| Program day 1 welcome (from TeamUp) | Program members | A Program membership starts in TeamUp |
-| Program day 3: get your sessions in the diary | Program members | Day 3 |
-| Program day 7: one week done | Program members | Day 7 |
-| Program day 10: the dip | Program members | Day 10 |
-| Program day 14: two-week check-in | Program members | Day 15 |
-| Program day 17: the second half | Program members | Day 17 |
-| Program day 21: a week to go, move to recurring | Program members | Day 21 at 09:00 (timed from the start since 17/10) |
-| Program day 24: finish strong | Program members | Day 24 |
-| Program day 28: you did it | Program members | Day 28 |
-| Payment failed – update your details | Failed payments | TeamUp logs the third failed attempt |
-| Accountability welcome, weekly check-in, mid-week nudge | Accountability | Joining, their slot each week, Thursday 17:00 |
-| Weekly members report (**on**, 15/10) | Reports | Mondays at 08:00, from 19/10/2026 |
-| Monthly growth report (**on**, 15/10) | Reports | The 1st at 08:00, plus once on 16/10/2026 at 08:00 for Sammy's demonstration (`monthlyAlsoOn`) |
-| Classes and attendance report (**on**, 15/10) | Reports (setting `attendanceOn`, no switch on screen) | With the monthly: the 1st at 08:00, plus 16/10/2026 at 08:00 |
-| Unpaid (failed payments) report (**on**, 15/10) | Reports | The last day of the month at 08:00, from 30 November 2026 |
+| On (17/10) | Fires when |
+|---|---|
+| Program: 2 days before, days 1, 3, 7, 10, 14, 17, 21, 24, 28 (email + WhatsApp, everyone on a Program) | 09:00 on each day, counted from their Program membership's start date |
+| Payment failed – update your details | TeamUp logs the third failed attempt |
+| Win-back | The day after notice to cancel |
+| GymGrow lead journey (new lead, booked, reminders, no-show, cancelled, attended, sold welcomes) | As before |
+| Weekly members report | Mondays 08:00, from 19/10 |
+| Monthly growth and Classes and attendance reports | The 1st at 08:00 |
+| Unpaid report | The last day of the month at 08:00, from 30/11 |
 
 **Done 08/10:** failed payments missed (Romel Rodriques) fixed. **11/10:** his duplicate Full Facility Access memberships are cancelled in TeamUp; one active since 05/01/2026.
 
