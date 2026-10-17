@@ -80,7 +80,8 @@ export default function TodayPage() {
   const week = weekLoad(s, now);
 
   // ---- Lists ----
-  const trials = s.contacts.filter((c) => c.stage === "booked" && c.trialAt).sort((a, b) => Date.parse(a.trialAt!) - Date.parse(b.trialAt!));
+  // Upcoming only (Sammy, 17/10/2026): one that's over and not marked becomes a Needs you to-do instead.
+  const trials = s.contacts.filter((c) => c.stage === "booked" && c.trialAt && Date.parse(c.trialAt) + 3600e3 > now).sort((a, b) => Date.parse(a.trialAt!) - Date.parse(b.trialAt!));
   const trialsToday = trials.filter((c) => isSameDay(Date.parse(c.trialAt!), now)).length;
   // WhatsApp, Facebook and Instagram messages still waiting for a reply (as on Enquiries), then open tasks, newest first.
   const waiting = CHANNELS.flatMap((ch) => conversations(s, ch)).filter((c) => c.waiting).sort((a, b) => Date.parse(b.last.at) - Date.parse(a.last.at));
