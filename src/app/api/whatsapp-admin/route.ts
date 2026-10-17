@@ -27,13 +27,17 @@
 //   {action:"report_test", kind, number}: sends one report to one manager
 //     only, as an example before the schedule goes on. The number must be one
 //     of the managers' numbers in Reports → Settings.
+// Program messages (Sammy, 17/10/2026):
+//   {action:"program_current", dryRun?}: starts the Program messages for
+//     people already on a Program (startForCurrentMembers). dryRun: true only
+//     lists who would get what and when.
 
-import { importSocialHistory } from "@/lib/engine";
+import { importSocialHistory, startForCurrentMembers } from "@/lib/engine";
 import { appUrl } from "@/lib/server/deliver";
 import { growthSettings } from "@/lib/server/growth";
 import { sendReport, type ReportKind } from "@/lib/server/reports";
 import { socialCheck, socialHistory, socialSubscribe } from "@/lib/server/social";
-import { applyMany } from "@/lib/server/state";
+import { applyMany, loadState } from "@/lib/server/state";
 import { submitTemplates } from "@/lib/server/waTemplates";
 
 export const dynamic = "force-dynamic";
@@ -46,6 +50,12 @@ export async function POST(req: Request) {
   const secret = process.env.CRON_SECRET;
   if (!secret || req.headers.get("authorization") !== `Bearer ${secret}`) return Response.json({ error: "Not allowed" }, { status: 401 });
   const b = (await req.json().catch(() => ({}))) as { action?: string; phoneId?: string; pin?: string; waba?: string; number?: string; name?: string; method?: string; code?: string; migrate?: boolean; only?: string[]; statusOnly?: boolean; channel?: string; dryRun?: boolean; after?: string; kind?: string };
+  if (b.action === "program_current") {
+    const plan = b.dryRun
+      ? startForCurrentMembers(await loadState(), "Program Memberships", { dryRun: true })
+      : await applyMany((s) => startForCurrentMembers(s, "Program Memberships"));
+    return Response.json({ dryRun: !!b.dryRun, plan });
+  }
   if (b.action === "report_test") {
     const kinds: ReportKind[] = ["weekly", "monthly", "unpaid", "attendance"];
     if (!kinds.includes(b.kind as ReportKind)) return Response.json({ error: "kind must be weekly, monthly, unpaid or attendance" }, { status: 400 });
