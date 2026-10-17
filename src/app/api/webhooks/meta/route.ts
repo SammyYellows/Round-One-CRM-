@@ -9,6 +9,7 @@ import { applyAction } from "@/lib/server/state";
 import { afterResponse } from "@/lib/server/background";
 import { readContactReplies } from "@/lib/server/insights";
 import { socialProfile } from "@/lib/server/social";
+import { STORY_MENTION } from "@/lib/messageInbox";
 import { saveSocialMedia, type SocialMediaRef } from "@/lib/server/media";
 import { db } from "@/lib/server/supabase";
 import { SocialChannel } from "@/lib/types";
@@ -117,6 +118,8 @@ export async function POST(req: Request) {
           if (!userId || userId === entry.id) continue;
           const mid = ev.message?.mid ?? ev.postback?.mid ?? `${userId}_${at}`;
           const text = ev.message ? textOf(ev.message) : `[Pressed “${ev.postback?.title ?? "a button"}”]`;
+          // A story mention isn't a message to answer (Sammy, 17/10/2026): not kept, so it never reaches Enquiries.
+          if (text === STORY_MENTION) continue;
           // Their name only matters the first time they message.
           const who = (await contactIdFor(channel, userId)) ? {} : await socialProfile(channel, userId);
           const after = await applyAction("receiveSocial", [{ id: `${prefix}_${mid}`, channel, userId, ...who, text }]);

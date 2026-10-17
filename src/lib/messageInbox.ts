@@ -14,13 +14,17 @@ export interface Conversation {
   waiting: boolean;
 }
 
+/** Someone mentioning us in their Instagram story isn't a message to answer (Sammy, 17/10/2026): never in Enquiries. */
+export const STORY_MENTION = "[Mentioned us in their story]";
+export const isStoryMention = (m: Pick<Message, "text">) => m.text.trim() === STORY_MENTION;
+
 /** When staff last pressed "No reply needed" on this conversation. */
 const doneAt = (c: Contact, channel: Channel) => (channel === "whatsapp" ? c.whatsappDone : c.channelDone?.[channel])?.at;
 
 export function conversations(s: State, channel: Channel = "whatsapp"): Conversation[] {
   const byContact = new Map<string, { last: Message; lastIn?: Message }>();
   for (const m of s.messages) {
-    if (channelOf(m) !== channel) continue;
+    if (channelOf(m) !== channel || isStoryMention(m)) continue;
     const e = byContact.get(m.contactId);
     if (!e) byContact.set(m.contactId, { last: m, lastIn: m.dir === "in" ? m : undefined });
     else {
