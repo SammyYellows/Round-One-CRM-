@@ -23,7 +23,7 @@ list comes up, until each is on or dropped.
 | Program day 10: the dip | Program members | Day 10 |
 | Program day 14: two-week check-in | Program members | Day 15 |
 | Program day 17: the second half | Program members | Day 17 |
-| Program day 21: a week to go, move to recurring | Program members | 7 days before the Program ends |
+| Program day 21: a week to go, move to recurring | Program members | Day 21 at 09:00 (timed from the start since 17/10) |
 | Program day 24: finish strong | Program members | Day 24 |
 | Program day 28: you did it | Program members | Day 28 |
 | Payment failed – update your details | Failed payments | TeamUp logs the third failed attempt |
@@ -35,15 +35,12 @@ list comes up, until each is on or dropped.
 
 **Done 08/10:** failed payments missed (Romel Rodriques) fixed. **11/10:** his duplicate Full Facility Access memberships are cancelled in TeamUp; one active since 05/01/2026.
 
-**Task: Program route 2 schedule** (people who sign up straight in
-TeamUp, never through the questionnaire). Built so far: only the day-1
-welcome. Waiting on Sammy (07/10, chose "something else"): the days after
-the TeamUp start date, a line on what each message says, and the channel
-(email is the only one that works for them until mobile numbers are
-added, since TeamUp gives none). Also say whether direct sign-ups who buy
-a recurring membership rather than the Program get the same messages.
-Claude then drafts each in Round One's voice as its own switched-off card
-on Program members.
+**Program messages ON (17/10, Sammy "1a, 2a"):** all ten switched on for
+everyone on a Program however they signed up (route 2 settled: same
+messages). The 16 already on a Program were started from where they were
+(`program_current`): 72 messages to come from Sun 18 Oct, 88 skipped as
+already gone. People who came through the CRM pipeline also still get the
+GymGrow "Intro Programme – welcome" when staff mark Sold – Programme.
 
 **15/10:** the Program WhatsApps now read word for word like their emails
 (the `_v2` templates, sent to Meta 15/10, pending). Days 21 and 28 lead with
