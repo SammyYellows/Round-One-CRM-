@@ -977,7 +977,7 @@ export function recordBlocks(s: State, blocked: string[] | undefined) {
     const isBlocked = !!c.teamup?.blocked;
     const open = m.blockTaskId ? s.tasks.find((t) => t.id === m.blockTaskId && !t.done) : undefined;
     if (open && (!failing || isBlocked)) {
-      open.done = true;
+      completeTask(s, open.id, "The CRM (blocked in TeamUp or paid)");
       cleared++;
     }
     if (!failing) {
@@ -1011,7 +1011,7 @@ export function removeContact(s: State, contactId: string, by = "Staff") {
   const now = nowMs(s);
   for (const a of s.appointments) if (a.contactId === c.id && (a.status === "booked" || a.status === "confirmed") && Date.parse(a.start) > now) a.status = "cancelled";
   c.trialAt = undefined;
-  for (const t of s.tasks) if (t.contactId === c.id && !t.done) t.done = true;
+  for (const t of s.tasks) if (t.contactId === c.id && !t.done) completeTask(s, t.id, `${by} (removed ${c.name})`);
   log(s, "contact.removed", c.id, `${by} removed ${c.name} from the CRM`);
 }
 
@@ -1145,9 +1145,14 @@ export function addTask(s: State, input: { id: string; contactId?: string; text:
   log(s, "task.created", input.contactId, `To do: ${text}`);
 }
 
-export function completeTask(s: State, taskId: string) {
+/** A task confirmed as done (Sammy, 17/10/2026): kept with who cleared it and when, for the log on /tasks. */
+export function completeTask(s: State, taskId: string, by = "The CRM") {
   const t = s.tasks.find((x) => x.id === taskId);
-  if (t) t.done = true;
+  if (!t || t.done) return;
+  t.done = true;
+  t.doneAt = nowIso(s);
+  t.doneBy = by;
+  log(s, "task.completed", t.contactId, `${by} cleared the to-do: ${t.text}`);
 }
 
 /** Stop (or allow again) marketing messages to someone. Messages about their own booking or membership still go. */

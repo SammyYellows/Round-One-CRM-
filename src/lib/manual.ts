@@ -48,13 +48,13 @@ Ask **Champ** (**Ask Champ**, in red, second in the menu). It knows this manual,
 - Use **Champ** to find anyone or anything instead of searching TeamUp.
 
 ### Before you go
-- Tick off tasks you've done in **Needs you** on Today.
+- When a task in **Needs you** on Today is done, press **Clear**, then **Yes, it’s done**.
 - Anyone you've spoken to in person about something important: add a note on their contact page.`,
   },
   {
     slug: "today", title: "Today", who: "everyone",
     summary: "The home screen: what needs you, trials coming up, and how leads are doing.",
-    body: `- **Needs you** (top left): WhatsApp, Facebook and Instagram messages waiting for a reply, then tasks for staff. Tasks stay until someone ticks **Done**; nothing clears them overnight. Ten show at a time and the total is written at the top, so as you tick them off the next ones appear. The line under the heading changes through the day. Tasks are made by the CRM: a member hasn't been in, a check-in needs a reply, a cancellation, or a message. When an email or WhatsApp comes in that needs something doing beyond a reply (book them in, call back, sort a payment in TeamUp), or a reply we send promises something ("I'll check and get back to you"), the AI writes it as a task here. Tick **Done** once it's sorted.
+    body: `- **Needs you** (top left): WhatsApp, Facebook and Instagram messages waiting for a reply, then tasks for staff. Tasks stay until someone clears them; nothing clears them overnight. Ten show at a time and the total is written at the top, so as you tick them off the next ones appear. The line under the heading changes through the day. Tasks are made by the CRM: a member hasn't been in, a check-in needs a reply, a cancellation, or a message. When an email or WhatsApp comes in that needs something doing beyond a reply (book them in, call back, sort a payment in TeamUp), or a reply we send promises something ("I'll check and get back to you"), the AI writes it as a task here. Once it's sorted, press **Clear** and confirm with **Yes, it’s done** (Cancel if you pressed it by mistake). **Completed to-dos**, the link under the list, shows every task that's been cleared, when, and by whom, newest first.
 - **Appointments** (under the tiles, top right) and **Trials this week**: intro meetings booked.
 - **Members** (under Appointments): members now, growth in the last 30 days, who's dropping off, where we'll be at this rate, and members at the end of each month. From TeamUp, updated overnight; the same numbers as Reports.
 - The four tiles (top right) and the charts (leads in the last 7 days, trials, show-up rate, where leads come from, which ads book trials) show how the sales side is going.

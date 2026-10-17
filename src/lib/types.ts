@@ -297,6 +297,7 @@ export type EventType =
   | "email.received" // an enquiry came in to info@ (docs/email-enquiries.md)
   | "email.replied" // staff sent the reply
   | "task.created"
+  | "task.completed"
   | "automation.stopped"
   | "automation.changed" // staff changed an automation's wording or switched it on or off
   | "accountability.joined" // they filled in the commitment form
@@ -454,6 +455,10 @@ export interface Task {
   text: string;
   done: boolean;
   at: string;
+  // Who cleared it and when (Sammy, 17/10/2026: a log of every task
+  // confirmed as complete). The CRM's own tick-offs say what did it.
+  doneAt?: string;
+  doneBy?: string;
 }
 
 // Spend, impressions, clicks and leads come from the Meta Marketing API, per

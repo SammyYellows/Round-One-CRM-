@@ -1,7 +1,7 @@
 "use client";
 
 import { showText } from "@/lib/messageText";
-import { useIsManager } from "@/components/StaffContext";
+import { useIsManager, useStaff } from "@/components/StaffContext";
 import Link from "next/link";
 import { BarList, ColumnChart, MembersLine, Meter, Sparkline } from "@/components/charts";
 import { pounds } from "@/components/TillSales";
@@ -90,6 +90,9 @@ export default function TodayPage() {
   const shownTasks = openTasks.slice(0, Math.max(0, NEEDS_SHOWN - shownWaiting.length));
 
   // The till, for management only (Sammy, 14/10/2026): taken today and the cash that should be in it.
+  // The to-do waiting for "Has this been done?" (Sammy, 17/10/2026).
+  const [clearing, setClearing] = useState<string | null>(null);
+  const me = useStaff();
   const [till, setTill] = useState<{ connected: boolean; today?: { total: number; sales: number }; inTill?: { expected: number } | null } | null>(null);
   useEffect(() => {
     if (!live || !manager) return;
@@ -155,11 +158,24 @@ export default function TodayPage() {
                 <div className="strong">{t.text}</div>
                 <div className="small muted">{ago(t.at, now)}</div>
               </div>
-              {t.contactId && <Link className="btn btn-ghost btn-sm" href={`/contacts/${t.contactId}`}>Open</Link>}
-              <button className="btn btn-ghost btn-sm" onClick={() => act("completeTask", t.id)}>Done</button>
+              {clearing === t.id ? (
+                <div className="enq-confirm" role="alertdialog" style={{ flexShrink: 0 }}>
+                  <div className="small strong">Has this been done?</div>
+                  <div style={{ display: "flex", gap: 6 }}>
+                    <button className="btn btn-red btn-sm" onClick={() => { act("completeTask", t.id, me?.name ?? "Staff"); setClearing(null); }}>Yes, it’s done</button>
+                    <button className="btn btn-ghost btn-sm" onClick={() => setClearing(null)}>Cancel</button>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  {t.contactId && <Link className="btn btn-ghost btn-sm" href={`/contacts/${t.contactId}`}>Open</Link>}
+                  <button className="btn btn-ghost btn-sm" onClick={() => setClearing(t.id)}>Clear</button>
+                </>
+              )}
             </div>
           ))}
           {needsTotal === 0 && <div className="empty">Nothing waiting on you.</div>}
+          <div className="small" style={{ padding: "10px 22px 14px" }}><Link href="/tasks" style={{ textDecoration: "underline" }}>Completed to-dos</Link></div>
         </section>
 
         <div style={{ display: "flex", flexDirection: "column", gap: 16, minWidth: 0 }}>
