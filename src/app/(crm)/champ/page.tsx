@@ -20,7 +20,7 @@ const STARTERS = [
   "Who hasn’t been in for three weeks?",
   "What classes are on tomorrow and how full are they?",
   "Who owes money at the moment?",
-  "Give me a 45-minute beginners’ boxing class plan",
+  "Give me an hour-long BoxFIT plan: boxing mixed with circuit training",
   "How do I handle “it’s too expensive” in an intro meeting?",
   "Book Sarah onto tomorrow’s 6pm Boxfit",
 ];
