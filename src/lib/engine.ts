@@ -985,6 +985,9 @@ export function recordBlocks(s: State, blocked: string[] | undefined) {
       continue;
     }
     if (isBlocked || m.blockTaskId || c.removed) continue;
+    // Never a second copy: an open one for this person is kept (and remembered) instead.
+    const already = s.tasks.find((t) => !t.done && t.contactId === c.id && / is blocked in TeamUp: /.test(t.text));
+    if (already) { c.membership = { ...m, blockTaskId: already.id }; continue; }
     const text = `Check ${c.name} is blocked in TeamUp: ${m.paymentRetries} failed payment attempts on ${m.name}. Block Customer is on their TeamUp profile; this ticks itself off once the CRM sees the block (nightly) or they pay.`;
     const id = uid();
     s.tasks.unshift({ id, contactId: c.id, text, done: false, at: nowIso(s) });
@@ -1218,6 +1221,7 @@ function backdate(c: Contact, createdAt?: string) {
  */
 export function importCustomers(s: State, inputs: CustomerInput[]) {
   let added = 0, updated = 0;
+  const ids = new Set(inputs.map((m) => m.customerId));
   for (const m of inputs) {
     let c =
       s.contacts.find((x) => x.teamup?.customerId === m.customerId) ??
@@ -1234,6 +1238,10 @@ export function importCustomers(s: State, inputs: CustomerInput[]) {
       if (c.source === "teamup") backdate(c, m.createdAt);
       updated++;
     }
+    // Two TeamUp customers can share an email (Jason and Bobby Browne, a parent
+    // and child, or one person with two accounts): the one already tied to
+    // the contact stays, so it doesn't swap every sync (17/10/2026).
+    if (c.teamup?.customerId && c.teamup.customerId !== m.customerId && ids.has(c.teamup.customerId)) continue;
     c.teamup = { customerId: m.customerId, status: m.status, createdAt: m.createdAt, syncedAt: nowIso(s), ...(c.teamup?.blocked !== undefined ? { blocked: c.teamup.blocked } : {}) };
   }
   return { added, updated };
@@ -1270,7 +1278,29 @@ export function importMembers(s: State, inputs: MemberInput[], opts: { baseline?
     if (!cur || (m.paymentRetries ?? 0) > cur.retries) worst.set(m.customerId, { retries: m.paymentRetries ?? 0, name: m.membershipName });
   }
   let added = 0, updated = 0, started = 0, ended = 0;
+  // Customers who share a contact (the same email: a parent and child, or one
+  // person with two accounts) give it one membership, the best of theirs, the
+  // same every sync. Before 17/10/2026 the last one read won, so the contact
+  // swapped between them each hour and lost track of its to-dos.
+  const find = (m: MemberInput) =>
+    s.contacts.find((x) => x.membership?.customerId === m.customerId) ??
+    s.contacts.find((x) => x.teamup?.customerId === m.customerId) ??
+    (m.email ? s.contacts.find((x) => x.email && x.email.toLowerCase() === m.email) : undefined) ??
+    (m.phone ? s.contacts.find((x) => samePhone(x.phone, m.phone)) : undefined);
+  // A failing payment comes first, so it's never hidden behind a family member's paid-up membership.
+  const failingOf = (x: MemberInput) => x.status !== "ended" && Math.max(x.paymentRetries ?? 0, worst.get(x.customerId)?.retries ?? 0) >= PAYMENT_FAILED_AT ? 1 : 0;
+  const rankOf = (x: MemberInput) => failingOf(x) * 1e14 + (x.status === "active" ? 2 : x.status === "on_hold" ? 1 : 0) * 1e13 + (x.startedAt ? Date.parse(x.startedAt) : 0);
+  const perContact = new Map<string, MemberInput>();
   for (const m of best.values()) {
+    const c = find(m);
+    if (!c) continue;
+    const cur = perContact.get(c.id);
+    if (!cur || rankOf(m) > rankOf(cur) || (rankOf(m) === rankOf(cur) && m.customerId < cur.customerId)) perContact.set(c.id, m);
+  }
+  const chosen = new Set(perContact.values());
+  for (const m of best.values()) {
+    const owner = find(m);
+    if (owner && !chosen.has(m)) continue; // another customer on this contact has the better membership
     const failing = worst.get(m.customerId);
     if (failing && failing.retries > (m.paymentRetries ?? 0)) m.paymentRetries = failing.retries;
     let c =
